@@ -32,8 +32,7 @@ fi
 function strippath {
 	# first, remember where sed is if we stripped the path to it!
 	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
-	PATH=`echo ${PATH}|${SED} -e "s?:${1}??g"`
-	PATH=`echo ${PATH}|${SED} -e "s?${1}:??g"`
+	PATH=`echo :${PATH}:|${SED} -e "s%:${1}:%:%g"|${SED} -e "s%^:\\\|:\$%%g"`
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
@@ -56,10 +55,11 @@ function pathprepend {
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
+	strippath ${HOME}/bin
 	pathprepend /sbin
 	pathprepend /usr/sbin
 	pathprepend /usr/local/sbin
-#	pathprepend /bin this is currently dangerous to do, strippath needs work
+	pathprepend /bin
 	pathprepend /usr/bin
 	pathprepend /usr/kerberos/bin # iunno, it's like redhat now...
 	pathprepend /usr/local/bin
@@ -201,8 +201,9 @@ function gethostinfo {
 	if [ `expr match ${CPU} i.86` == 4 ]; then
 		CPU="x86"
 	fi
-
 	# while we're here, find 'which' and see if it works
+	# first, remove any alias which may have had
+	dealias which
 	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
 	WSTR=`which --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
 	# 1 0 - which returned an error, grep did not - bad which
@@ -381,22 +382,23 @@ function push2host {
 
 # httpsnarf # quick and dirty http(s) fetch [https requires openssl]
 function httpsnarf {
+	HTTP_PURI=`echo ${1}|sed s@https*://@@`
+	HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
+	HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
+	if [ "x${HTTP_PATH}" = "x" ]; then
+		HTTP_PATH="/"
+	fi
+	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
 	if [[  ( `expr match ${1} https` = 5 ) ]]; then
 		chkcmd openssl
 		if [ ${?} == 0 ]; then
-			openssl s_client -connect ${host}:443 #what is the rest of this command?
+			echo -ne $HTTP_REQ|openssl s_client -connect ${HTTP_HOST}:443 -quiet 2> /dev/null
 		else
 			echo "I don't have openssl here, sorry."
 		fi
 	else
-		HTTP_PURI=`echo ${1}|sed s@http://@@`
-		HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
-		HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
-		if [ "x${HTTP_PATH}" = "x" ]; then
-			HTTP_PATH="/"
-		fi
 		exec 5<>/dev/tcp/${HTTP_HOST}/80
-		echo -ne "GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\n\n">&5
+		echo -ne $HTTP_REQ>&5
 		cat <&5
 	fi
 }
