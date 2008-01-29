@@ -11,9 +11,10 @@ if [ ${RCDIR} == "." ]; then
 	RCPATH=${PWD}/${RCPATH}
 fi
 
-REAL_RC=`readlink ${RCPATH}`
-if [ ${?} == "0" ]; then
-	RCPATH=${REAL_RC}
+# is this a link? where is the real file?
+# oh, and THANKS SO MUCH SOLARIS for not having readlink!
+if [ -h ${RCPATH} ]; then
+	RCPATH=`ls -l ${RCPATH}|awk -F' -> ' '{print $2}'`
 fi
 
 # possible locations for aux files, first one listed wins
@@ -30,9 +31,11 @@ fi
 
 # strippath - remove element from path
 function strippath {
-	# first, remember where sed is if we stripped the path to it!
-	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
-	PATH=`echo :${PATH}:|${SED} -e "s%:${1}:%:%g"|${SED} -e "s%^:\\\|:\$%%g"`
+	PATH=`echo :${PATH}:|${SED} "s?:${1}:?:?g"|${SED} "s?^:??g"|${SED} "s?:\\\$??g"`
+}
+
+function mpstrip {
+	MANPATH=`echo :${MANPATH}:|${SED} "s?:${1}:?:?g"|${SED} "s?^:??g"|${SED} "s?:\\+\\\$??g"`
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
@@ -45,6 +48,13 @@ function pathappend {
 	fi
 }
 
+function mpappend {
+	mpstrip ${1}
+	if [ -d ${1} ]; then
+		MANPATH="${MANPATH}:${1}"
+	fi
+}
+
 # pathprepend - add element to front of path, clearing other entries if needed
 function pathprepend {
 	strippath ${1}
@@ -53,16 +63,36 @@ function pathprepend {
 	fi
 }
 
+function mpprepend {
+	mpstrip ${1}
+	if [ -d ${1} ]; then
+		MANPATH="${1}:${MANPATH}"
+	fi
+}
+
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
-	strippath ${HOME}/bin
 	pathprepend /sbin
 	pathprepend /usr/sbin
 	pathprepend /usr/local/sbin
+	pathprepend /usr/dt/bin
+	pathprepend /usr/openwin/bin
 	pathprepend /bin
 	pathprepend /usr/bin
+	pathprepend /usr/xpg4/bin
+	pathprepend /usr/ucb
 	pathprepend /usr/kerberos/bin # iunno, it's like redhat now...
 	pathprepend /usr/local/bin
+}
+
+function set_manpath {
+	for dir in /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/local/share/man /usr/local/man; do
+		mpprepend ${dir}
+	done
+	for dir in `ls /opt`; do
+		mpappend /opt/${dir}/man
+	done
+	export MANPATH
 }
 
 ## internal functions
@@ -193,7 +223,7 @@ function gethostinfo {
 		sunos)
 			CPU=`uname -p|tr [:upper:] [:lower:]`
 			if [ $MVER == 5 ]; then
-				OPSYS = "solaris"
+				OPSYS="solaris"
 			fi
 			;;
 	esac
@@ -201,36 +231,51 @@ function gethostinfo {
 	if [ `expr match ${CPU} i.86` == 4 ]; then
 		CPU="x86"
 	fi
+
 	# while we're here, find 'which' and see if it works
-	# first, remove any alias which may have had
 	dealias which
-	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
-	WSTR=`which --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
+	REAL_WHICH=`which which`
+	if [ ! -n "$REAL_WHICH" ]; then
+		REAL_WHICH="/usr/bin/which" # Pray!
+	fi
+	WSTR=`${REAL_WHICH} --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
 	# 1 0 - which returned an error, grep did not - bad which
 	# 1 1 - which returned an error, grep did too - bad which (?)
 	# 0 1 - which success, grep returned an error - good which
 	# 0 0 - which success, grep success           - EVIL WHICH!
 	# su too
 	REAL_SU=`${REAL_WHICH} su`
+	# sed three
+	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
 }
 
 # getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
 function getuserinfo {
-	if [ ${OPSYS} == "cygwin" ]; then
-		#?# hardcoded RID here...
-		id -G | grep 544 >& /dev/null
-		if [ $? == 0 ]; then
-			HD='#'
-		else
-			HD='$'
-		fi
-	else
-		if [ `id -u` == "0" ]; then
-			HD='#'
-		else
-			HD='$'
-		fi
-	fi
+	case ${OPSYS} in
+		cygwin*)
+			#?# hardcoded RID here...
+			id -G | grep 544 >& /dev/null
+			if [ $? == 0 ]; then
+				HD='#'
+			else
+				HD='$'
+			fi
+			;;
+		solaris)
+			if [ `/usr/xpg4/bin/id -u` == "0" ]; then
+				HD='#'
+			else
+				HD='$'
+			fi
+			;;
+		*)
+			if [ `id -u` == "0" ]; then
+				HD='#'
+			else
+				HD='$'
+			fi
+			;;
+	esac
 }
 
 # hostsetup - call host/os-specific subscripts
@@ -266,17 +311,19 @@ function zapenv {
 	unset -f kickenv
 	unset -f colordef
 	unset -f matchstart
+	unset -f set_manpath
 	unset -f zapenv
 }
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
+	gethostinfo # set REAL_WHICH!!
 	pathsetup
-	gethostinfo
 	hostsetup # to extend path, at least for solaris
 	getuserinfo
 	getterminfo
 	colordefs
+	set_manpath
 	pbinsetup
 	zapenv
 }
@@ -382,23 +429,22 @@ function push2host {
 
 # httpsnarf # quick and dirty http(s) fetch [https requires openssl]
 function httpsnarf {
-	HTTP_PURI=`echo ${1}|sed s@https*://@@`
-	HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
-	HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
-	if [ "x${HTTP_PATH}" = "x" ]; then
-		HTTP_PATH="/"
-	fi
-	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
 	if [[  ( `expr match ${1} https` = 5 ) ]]; then
 		chkcmd openssl
 		if [ ${?} == 0 ]; then
-			echo -ne $HTTP_REQ|openssl s_client -connect ${HTTP_HOST}:443 -quiet 2> /dev/null
+			openssl s_client -connect ${host}:443 #what is the rest of this command?
 		else
 			echo "I don't have openssl here, sorry."
 		fi
 	else
+		HTTP_PURI=`echo ${1}|sed s@http://@@`
+		HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
+		HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
+		if [ "x${HTTP_PATH}" = "x" ]; then
+			HTTP_PATH="/"
+		fi
 		exec 5<>/dev/tcp/${HTTP_HOST}/80
-		echo -ne $HTTP_REQ>&5
+		echo -ne "GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\n\n">&5
 		cat <&5
 	fi
 }
@@ -425,6 +471,11 @@ function monolith_setfunc {
 				echo -n ' '
 			}
 			;;
+		solaris)
+			function pscount {
+				echo -n `expr \`ps aux|wc -l\` - 5`' '
+			}
+			;;
 		*)
 			# do nothing...
 			;;
@@ -443,15 +494,34 @@ function monolith_setcolors {
 }
 
 function monolith_aliases {
-	alias ll='ls -FlAh --color=tty'
-	alias ls='ls --color=tty'
-	alias vi='vim'
-	alias cls='clear'
-	alias start='cygstart'
+	case ${OPSYS} in
+		cygwin*)
+			alias ll='ls -FlAh --color=tty'
+			alias ls='ls --color=tty -h'
+			alias vi='vim'
+			alias cls='clear'
+			alias start='cygstart'
+			alias du='du -h'
+			alias df='df -h'
+			;;
+		linux)
+			alias ll='ls -FlAh --color=tty'
+			alias ls='ls --color=tty -h'
+			alias vi='vim'
+			alias cls='clear'
+			alias du='du -h'
+			alias df='df -h'
+			;;
+		*)
+			alias ll='ls -FlAh'
+			alias cls='clear'
+			;;
+	esac
 }
 
 # export the prompt
 function monolith_setprompt {
+	PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 	case ${TERM_COLORSET} in
 		bold)
 			PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_BR}"'`pscount`'"${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
@@ -476,5 +546,19 @@ kickenv
 monolith_setfunc
 monolith_setcolors
 monolith_aliases
+
+if [ $PS1 ]; then
+	lyricsfile=${HOME}/.fortune/song-lyrics
+	if [ -f ${lyricsfile} ]; then
+		chkcmd strfile
+		if [ ${?} == "0" ]; then
+			if test ${lyricsfile} -nt ${lyricsfile}.dat; then
+				strfile ${lyricsfile} >& /dev/null
+			fi
+			fortune ${lyricsfile}
+		fi
+	fi
+fi
 monolith_setprompt
+
 monolith_cleanup
