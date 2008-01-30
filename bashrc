@@ -13,9 +13,12 @@ fi
 
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
-if [ -h ${RCPATH} ]; then
+if [ -h "${RCPATH}" ]; then
 	RCPATH=`ls -l ${RCPATH}|awk -F' -> ' '{print $2}'`
 fi
+
+## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
+#BASHRC_DEBUG="yes"
 
 # possible locations for aux files, first one listed wins
 if [ -d ${HOME}/.bash.d ]; then
@@ -26,16 +29,25 @@ elif [ -d /usr/local/etc/bash.d ]; then
 	BASHFILES="/etc/bash.d"
 fi
 
+# qnd debug function
+function print_debug {
+	if [ ${BASHRC_DEBUG} ]; then
+		echo ${1}
+	fi
+}
+
 ## path functions
 #?# TEST: do these work for directories with spaces?
 
 # strippath - remove element from path
 function strippath {
-	PATH=`echo :${PATH}:|${SED} "s?:${1}:?:?g"|${SED} "s?^:??g"|${SED} "s?:\\\$??g"`
+	print_debug "Stripping ${1}"
+	PATH=`echo :${PATH}:|${SED} "s?:${1}:?:?g"|${SED} "s%^:\\\|:\$%%g"`
+	print_debug stripped...
 }
 
 function mpstrip {
-	MANPATH=`echo :${MANPATH}:|${SED} "s?:${1}:?:?g"|${SED} "s?^:??g"|${SED} "s?:\\+\\\$??g"`
+	MANPATH=`echo :${MANPATH}:|${SED} "s?:${1}:?:?g"|${SED} "s%^:\\\|:\$%%g"`
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
@@ -89,9 +101,11 @@ function set_manpath {
 	for dir in /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/local/share/man /usr/local/man; do
 		mpprepend ${dir}
 	done
-	for dir in `ls /opt`; do
-		mpappend /opt/${dir}/man
-	done
+	if [ -d /opt ]; then
+		for dir in `ls /opt`; do
+			mpappend /opt/${dir}/man
+		done
+	fi
 	export MANPATH
 }
 
@@ -234,10 +248,7 @@ function gethostinfo {
 
 	# while we're here, find 'which' and see if it works
 	dealias which
-	REAL_WHICH=`which which`
-	if [ ! -n "$REAL_WHICH" ]; then
-		REAL_WHICH="/usr/bin/which" # Pray!
-	fi
+	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
 	WSTR=`${REAL_WHICH} --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
 	# 1 0 - which returned an error, grep did not - bad which
 	# 1 1 - which returned an error, grep did too - bad which (?)
@@ -317,14 +328,23 @@ function zapenv {
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
+	print_debug gethostinfo
 	gethostinfo # set REAL_WHICH!!
+	print_debug pathsetup
 	pathsetup
+	print_debug hostsetup
 	hostsetup # to extend path, at least for solaris
+	print_debug getuserinfo
 	getuserinfo
+	print_debug getterminfo
 	getterminfo
+	print_debug colordefs
 	colordefs
+	print_debug set_manpath
 	set_manpath
+	print_debug pbinsetup
 	pbinsetup
+	print_debug zapenv
 	zapenv
 }
 
@@ -429,22 +449,24 @@ function push2host {
 
 # httpsnarf # quick and dirty http(s) fetch [https requires openssl]
 function httpsnarf {
+	HTTP_PURI=`echo ${1}|sed s@https://@@`
+	HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'
+	HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@
+	if [ "x${HTTP_PATH}" = "x" ]; then
+		HTTP_PATH="/"
+	fi
+	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
+
 	if [[  ( `expr match ${1} https` = 5 ) ]]; then
 		chkcmd openssl
 		if [ ${?} == 0 ]; then
-			openssl s_client -connect ${host}:443 #what is the rest of this command?
+			echo -ne ${HTTP_REQ}|openssl s_client -connect ${HTTP_HOST}:443 -quiet 2> /dev/null
 		else
 			echo "I don't have openssl here, sorry."
 		fi
 	else
-		HTTP_PURI=`echo ${1}|sed s@http://@@`
-		HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
-		HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
-		if [ "x${HTTP_PATH}" = "x" ]; then
-			HTTP_PATH="/"
-		fi
 		exec 5<>/dev/tcp/${HTTP_HOST}/80
-		echo -ne "GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\n\n">&5
+		echo -ne ${HTTP_REQ}>&5
 		cat <&5
 	fi
 }
@@ -503,6 +525,7 @@ function monolith_aliases {
 			alias start='cygstart'
 			alias du='du -h'
 			alias df='df -h'
+			alias cdw='cd "$USERPROFILE"'
 			;;
 		linux)
 			alias ll='ls -FlAh --color=tty'
@@ -547,12 +570,15 @@ monolith_setfunc
 monolith_setcolors
 monolith_aliases
 
-if [ $PS1 ]; then
+print_debug fortune
+if [ "$PS1" ]; then
 	lyricsfile=${HOME}/.fortune/song-lyrics
+	print_debug fortune_file
 	if [ -f ${lyricsfile} ]; then
 		chkcmd strfile
 		if [ ${?} == "0" ]; then
-			if test ${lyricsfile} -nt ${lyricsfile}.dat; then
+			print_debug cmp_fortune_mods
+			if [ ${lyricsfile} -nt ${lyricsfile}.dat ]; then
 				strfile ${lyricsfile} >& /dev/null
 			fi
 			fortune ${lyricsfile}
