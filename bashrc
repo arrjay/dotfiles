@@ -223,6 +223,8 @@ function getterminfo {
 # gethostinfo - initialize host variables for function use
 function gethostinfo {
 	#?# TEST: are all unames created equal?
+	#!# all trs are *not* created equal
+	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
 	HOST=`uname -n|tr [:upper:] [:lower:]|sed s/\\\..*//`
 	OPSYS=`uname -s|tr [:upper:] [:lower:]`
 	CPU=`uname -m|tr [:upper:] [:lower:]`
@@ -577,12 +579,15 @@ if [ "$PS1" ]; then
 	if [ -f ${lyricsfile} ]; then
 		chkcmd strfile
 		if [ ${?} == "0" ]; then
-			print_debug cmp_fortune_mods
-			if [ ${lyricsfile} -nt ${lyricsfile}.dat ]; then
-				strfile ${lyricsfile} >& /dev/null
-			fi
-			fortune ${lyricsfile}
+			function lyric {
+				print_debug cmp_fortune_mods
+				if [ ${lyricsfile} -nt ${lyricsfile}.dat ]; then
+					strfile ${lyricsfile} >& /dev/null
+				fi
+				fortune ${lyricsfile}
+			}
 		fi
+		lyric
 	fi
 fi
 monolith_setprompt
