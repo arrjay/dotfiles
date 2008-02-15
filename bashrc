@@ -88,6 +88,7 @@ function pathsetup {
 	pathprepend /etc
 	pathprepend /usr/etc
 	pathprepend /usr/sysadm/privbin
+	pathprepend /usr/games
 	pathprepend /sbin
 	pathprepend /usr/sysadm/bin
 	pathprepend /usr/sbin
@@ -95,6 +96,7 @@ function pathsetup {
 	pathprepend /usr/dt/bin
 	pathprepend /usr/openwin/bin
 	pathprepend /usr/bin/X11
+	pathprepend /usr/X11R6/bin
 	pathprepend /bin
 	pathprepend /usr/bin
 	pathprepend /usr/xpg4/bin
@@ -589,6 +591,11 @@ function monolith_setfunc {
 		irix)
 			function pscount {
 				echo -n `expr \`ps -ef|wc -l\` - 6`' '
+			}
+			;;
+		openbsd)
+			function pscount {
+				echo -n `expr \`ps ax|wc -l\` - 6`' '
 			}
 			;;
 		*)
