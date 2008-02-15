@@ -42,8 +42,9 @@ function print_debug {
 # strippath - remove element from path
 function strippath {
 	print_debug "Stripping ${1}"
-	PATH=`echo :${PATH}:|${SED} "s?:${1}:?:?g"|${SED} "s%^:\\\|:\$%%g"`
+	PATH=`echo :${PATH}:|${SED} "s?:${1}:?:?g"|${SED} "s%^:%%g"|${SED} "s%:\$%%g"`
 	print_debug stripped...
+	print_debug '['${PATH}']'
 }
 
 function mpstrip {
@@ -84,17 +85,31 @@ function mpprepend {
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
+	pathprepend /etc
+	pathprepend /usr/etc
+	pathprepend /usr/sysadm/privbin
 	pathprepend /sbin
+	pathprepend /usr/sysadm/bin
 	pathprepend /usr/sbin
 	pathprepend /usr/local/sbin
 	pathprepend /usr/dt/bin
 	pathprepend /usr/openwin/bin
+	pathprepend /usr/bin/X11
 	pathprepend /bin
 	pathprepend /usr/bin
 	pathprepend /usr/xpg4/bin
+	pathprepend /usr/bsd
 	pathprepend /usr/ucb
 	pathprepend /usr/kerberos/bin # iunno, it's like redhat now...
+	pathprepend /usr/nekoware/bin
+	pathprepend /opt/local/bin
 	pathprepend /usr/local/bin
+	if [ ${OPSYS} == "cygwin" ]; then
+		SystemDrive=`cygpath ${SYSTEMDRIVE}`
+		ProgramFiles=`cygpath ${PROGRAMFILES}`
+		SystemRoot=`cygpath ${SYSTEMROOT}`
+		pathappend ${SystemDrive}/bin
+	fi
 }
 
 function set_manpath {
@@ -105,6 +120,9 @@ function set_manpath {
 		for dir in `ls /opt`; do
 			mpappend /opt/${dir}/man
 		done
+	fi
+	if [ ${OPSYS} == "cygwin" ]; then
+		mpappend ${SystemRoot}/man
 	fi
 	export MANPATH
 }
@@ -224,12 +242,14 @@ function getterminfo {
 function gethostinfo {
 	#?# TEST: are all unames created equal?
 	#!# all trs are *not* created equal
+	print_debug trtest
 	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
 	HOST=`uname -n|tr [:upper:] [:lower:]|sed s/\\\..*//`
 	OPSYS=`uname -s|tr [:upper:] [:lower:]`
 	CPU=`uname -m|tr [:upper:] [:lower:]`
 	MVER=`uname -r|awk -F. '{ print $1 }'` # x
-	LVER=`uname -r|awk -F. '{ print $1$2 }'` # x.x
+	LVER=`uname -r|sed 's/-.*$//'|awk -F. '{ print $1$2 }'` # x.x
+	print_debug case_opsys
 	case $OPSYS in
 		# hack around cygwin including the Windows ver
 		cygwin*)
@@ -244,11 +264,13 @@ function gethostinfo {
 			;;
 	esac
 
-	if [ `expr match ${CPU} i.86` == 4 ]; then
+	print_debug x86_check
+	if [ ${CPU:2} == 86 ] && [ ${CPU:0:1} == "i" ]; then
 		CPU="x86"
 	fi
 
 	# while we're here, find 'which' and see if it works
+	print_debug which_hacking
 	dealias which
 	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
 	WSTR=`${REAL_WHICH} --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
@@ -256,8 +278,10 @@ function gethostinfo {
 	# 1 1 - which returned an error, grep did too - bad which (?)
 	# 0 1 - which success, grep returned an error - good which
 	# 0 0 - which success, grep success           - EVIL WHICH!
+	print_debug su_hacking
 	# su too
 	REAL_SU=`${REAL_WHICH} su`
+	print_debug sed_hacking
 	# sed three
 	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
 }
@@ -315,7 +339,6 @@ function pbinsetup {
 # zapenv - kill all environment setup routines, including itself(!)
 function zapenv {
 	unset -f pathsetup
-	unset -f v_alias
 	unset -f getterminfo
 	unset -f gethostinfo
 	unset -f getuserinfo
@@ -452,12 +475,12 @@ function push2host {
 # httpsnarf # quick and dirty http(s) fetch [https requires openssl]
 function httpsnarf {
 	HTTP_PURI=`echo ${1}|sed s@https://@@`
-	HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'
-	HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@
+	HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
+	HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
 	if [ "x${HTTP_PATH}" = "x" ]; then
 		HTTP_PATH="/"
 	fi
-	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
+	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nUser-Agent: JBashRc (4.5; ${OPSYS}${LVER} ${CPU}; ${COLUMNS}x${LINES})\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
 
 	if [[  ( `expr match ${1} https` = 5 ) ]]; then
 		chkcmd openssl
@@ -473,13 +496,70 @@ function httpsnarf {
 	fi
 }
 
+# http_dechunk # pseudo-dechunker for http
+function http_dechunk {
+	setter=-u
+	if shopt -q nocasematch; then
+		setter=-s
+	fi
+	chunklen=0
+	is_chunked=0
+	hdr_line=0
+	shopt -s nocasematch
+	while read line; do
+		#line=${line%}
+		if [[ ${line} =~ '^transfer-encoding:.*chunked;?.*' ]]; then
+			is_chunked=1
+			line=`echo ${line}|sed 's/[Cc]hunked;*//'`
+			if [[ ! ${line} =~ '^transfer-encoding: *$' ]]; then
+				echo ${line}
+			fi
+		fi
+		if [[ (${chunklen} == 0 && (${hdr_line} == 1 && ${line} != "0")) ]]; then
+			chunklen=${line%}
+		elif [[ ! ${line} == "0" ]]; then
+			echo ${line}
+		fi
+		if [[ ${line} =~ '^$' ]]; then
+			hdr_line=1
+		fi
+	done
+	shopt $setter nocasematch
+}
+
+# http_striphdr # this is *supposed* to remove the http header bits, but I'm not guaranteeing it.
+function http_striphdr {
+	hdr_line=0
+	while read line; do
+		if [ ${hdr_line} == 1 ]; then
+			echo ${line}
+		fi
+		if [[ ${line} =~ '^$' ]]; then
+			hdr_line=1
+		fi
+	done
+}
+
+# http_stripcontent # only show http headers. maybe.
+function http_stripcontent {
+	hdr_line=0
+	while read line; do
+		if [[ ${line} =~ '^$' ]]; then
+			hdr_line=1
+		fi
+		if [ ! ${hdr_line} == 1 ]; then
+			echo ${line}
+		fi
+	done
+}
+
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
 	case $OPSYS in
 		linux)
 			# redifine linux-specific functions
 			function pscount {
-				echo -n `expr \`ps aux|wc -l\` - 6`' '
+				echo -n `expr \`ps ax|wc -l\` - 6`' '
 			}
 			;;
 		cygwin)
@@ -497,7 +577,18 @@ function monolith_setfunc {
 			;;
 		solaris)
 			function pscount {
-				echo -n `expr \`ps aux|wc -l\` - 5`' '
+				echo -n `expr \`ps a|wc -l\` - 5`' '
+			}
+			;;
+		freebsd)
+			function pscount {
+				# try to exclude kernel threads
+				echo -n `expr \`ps ax|grep -v '[0-9] \['|wc -l\` - 7`' '
+			}
+			;;
+		irix)
+			function pscount {
+				echo -n `expr \`ps -ef|wc -l\` - 6`' '
 			}
 			;;
 		*)
@@ -518,16 +609,49 @@ function monolith_setcolors {
 }
 
 function monolith_aliases {
+	# we actually set PAGER/EDITOR here as well
+	chkcmd less
+	if [ ${?} == 0 ]; then
+		export PAGER=less
+	fi
+	chkcmd vim
+	if [ ${?} == 0 ]; then
+		export EDITOR=vim
+	fi
+	# try to call coreutils & friends
+	v_alias ls gls
+	v_alias cp gcp
+	v_alias mv gmv
+	v_alias rm grm
+	v_alias df gdf
+	v_alias du gdu
+	v_alias id gid
+	v_alias tail gtail
+	v_alias md5sum gmd5sum
+	v_alias vi vim
+	v_alias expr gexpr
+	v_alias chgrp gchgrp
+	v_alias chown gchown
+	v_alias chmod gchmod
+	v_alias find gfind
+	v_alias lynx links
+	v_alias more less
+	v_alias watch cmdwatch
+	v_alias man pinfo
+	
+	# common custom aliases
+	alias path='echo ${PATH}'
+	alias cls='clear'
+
 	case ${OPSYS} in
 		cygwin*)
 			alias ll='ls -FlAh --color=tty'
 			alias ls='ls --color=tty -h'
-			alias vi='vim'
-			alias cls='clear'
 			alias start='cygstart'
 			alias du='du -h'
 			alias df='df -h'
 			alias cdw='cd "$USERPROFILE"'
+			v_alias ping ${SystemRoot}/system32/ping.exe
 			;;
 		linux)
 			alias ll='ls -FlAh --color=tty'
@@ -539,7 +663,6 @@ function monolith_aliases {
 			;;
 		*)
 			alias ll='ls -FlAh'
-			alias cls='clear'
 			;;
 	esac
 }
