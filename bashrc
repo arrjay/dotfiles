@@ -1,5 +1,19 @@
 #!/bin/bash
-#!# If we run into bash 2.x, we die. I'm not sure I care...
+
+# WARNING! ACHTUNG! NOTICE!
+# This script has control characters embedded in it!
+# If you try to use anyth 'intelligent' editor on it, you have a good chance
+# of mangling them! This will show as errors in parsing .httpfuncs.sh ...
+# I use vi...
+
+#!# If we run into bash 2.x, we get /weird/. I'm not sure I care...
+#!# though I did some trickery with here documents to make bash 2.x not
+#!# parse 3+ regexp operators.
+
+#!# This whole shuffling about with 'read' is an attempt to not fork
+#!# unnecessary processes. fork under cygwin is sloooow. so use builtins
+#!# where you can, even if it makes it less clear.
+
 # prescribe pills to offset the shakes to offset the pills you know you should take it a day at a time
 #             panic! at the disco - "nails for breakfast, tacks for snacks"
 
@@ -16,6 +30,11 @@ fi
 if [ -h "${RCPATH}" ]; then
 	RCPATH=`ls -l ${RCPATH}|awk -F' -> ' '{print $2}'`
 fi
+
+# version information
+JBVER="4.5.3.2"
+JBVERSTRING='jBashRc v'${JBVER}'(u)'
+JBSVNID='$Id$'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -400,6 +419,21 @@ function pscount {
 	echo -n "-255 "
 }
 
+function .properties {
+	echo -n ${JBVERSTRING}
+	if [[ ( `expr match ${RCPATH} ${HOME}` == ${#HOME} ) ]]; then
+		echo ' Personal Edition'
+	else
+		echo ' System Edition'
+	fi
+	if [[ ! x${JBSVNID} == 'x$Id$' ]]; then
+		echo 'from SVN: '${JBSVNID}
+	fi
+	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}
+	echo 'RCFile: '${RCPATH}
+	echo 'using bash '${BASH_VERSION}
+}
+
 # overloaded commands
 # (m)which - which with function expansion (when possible)
 function mwhich {
@@ -482,7 +516,7 @@ function httpsnarf {
 	if [ "x${HTTP_PATH}" = "x" ]; then
 		HTTP_PATH="/"
 	fi
-	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nUser-Agent: JBashRc (4.5; ${OPSYS}${LVER} ${CPU}; ${COLUMNS}x${LINES})\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
+	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nUser-Agent: JBashRc (${JBVER}; ${OPSYS}${LVER} ${CPU}; ${COLUMNS}x${LINES})\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
 
 	if [[  ( `expr match ${1} https` = 5 ) ]]; then
 		chkcmd openssl
@@ -498,6 +532,10 @@ function httpsnarf {
 	fi
 }
 
+# following functions require bash 3.x
+if [[ ${BASH_VERSION/.*/} -gt 2 ]]; then
+(
+cat <<\HTTPFUNCS
 # http_dechunk # pseudo-dechunker for http
 function http_dechunk {
 	setter=-u
@@ -554,6 +592,10 @@ function http_stripcontent {
 		fi
 	done
 }
+HTTPFUNCS
+) > ${HOME}/.httpfuncs.sh
+. ${HOME}/.httpfuncs.sh
+fi
 
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
@@ -576,10 +618,24 @@ function monolith_setfunc {
 				cscript //nologo ${PSCVBS}
 				echo -n ' '
 			}
+			# fake getent - call mkpasswd/mkgroup as appropriate
+			function getent {
+				case ${1} in
+					passwd)
+						mkpasswd.exe -du ${2}
+						;;
+					group)
+						mkgroup.exe -du ${2}
+						;;
+					*)
+						echo 'Wha?'
+						;;
+				esac
+			}
 			;;
 		solaris)
 			function pscount {
-				echo -n `expr \`ps a|wc -l\` - 5`' '
+				echo -n `expr \`ps ax|wc -l\` - 5`' '
 			}
 			;;
 		freebsd)
@@ -659,6 +715,13 @@ function monolith_aliases {
 			alias df='df -h'
 			alias cdw='cd "$USERPROFILE"'
 			v_alias ping ${SystemRoot}/system32/ping.exe
+			aspn_rpath=/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl
+			if [ -f ${aspn_rpath}/CurrentVersion ]; then
+				read aspn_hive < ${aspn_rpath}/CurrentVersion
+				read -r ASPN_PATH < ${aspn_rpath}/${aspn_hive}/\@
+				ASPN_PATH=`cygpath ${ASPN_PATH}`bin
+				v_alias perl ${ASPN_PATH}/perl.exe
+			fi
 			;;
 		linux)
 			alias ll='ls -FlAh --color=tty'
