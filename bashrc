@@ -36,7 +36,7 @@ fi
 # version information
 JBVER="4.5.5"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 12 2008-02-20 08:28:13Z rj $'
+JBSVNID='$Id: .bashrc 13 2008-02-20 10:39:29Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -65,7 +65,7 @@ function strippath {
 	print_debug "Stripping ${1}"
 	print_debug 'o['${PATH}']o'
 	PATH=':'${PATH}':'
-	PATH=${PATH//':'${1}':'/}
+	PATH=${PATH//':'${1}':'/':'}
 	PATH=${PATH#:}
 	PATH=${PATH%:}
 	print_debug stripped...
