@@ -36,7 +36,7 @@ fi
 # version information
 JBVER="4.5.5"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 11 2008-02-20 08:26:32Z rj $'
+JBSVNID='$Id: .bashrc 12 2008-02-20 08:28:13Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -456,9 +456,7 @@ function .properties {
 	else
 		echo ''
 	fi
-	if [[ ! x${JBSVNID} == 'x$Id: .bashrc 11 2008-02-20 08:26:32Z rj $' ]]; then
-		echo 'from SVN: '${JBSVNID}
-	fi
+	echo 'from SVN: '${JBSVNID}
 	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}
 	if [ ${RCPATH} ]; then
 		echo 'RCFile: '${RCPATH}
