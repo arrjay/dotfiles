@@ -36,7 +36,7 @@ fi
 # version information
 JBVER="4.5.5"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id$'
+JBSVNID='$Id: .bashrc 11 2008-02-20 08:26:32Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -456,7 +456,7 @@ function .properties {
 	else
 		echo ''
 	fi
-	if [[ ! x${JBSVNID} == 'x$Id$' ]]; then
+	if [[ ! x${JBSVNID} == 'x$Id: .bashrc 11 2008-02-20 08:26:32Z rj $' ]]; then
 		echo 'from SVN: '${JBSVNID}
 	fi
 	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}
@@ -739,6 +739,7 @@ function monolith_aliases {
 	# common custom aliases
 	alias path='echo ${PATH}'
 	alias cls='clear'
+	alias scx='screen -x'
 
 	case ${OPSYS} in
 		cygwin*)
