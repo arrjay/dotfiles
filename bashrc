@@ -19,20 +19,22 @@
 
 # this is the first line! we want to know where this script /is/!
 RCPATH=${BASH_ARGV}
-RCDIR=`dirname $RCPATH`
+if [ ${RCPATH} ]; then
+	RCDIR=`dirname $RCPATH`
 
-if [ ${RCDIR} == "." ]; then
-	RCPATH=${PWD}/${RCPATH}
+	if [ ${RCDIR} == "." ]; then
+		RCPATH=${PWD}/${RCPATH}
+	fi
 fi
 
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
-if [ -h "${RCPATH}" ]; then
+if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 	RCPATH=`ls -l ${RCPATH}|awk -F' -> ' '{print $2}'`
 fi
 
 # version information
-JBVER="4.5.3.2"
+JBVER="4.5.5"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
 JBSVNID='$Id$'
 
@@ -51,7 +53,7 @@ fi
 # qnd debug function
 function print_debug {
 	if [ ${BASHRC_DEBUG} ]; then
-		echo ${1}
+		echo ${@} >&2
 	fi
 }
 
@@ -61,13 +63,20 @@ function print_debug {
 # strippath - remove element from path
 function strippath {
 	print_debug "Stripping ${1}"
-	PATH=`echo :${PATH}:|${SED} "s?:${1}:?:?g"|${SED} "s%^:%%g"|${SED} "s%:\$%%g"`
+	print_debug 'o['${PATH}']o'
+	PATH=':'${PATH}':'
+	PATH=${PATH//':'${1}':'/}
+	PATH=${PATH#:}
+	PATH=${PATH%:}
 	print_debug stripped...
 	print_debug '['${PATH}']'
 }
 
 function mpstrip {
-	MANPATH=`echo :${MANPATH}:|${SED} "s?:${1}:?:?g"|${SED} "s%^:\\\|:\$%%g"`
+	MANPATH=':'${MANPATH}':'
+	MANPATH=${PATH//':'${1}':'/}
+	MANPATH=${MANPATH#:}
+	MANPATH=${MANPATH%:}
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
@@ -265,7 +274,8 @@ function gethostinfo {
 	#!# all trs are *not* created equal
 	print_debug trtest
 	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-	HOST=`uname -n|tr [:upper:] [:lower:]|sed s/\\\..*//`
+	HOST=`uname -n|tr [:upper:] [:lower:]`
+	HOST=${HOST%%\.*}
 	OPSYS=`uname -s|tr [:upper:] [:lower:]`
 	CPU=`uname -m|tr [:upper:] [:lower:]`
 	MVER=`uname -r|awk -F. '{ print $1 }'` # x
@@ -294,6 +304,21 @@ function gethostinfo {
 	print_debug which_hacking
 	dealias which
 	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
+	# following functions require bash 3.x
+	if [[ ${BASH_VERSION/.*/} -gt 2 ]]; then
+	if [ ${RCPATH} -nt ${HOME}/.whichery.sh ]; then
+	(
+	cat <<\WHICHERY
+if [[ "${REAL_WHICH}" =~ ":" ]]; then
+	# paths do not contain colons, wtf?
+	REAL_WHICH=/usr/bin/which
+fi
+WHICHERY
+) > ${HOME}/.whichery.sh
+	fi
+	. ${HOME}/.whichery.sh
+	fi
+
 	WSTR=`${REAL_WHICH} --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
 	# 1 0 - which returned an error, grep did not - bad which
 	# 1 1 - which returned an error, grep did too - bad which (?)
@@ -301,6 +326,7 @@ function gethostinfo {
 	# 0 0 - which success, grep success           - EVIL WHICH!
 	print_debug su_hacking
 	# su too
+	print_debug ${REAL_WHICH}
 	REAL_SU=`${REAL_WHICH} su`
 	print_debug sed_hacking
 	# sed three
@@ -421,16 +447,22 @@ function pscount {
 
 function .properties {
 	echo -n ${JBVERSTRING}
-	if [[ ( `expr match ${RCPATH} ${HOME}` == ${#HOME} ) ]]; then
-		echo ' Personal Edition'
+	if [ ${RCPATH} ]; then
+		if [[ ( `expr match ${RCPATH} ${HOME}` == ${#HOME} ) ]]; then
+			echo ' Personal Edition'
+		else
+			echo ' System Edition'
+		fi
 	else
-		echo ' System Edition'
+		echo ''
 	fi
 	if [[ ! x${JBSVNID} == 'x$Id$' ]]; then
 		echo 'from SVN: '${JBSVNID}
 	fi
 	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}
-	echo 'RCFile: '${RCPATH}
+	if [ ${RCPATH} ]; then
+		echo 'RCFile: '${RCPATH}
+	fi
 	echo 'using bash '${BASH_VERSION}
 }
 
@@ -534,6 +566,7 @@ function httpsnarf {
 
 # following functions require bash 3.x
 if [[ ${BASH_VERSION/.*/} -gt 2 ]]; then
+if [ ${RCPATH} -nt ${HOME}/.httpfuncs.sh ]; then
 (
 cat <<\HTTPFUNCS
 # http_dechunk # pseudo-dechunker for http
@@ -594,6 +627,7 @@ function http_stripcontent {
 }
 HTTPFUNCS
 ) > ${HOME}/.httpfuncs.sh
+fi
 . ${HOME}/.httpfuncs.sh
 fi
 
