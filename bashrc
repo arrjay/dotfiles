@@ -36,7 +36,7 @@ fi
 # version information
 JBVER="4.5.5"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 13 2008-02-20 10:39:29Z rj $'
+JBSVNID='$Id: .bashrc 14 2008-02-28 10:44:05Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -74,7 +74,7 @@ function strippath {
 
 function mpstrip {
 	MANPATH=':'${MANPATH}':'
-	MANPATH=${PATH//':'${1}':'/}
+	MANPATH=${MANPATH//':'${1}':'/}
 	MANPATH=${MANPATH#:}
 	MANPATH=${MANPATH%:}
 }
