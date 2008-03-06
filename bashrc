@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# WARNING! ACHTUNG! NOTICE!
-# This script has control characters embedded in it!
-# If you try to use anyth 'intelligent' editor on it, you have a good chance
-# of mangling them! This will show as errors in parsing .httpfuncs.sh ...
-# I use vi...
+#!# WARNING! ACHTUNG! NOTICE!
+#!# This script has control characters embedded in it!
+#!# If you try to use anyth 'intelligent' editor on it, you have a good chance
+#!# of mangling them! This will show as errors in parsing .httpfuncs.sh ...
+#!# I use vi...
 
 #!# If we run into bash 2.x, we get /weird/. I'm not sure I care...
 #!# though I did some trickery with here documents to make bash 2.x not
 #!# parse 3+ regexp operators.
+#!# Using this for bash 1.x is likely a /bad/ idea.
 
 #!# This whole shuffling about with 'read' is an attempt to not fork
 #!# unnecessary processes. fork under cygwin is sloooow. so use builtins
@@ -18,6 +19,7 @@
 #             panic! at the disco - "nails for breakfast, tacks for snacks"
 
 # this is the first line! we want to know where this script /is/!
+# appears to not work under 2.x. ah well.
 RCPATH=${BASH_ARGV}
 if [ ${RCPATH} ]; then
 	RCDIR=`dirname $RCPATH`
@@ -34,14 +36,24 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.5.5"
+JBVER="4.5.6"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 14 2008-02-28 10:44:05Z rj $'
+JBSVNID='$Id: .bashrc 15 2008-03-06 00:44:11Z rj $'
 
-## DEBUG SWITCH - UNCOMMENT TO TURN OFF DEBUGGING
+## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
 
+# what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
+BASH_MAJOR=${BASH_VERSION/.*/}
+BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
+BASH_MINOR=${BASH_MINOR%%.*}
+
+# are we a login shell?
+INVNAME=`ps -p $$ -o comm= 2>/dev/null` # works on Linux and FreeBSD...
+					# solaris might, depends on which ps
+
 # possible locations for aux files, first one listed wins
+# FIXME: set script up to use *all* of them
 if [ -d ${HOME}/.bash.d ]; then
 	BASHFILES="${HOME}/.bash.d"
 elif [ -d /etc/bash.d ]; then
@@ -74,7 +86,7 @@ function strippath {
 
 function mpstrip {
 	MANPATH=':'${MANPATH}':'
-	MANPATH=${MANPATH//':'${1}':'/}
+	MANPATH=${MANPATH//':'${1}':'/':'}
 	MANPATH=${MANPATH#:}
 	MANPATH=${MANPATH%:}
 }
@@ -203,6 +215,7 @@ function colordefs {
 	# BC - bold colorset
 	BC_LT_GRA='\[\e[0;37m\]'
 	BC_BO_LT_GRA='\[\e[1;37m\]'
+	#BC_DM_GRA='\[\e[2;37m\]' # 2-series not supported by xterm?
 	BC_CY='\[\e[0;36m\]'
 	BC_GRN='\[\e[0;32m\]'
 	BC_BL='\[\e[0;34m\]'
@@ -274,8 +287,9 @@ function gethostinfo {
 	#!# all trs are *not* created equal
 	print_debug trtest
 	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-	HOST=`uname -n|tr [:upper:] [:lower:]`
-	HOST=${HOST%%\.*}
+	FQDN=`uname -n|tr [:upper:] [:lower:]`
+	HOST=${FQDN%%\.*} # in case uname returns FQDN
+	DOMAIN=${FQDN##${HOST}.}
 	OPSYS=`uname -s|tr [:upper:] [:lower:]`
 	CPU=`uname -m|tr [:upper:] [:lower:]`
 	MVER=`uname -r|awk -F. '{ print $1 }'` # x
@@ -292,6 +306,8 @@ function gethostinfo {
 			if [ $MVER == 5 ]; then
 				OPSYS="solaris"
 			fi
+			# we *have* to use SysV ps
+			INVNAME=`/usr/bin/ps -p $$ -o comm= 2>/dev/null`
 			;;
 	esac
 
@@ -305,7 +321,8 @@ function gethostinfo {
 	dealias which
 	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
 	# following functions require bash 3.x
-	if [[ ${BASH_VERSION/.*/} -gt 2 ]]; then
+	# this works around the case of cygwin/win32 having gnuwin32's which...
+	if [ ${BASH_MAJOR} -gt "2" ]; then
 	if [ ${RCPATH} -nt ${HOME}/.whichery.sh ]; then
 	(
 	cat <<\WHICHERY
@@ -331,6 +348,16 @@ WHICHERY
 	print_debug sed_hacking
 	# sed three
 	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
+	# are we a 'login' shell?
+	if [ ${INVNAME} ] && [ ${INVNAME:0:1} == '-' ]; then
+		LSHELL="yes"
+	fi
+	# if we are in the domain 'saic.com', force HTTP/1.1 (websense!)
+	case ${DOMAIN} in
+	*saic.com)
+		USE_HTTP_1DOT1="yes"
+		;;
+	esac
 }
 
 # getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
@@ -457,7 +484,7 @@ function .properties {
 		echo ''
 	fi
 	echo 'from SVN: '${JBSVNID}
-	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}
+	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}' ('${TERM}')'
 	if [ ${RCPATH} ]; then
 		echo 'RCFile: '${RCPATH}
 	fi
@@ -470,7 +497,7 @@ function mwhich {
 	if [ ${WSTR} == "0 1" ]; then
 		(alias; declare -f) | ${REAL_WHICH} --tty-only --read-alias --read-functions --show-tilde --show-dot $@
 	else
-		if [ ${BASH_VERSION:0:1} == "3" ]; then
+		if [ ${BASH_MAJOR} -gt "2" ]; then
 			FUNCTION=`declare -f|grep ^${1}' ()'`
 			if [ ${?} == "0" ]; then
 				declare -f ${FUNCTION}
@@ -546,7 +573,14 @@ function httpsnarf {
 	if [ "x${HTTP_PATH}" = "x" ]; then
 		HTTP_PATH="/"
 	fi
-	HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nUser-Agent: JBashRc (${JBVER}; ${OPSYS}${LVER} ${CPU}; ${COLUMNS}x${LINES})\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
+	case ${USE_HTTP_1DOT1} in
+		yes)
+			HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nUser-Agent: JBashRc (${JBVER}; ${OPSYS}${LVER} ${CPU}; ${COLUMNS}x${LINES})\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
+			;;
+		*)
+			HTTP_REQ="GET ${HTTP_PATH}\r\n\n"
+			;;
+	esac
 
 	if [[  ( `expr match ${1} https` = 5 ) ]]; then
 		chkcmd openssl
@@ -563,7 +597,7 @@ function httpsnarf {
 }
 
 # following functions require bash 3.x
-if [[ ${BASH_VERSION/.*/} -gt 2 ]]; then
+if [ ${BASH_MAJOR} -gt "2" ]; then
 if [ ${RCPATH} -nt ${HOME}/.httpfuncs.sh ]; then
 (
 cat <<\HTTPFUNCS
@@ -771,16 +805,42 @@ function monolith_aliases {
 }
 
 # export the prompt
-function monolith_setprompt {
-	PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-	case ${TERM_COLORSET} in
-		bold)
-			PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_BR}"'`pscount`'"${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
-			;;
-		*)
-			PS1="# ?"'${?}'" !\! \u@${HOST} `pscount`{\W} ${HD}\n" # mono
-			;;
+function setprompt {
+	print_debug checkps1
+	if [[ -n $PS1 ]]; then
+	print_debug setps1
+	case "$1" in
+	simple)
+		PS1=${INVNAME}"-"${BASH_MAJOR}"."${BASH_MINOR}${HD}" "
+		;;
+	classic)
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		setprompt simple
+		;;
+	timely)
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		case ${TERM_COLORSET} in
+			bold)
+				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'"${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				;;
+			*)
+				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount`{\W} ${HD}\n" # mono
+				;;
+		esac
+		;;
+	new|*)
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		case ${TERM_COLORSET} in
+			bold)
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'"${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				;;
+			*)
+				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount`{\W} ${HD}\n" # mono
+				;;
+		esac
+		;;
 	esac
+	fi
 }
 
 # cleanup
@@ -788,7 +848,6 @@ function monolith_cleanup {
 	unset -f monolith_setfunc
 	unset -f monolith_setcolors
 	unset -f monolith_aliases
-	unset -f monolith_setprompt
 	unset -f monolith_cleanup
 }
 
@@ -799,7 +858,7 @@ monolith_setcolors
 monolith_aliases
 
 print_debug fortune
-if [ "$PS1" ]; then
+if [[ -n ${PS1} ]]; then
 	lyricsfile=${HOME}/.fortune/song-lyrics
 	print_debug fortune_file
 	if [ -f ${lyricsfile} ]; then
@@ -816,6 +875,6 @@ if [ "$PS1" ]; then
 		lyric
 	fi
 fi
-monolith_setprompt
+setprompt
 
 monolith_cleanup
