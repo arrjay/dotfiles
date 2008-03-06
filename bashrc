@@ -38,7 +38,7 @@ fi
 # version information
 JBVER="4.5.6"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 15 2008-03-06 00:44:11Z rj $'
+JBSVNID='$Id: .bashrc 16 2008-03-06 06:59:40Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -221,6 +221,7 @@ function colordefs {
 	BC_BL='\[\e[0;34m\]'
 	BC_PR='\[\e[0;35m\]'
 	BC_BR='\[\e[0;33m\]'
+	BC_RED='\[\e[0;31m\]'
 }
 
 # getterminfo - initialize term variables for function use
@@ -294,6 +295,8 @@ function gethostinfo {
 	CPU=`uname -m|tr [:upper:] [:lower:]`
 	MVER=`uname -r|awk -F. '{ print $1 }'` # x
 	LVER=`uname -r|sed 's/-.*$//'|awk -F. '{ print $1$2 }'` # x.x
+	CURTTY=`tty`
+	CURTTY=${CURTTY:5}
 	print_debug case_opsys
 	case $OPSYS in
 		# hack around cygwin including the Windows ver
@@ -308,6 +311,10 @@ function gethostinfo {
 			fi
 			# we *have* to use SysV ps
 			INVNAME=`/usr/bin/ps -p $$ -o comm= 2>/dev/null`
+			;;
+		# OS X is actually similar here
+		darwin)
+			CPU=`uname -p|tr [:upper:] [:lower:]`
 			;;
 	esac
 
@@ -469,7 +476,7 @@ function setcolors {
 # display functions
 # pscount - return count of processes on this system (stub, returns -1. should be replaced by opsys-specific call.)
 function pscount {
-	echo -n "-255 "
+	echo -n "-255"
 }
 
 function .properties {
@@ -669,7 +676,7 @@ function monolith_setfunc {
 		linux)
 			# redifine linux-specific functions
 			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 6`' '
+				echo -n `expr \`ps ax|wc -l\` - 6`
 			}
 			;;
 		cygwin)
@@ -682,7 +689,6 @@ function monolith_setfunc {
 
 			function pscount {
 				cscript //nologo ${PSCVBS}
-				echo -n ' '
 			}
 			# fake getent - call mkpasswd/mkgroup as appropriate
 			function getent {
@@ -701,23 +707,28 @@ function monolith_setfunc {
 			;;
 		solaris)
 			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 5`' '
+				echo -n `expr \`ps ax|wc -l\` - 5`
 			}
 			;;
 		freebsd)
 			function pscount {
 				# try to exclude kernel threads
-				echo -n `expr \`ps ax|grep -v '[0-9] \['|wc -l\` - 7`' '
+				echo -n `expr \`ps ax|grep -v '[0-9] \['|wc -l\` - 7`
 			}
 			;;
 		irix)
 			function pscount {
-				echo -n `expr \`ps -ef|wc -l\` - 6`' '
+				echo -n `expr \`ps -ef|wc -l\` - 6`
 			}
 			;;
 		openbsd)
 			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 6`' '
+				echo -n `expr \`ps ax|wc -l\` - 6`
+			}
+			;;
+		darwin)
+			function pscount {
+				echo -n `expr \`ps ax|wc -l\` - 5`
 			}
 			;;
 		*)
@@ -817,14 +828,18 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		setprompt simple
 		;;
+	old)
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		PS1="${BC_LT_GRA}\t ${BC_PR}[\u@${HOST}] ${BC_BL}{${CURTTY}}\n${BC_RED}<"'`pscount`'"> ${BC_GRN}(\W) ${BC_BR}${HD}${RS} "
+		;;
 	timely)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold)
-				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'"${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount`{\W} ${HD}\n" # mono
+				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount` {\W} ${HD}\n" # mono
 				;;
 		esac
 		;;
@@ -832,10 +847,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'"${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount`{\W} ${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` {\W} ${HD}\n" # mono
 				;;
 		esac
 		;;
