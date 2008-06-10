@@ -36,9 +36,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.5.6"
+JBVER="4.5.6.2"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 16 2008-03-06 06:59:40Z rj $'
+JBSVNID='$Id: .bashrc 17 2008-06-10 06:02:17Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -91,6 +91,13 @@ function mpstrip {
 	MANPATH=${MANPATH%:}
 }
 
+function stripldp {
+	LD_LIBRARY_PATH=':'${LD_LIBRARY_PATH}':'
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH//':'${1}':'/':'}
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH#:}
+	LD_LIBRARY_PATH=${LD_LIBRARY_PATH%:}
+}
+
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
 #!# ALL FUNCTIONS CHECK EXISTENCE OF DIRECTORY BEFORE ADDING!
 # pathappend - add element to back of path
@@ -105,6 +112,13 @@ function mpappend {
 	mpstrip ${1}
 	if [ -d ${1} ]; then
 		MANPATH="${MANPATH}:${1}"
+	fi
+}
+
+function ldappend {
+	stripldp ${1}
+	if [ -d ${1} ]; then
+		PATH="${1}:${PATH}"
 	fi
 }
 
@@ -155,7 +169,7 @@ function pathsetup {
 }
 
 function set_manpath {
-	for dir in /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/local/share/man /usr/local/man; do
+	for dir in /usr/X11R6/man /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/local/share/man /usr/local/man; do
 		mpprepend ${dir}
 	done
 	if [ -d /opt ]; then
@@ -415,6 +429,19 @@ function pbinsetup {
 	pathappend ${HOME}/bin/${OPSYS}${MVER}-${CPU}
 	pathappend ${HOME}/bin/${OPSYS}${LVER}-${CPU}
 	pathappend ${HOME}/hbin/${HOST}
+	# set PERL5LIB here
+	if [ -d ${HOME}/Library/perl5 ]; then
+		export PERL5LIB=${HOME}/Library/perl5
+	fi
+	# add our personal ~/Applications subdirectories
+	for dir in `ls -d ${HOME}/Applications/*/bin 2> /dev/null`; do
+		pathappend $dir
+	done
+	# add out personal ~/Library subdirectories
+	for dir in `ls -d ${HOME}/Library/*/lib 2> /dev/null`; do
+		ldappaned $dir
+	done
+	export LD_LIBRARY_PATH
 }
 
 # zapenv - kill all environment setup routines, including itself(!)
