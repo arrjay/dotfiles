@@ -36,9 +36,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.5.6.2"
+JBVER="4.5.6.3"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 17 2008-06-10 06:02:17Z rj $'
+JBSVNID='$Id: .bashrc 18 2008-06-10 07:28:48Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -528,13 +528,13 @@ function .properties {
 # overloaded commands
 # (m)which - which with function expansion (when possible)
 function mwhich {
-	if [ ${WSTR} == "0 1" ]; then
+	if [[ ${WSTR} == "0 1" ]]; then
 		(alias; declare -f) | ${REAL_WHICH} --tty-only --read-alias --read-functions --show-tilde --show-dot $@
 	else
 		if [ ${BASH_MAJOR} -gt "2" ]; then
-			FUNCTION=`declare -f|grep ^${1}' ()'`
+			declare -f|grep ^${1} >& /dev/null
 			if [ ${?} == "0" ]; then
-				declare -f ${FUNCTION}
+				declare -f ${1}
 			fi
 		else
 			FUNCTION=`declare -f|grep "^declare"|grep ' '${1}' '`
