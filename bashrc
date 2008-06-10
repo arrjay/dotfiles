@@ -36,12 +36,12 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.5.6.3"
+JBVER="4.5.7"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 18 2008-06-10 07:28:48Z rj $'
+JBSVNID='$Id: .bashrc 19 2008-06-10 08:44:26Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
-#BASHRC_DEBUG="yes"
+BASHRC_DEBUG="yes"
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -65,76 +65,77 @@ fi
 # qnd debug function
 function print_debug {
 	if [ ${BASHRC_DEBUG} ]; then
-		echo ${@} >&2
+		echo -e ${@} >&2
 	fi
 }
 
 ## path functions
 #?# TEST: do these work for directories with spaces?
 
+# genstrip - remove element from path-type variable
+# you need to specify the variable and the element!
+function genstrip {
+	print_debug "Stripping ${2} from ${1}"
+	print_debug "${1} is\t\t${!1}"
+	eval $1=':'${!1}':'
+	eval $1=${!1//':'${2}':'/':'}
+	eval $1=${!1#:}
+	eval $1=${!1%:}
+	print_debug "${1} is now\t${!1}"
+}
+
 # strippath - remove element from path
 function strippath {
-	print_debug "Stripping ${1}"
-	print_debug 'o['${PATH}']o'
-	PATH=':'${PATH}':'
-	PATH=${PATH//':'${1}':'/':'}
-	PATH=${PATH#:}
-	PATH=${PATH%:}
-	print_debug stripped...
-	print_debug '['${PATH}']'
+	genstrip PATH ${1}
 }
 
 function mpstrip {
-	MANPATH=':'${MANPATH}':'
-	MANPATH=${MANPATH//':'${1}':'/':'}
-	MANPATH=${MANPATH#:}
-	MANPATH=${MANPATH%:}
+	genstrip MANPATH ${1}
 }
 
 function stripldp {
-	LD_LIBRARY_PATH=':'${LD_LIBRARY_PATH}':'
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH//':'${1}':'/':'}
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH#:}
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH%:}
+	genstrip LD_LIBRARY_PATH ${1}
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
 #!# ALL FUNCTIONS CHECK EXISTENCE OF DIRECTORY BEFORE ADDING!
+# genappend - add directory element to path-like element
+# you need variable, then element
+function genappend {
+	genstrip ${1} ${2}
+	if [ -d ${2} ]; then
+		eval $1=${!1}':'${2}
+	fi
+}
+
 # pathappend - add element to back of path
 function pathappend {
-	strippath ${1}
-	if [ -d ${1} ]; then
-		PATH="${PATH}:${1}"
-	fi
+	genappend PATH ${1}
 }
 
 function mpappend {
-	mpstrip ${1}
-	if [ -d ${1} ]; then
-		MANPATH="${MANPATH}:${1}"
-	fi
+	genappend MANPATH ${1}
 }
 
 function ldappend {
-	stripldp ${1}
-	if [ -d ${1} ]; then
-		PATH="${1}:${PATH}"
+	genappend LD_LIBRARY_PATH ${1}
+}
+
+# genprepend - add directory element to FRONT of path-like list
+function genprepend {
+	genstrip ${1} ${2}
+	if [ -d ${2} ]; then
+		eval $1=${2}':'${!1}
 	fi
 }
 
 # pathprepend - add element to front of path, clearing other entries if needed
 function pathprepend {
-	strippath ${1}
-	if [ -d ${1} ]; then
-		PATH="${1}:${PATH}"
-	fi
+	genprepend PATH ${1}
 }
 
 function mpprepend {
-	mpstrip ${1}
-	if [ -d ${1} ]; then
-		MANPATH="${1}:${MANPATH}"
-	fi
+	genprepend MANPATH ${1}
 }
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
