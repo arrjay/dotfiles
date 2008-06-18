@@ -38,7 +38,7 @@ fi
 # version information
 JBVER="4.5.7"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 20 2008-06-18 05:02:13Z rj $'
+JBSVNID='$Id: .bashrc 21 2008-06-18 05:03:53Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -787,6 +787,9 @@ function monolith_aliases {
 	alias path='echo ${PATH}'
 	alias cls='clear'
 	alias scx='screen -x'
+
+	# override system which with our more flexible version...
+	alias which='mwhich'
 
 	case ${OPSYS} in
 		cygwin*)
