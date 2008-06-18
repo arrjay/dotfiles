@@ -38,10 +38,10 @@ fi
 # version information
 JBVER="4.5.7"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 19 2008-06-10 08:44:26Z rj $'
+JBSVNID='$Id: .bashrc 20 2008-06-18 05:02:13Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
-BASHRC_DEBUG="yes"
+#BASHRC_DEBUG="yes"
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -69,32 +69,20 @@ function print_debug {
 	fi
 }
 
-## path functions
+## path(-like) functions
 #?# TEST: do these work for directories with spaces?
 
 # genstrip - remove element from path-type variable
 # you need to specify the variable and the element!
 function genstrip {
-	print_debug "Stripping ${2} from ${1}"
-	print_debug "${1} is\t\t${!1}"
-	eval $1=':'${!1}':'
+	# NOTE: debugging is commented out because quoting is parsed every
+	#       time this function runs... whether debugging is enabled or not.
+	#print_debug "Stripping ${2} from ${1}"
+	#print_debug "${1} is\t\t${!1}"
 	eval $1=${!1//':'${2}':'/':'}
-	eval $1=${!1#:}
-	eval $1=${!1%:}
-	print_debug "${1} is now\t${!1}"
-}
-
-# strippath - remove element from path
-function strippath {
-	genstrip PATH ${1}
-}
-
-function mpstrip {
-	genstrip MANPATH ${1}
-}
-
-function stripldp {
-	genstrip LD_LIBRARY_PATH ${1}
+	eval $1=${!1%:${2}}
+	eval $1=${!1#${2}:}
+	#print_debug "${1} is now\t${!1}"
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
@@ -108,17 +96,9 @@ function genappend {
 	fi
 }
 
-# pathappend - add element to back of path
+# we keep pathappend, even though not used, for interactive purposes :)
 function pathappend {
 	genappend PATH ${1}
-}
-
-function mpappend {
-	genappend MANPATH ${1}
-}
-
-function ldappend {
-	genappend LD_LIBRARY_PATH ${1}
 }
 
 # genprepend - add directory element to FRONT of path-like list
@@ -129,57 +109,53 @@ function genprepend {
 	fi
 }
 
-# pathprepend - add element to front of path, clearing other entries if needed
+# we keep pathprepend, even though not used, for interactive purposes :)
 function pathprepend {
 	genprepend PATH ${1}
 }
 
-function mpprepend {
-	genprepend MANPATH ${1}
-}
-
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
-	pathprepend /etc
-	pathprepend /usr/etc
-	pathprepend /usr/sysadm/privbin
-	pathprepend /usr/games
-	pathprepend /sbin
-	pathprepend /usr/sysadm/bin
-	pathprepend /usr/sbin
-	pathprepend /usr/local/sbin
-	pathprepend /usr/dt/bin
-	pathprepend /usr/openwin/bin
-	pathprepend /usr/bin/X11
-	pathprepend /usr/X11R6/bin
-	pathprepend /bin
-	pathprepend /usr/bin
-	pathprepend /usr/xpg4/bin
-	pathprepend /usr/bsd
-	pathprepend /usr/ucb
-	pathprepend /usr/kerberos/bin # iunno, it's like redhat now...
-	pathprepend /usr/nekoware/bin
-	pathprepend /opt/local/bin
-	pathprepend /usr/local/bin
+	genprepend PATH /etc
+	genprepend PATH /usr/etc
+	genprepend PATH /usr/sysadm/privbin
+	genprepend PATH /usr/games
+	genprepend PATH /sbin
+	genprepend PATH /usr/sysadm/bin
+	genprepend PATH /usr/sbin
+	genprepend PATH /usr/local/sbin
+	genprepend PATH /usr/dt/bin
+	genprepend PATH /usr/openwin/bin
+	genprepend PATH /usr/bin/X11
+	genprepend PATH /usr/X11R6/bin
+	genprepend PATH /bin
+	genprepend PATH /usr/bin
+	genprepend PATH /usr/xpg4/bin
+	genprepend PATH /usr/bsd
+	genprepend PATH /usr/ucb
+	genprepend PATH /usr/kerberos/bin # iunno, it's like redhat now...
+	genprepend PATH /usr/nekoware/bin
+	genprepend PATH /opt/local/bin
+	genprepend PATH /usr/local/bin
 	if [ ${OPSYS} == "cygwin" ]; then
 		SystemDrive=`cygpath ${SYSTEMDRIVE}`
 		ProgramFiles=`cygpath ${PROGRAMFILES}`
 		SystemRoot=`cygpath ${SYSTEMROOT}`
-		pathappend ${SystemDrive}/bin
+		genappend PATH ${SystemDrive}/bin
 	fi
 }
 
 function set_manpath {
 	for dir in /usr/X11R6/man /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/local/share/man /usr/local/man; do
-		mpprepend ${dir}
+		genprepend MANPATH ${dir}
 	done
 	if [ -d /opt ]; then
 		for dir in `ls /opt`; do
-			mpappend /opt/${dir}/man
+			genappend MANPATH /opt/${dir}/man
 		done
 	fi
 	if [ ${OPSYS} == "cygwin" ]; then
-		mpappend ${SystemRoot}/man
+		genappend MANPATH ${SystemRoot}/man
 	fi
 	export MANPATH
 }
@@ -425,22 +401,22 @@ function hostsetup {
 
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
-	pathappend ${HOME}/bin/noarch
-	pathappend ${HOME}/bin/${OPSYS}-${CPU}
-	pathappend ${HOME}/bin/${OPSYS}${MVER}-${CPU}
-	pathappend ${HOME}/bin/${OPSYS}${LVER}-${CPU}
-	pathappend ${HOME}/hbin/${HOST}
+	genappend PATH ${HOME}/bin/noarch
+	genappend PATH ${HOME}/bin/${OPSYS}-${CPU}
+	genappend PATH ${HOME}/bin/${OPSYS}${MVER}-${CPU}
+	genappend PATH ${HOME}/bin/${OPSYS}${LVER}-${CPU}
+	genappend PATH ${HOME}/hbin/${HOST}
 	# set PERL5LIB here
 	if [ -d ${HOME}/Library/perl5 ]; then
 		export PERL5LIB=${HOME}/Library/perl5
 	fi
 	# add our personal ~/Applications subdirectories
 	for dir in `ls -d ${HOME}/Applications/*/bin 2> /dev/null`; do
-		pathappend $dir
+		genappend PATH $dir
 	done
 	# add out personal ~/Library subdirectories
 	for dir in `ls -d ${HOME}/Library/*/lib 2> /dev/null`; do
-		ldappaned $dir
+		genappend LD_LIBRARY_PATH $dir
 	done
 	export LD_LIBRARY_PATH
 }
