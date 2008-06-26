@@ -38,7 +38,7 @@ fi
 # version information
 JBVER="4.5.7"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 21 2008-06-18 05:03:53Z rj $'
+JBSVNID='$Id: .bashrc 22 2008-06-26 06:43:15Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -49,8 +49,12 @@ BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
 BASH_MINOR=${BASH_MINOR%%.*}
 
 # are we a login shell?
-INVNAME=`ps -p $$ -o comm= 2>/dev/null` # works on Linux and FreeBSD...
-					# solaris might, depends on which ps
+INVNAME=(`ps -p $$ -o comm= 2>/dev/null`) # works on Linux and FreeBSD...
+					  # solaris might, depends on which ps
+# This works around openbsd's aggravating ps, possibly others
+ILAST=${#INVNAME[*]}
+((ILAST--))
+INVNAME=${INVNAME[$ILAST]}
 
 # possible locations for aux files, first one listed wins
 # FIXME: set script up to use *all* of them
@@ -486,7 +490,7 @@ function pscount {
 function .properties {
 	echo -n ${JBVERSTRING}
 	if [ ${RCPATH} ]; then
-		if [[ ( `expr match ${RCPATH} ${HOME}` == ${#HOME} ) ]]; then
+		if `test ${RCPATH} = ${HOME}/.bashrc`; then
 			echo ' Personal Edition'
 		else
 			echo ' System Edition'
@@ -782,11 +786,25 @@ function monolith_aliases {
 	v_alias more less
 	v_alias watch cmdwatch
 	v_alias man pinfo
+	v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
+	v_alias mpg321 mpg123	# else mpg123
+	v_alias ftp ncftp
 	
 	# common custom aliases
 	alias path='echo ${PATH}'
-	alias cls='clear'
 	alias scx='screen -x'
+	alias l='ls'
+	alias s='sync;sync;sync'
+
+	# pretend to be DOS, sometimes
+	alias cls='clear'
+	alias md='mkdir'
+	alias rd='rm -rf'
+	alias copy='cp'
+	alias move='mv'
+	alias type='cat'
+	alias tracert='traceroute'
+	alias ipconfig='ifconfig'
 
 	# override system which with our more flexible version...
 	alias which='mwhich'
@@ -807,14 +825,22 @@ function monolith_aliases {
 				ASPN_PATH=`cygpath ${ASPN_PATH}`bin
 				v_alias perl ${ASPN_PATH}/perl.exe
 			fi
+			unalias ipconfig
 			;;
 		linux)
 			alias ll='ls -FlAh --color=tty'
 			alias ls='ls --color=tty -h'
 			alias vi='vim'
-			alias cls='clear'
 			alias du='du -h'
 			alias df='df -h'
+			alias mem='free -m'
+			;;
+		openbsd)
+			alias ll='ls -FlAh'
+			alias du='du -h'
+			alias df='df -h'
+			alias free='vmstat'
+			alias mem='vmstat'
 			;;
 		*)
 			alias ll='ls -FlAh'
