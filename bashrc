@@ -36,9 +36,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.5.7"
+JBVER="4.5.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 22 2008-06-26 06:43:15Z rj $'
+JBSVNID='$Id: .bashrc 23 2008-06-26 07:09:34Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -170,7 +170,7 @@ function set_manpath {
 # matchstart - match word at beginning of a line (anywhere in a file) [used by getterminfo]
 #?# TEST: spaces?
 function matchstart {
-	grep ^${1} ${2} >& /dev/null
+	grep -q ^${1} ${2}
 }
 
 # sourcex - source file if found executable
@@ -185,7 +185,7 @@ function chkcmd {
 			${REAL_WHICH} ${1} &> /dev/null
 			;;
 		*)
-			${REAL_WHICH} ${1} 2>&1 | grep ^no > /dev/null
+			${REAL_WHICH} ${1} 2>&1 | grep -q ^no
 			if [ ${?} == "1" ]; then
 				true
 			else
@@ -338,7 +338,7 @@ WHICHERY
 	. ${HOME}/.whichery.sh
 	fi
 
-	WSTR=`${REAL_WHICH} --help 2>&1 | grep ^no > /dev/null; echo ${PIPESTATUS[@]}`
+	WSTR=`${REAL_WHICH} --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
 	# 1 0 - which returned an error, grep did not - bad which
 	# 1 1 - which returned an error, grep did too - bad which (?)
 	# 0 1 - which success, grep returned an error - good which
@@ -367,7 +367,7 @@ function getuserinfo {
 	case ${OPSYS} in
 		cygwin*)
 			#?# hardcoded RID here...
-			id -G | grep 544 >& /dev/null
+			id -G | grep -q 544
 			if [ $? == 0 ]; then
 				HD='#'
 			else
@@ -513,7 +513,7 @@ function mwhich {
 		(alias; declare -f) | ${REAL_WHICH} --tty-only --read-alias --read-functions --show-tilde --show-dot $@
 	else
 		if [ ${BASH_MAJOR} -gt "2" ]; then
-			declare -f|grep ^${1} >& /dev/null
+			declare -f|grep -q ^${1}
 			if [ ${?} == "0" ]; then
 				declare -f ${1}
 			fi
@@ -539,7 +539,7 @@ function msu {
 ## environment manipulation
 # dealias - undefine alias if it exists
 function dealias {
-	if alias|grep $1 > /dev/null
+	if alias|grep -q $1
 		then unalias $1
 	fi
 }
@@ -557,7 +557,7 @@ function setenv {
 
 # unsetenv - unsets exported environment variables
 function unsetenv {
-	if export|grep 'declare -x'|grep $1 > /dev/null
+	if export|grep 'declare -x'|grep -q $1
 		then unset $1
 	fi
 }
