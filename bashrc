@@ -21,10 +21,10 @@
 # this is the first line! we want to know where this script /is/!
 # appears to not work under 2.x. ah well.
 RCPATH=${BASH_ARGV}
-if [ ${RCPATH} ]; then
-	RCDIR=`dirname $RCPATH`
+if [ "${RCPATH}" ]; then
+	RCDIR=`dirname "$RCPATH"`
 
-	if [ ${RCDIR} == "." ]; then
+	if [ "${RCDIR}" == "." ]; then
 		RCPATH=${PWD}/${RCPATH}
 	fi
 fi
@@ -36,9 +36,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.5.8"
+JBVER="4.6"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 24 2008-07-02 03:33:05Z rj $'
+JBSVNID='$Id: .bashrc 25 2008-07-02 03:57:42Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -58,7 +58,7 @@ INVNAME=${INVNAME[$ILAST]}
 
 # possible locations for aux files, first one listed wins
 # FIXME: set script up to use *all* of them
-if [ -d ${HOME}/.bash.d ]; then
+if [ -d "${HOME}"/.bash.d ]; then
 	BASHFILES="${HOME}/.bash.d"
 elif [ -d /etc/bash.d ]; then
 	BASHFILES="/usr/local/etc/bash.d"
@@ -83,9 +83,9 @@ function genstrip {
 	#       time this function runs... whether debugging is enabled or not.
 	#print_debug "Stripping ${2} from ${1}"
 	#print_debug "${1} is\t\t${!1}"
-	eval $1=${!1//':'${2}':'/':'}
-	eval $1=${!1%:${2}}
-	eval $1=${!1#${2}:}
+	eval $1=\"${!1//':'${2}':'/':'}\"
+	eval $1=\"${!1%:${2}}\"
+	eval $1=\"${!1#${2}:}\"
 	#print_debug "${1} is now\t${!1}"
 }
 
@@ -94,28 +94,28 @@ function genstrip {
 # genappend - add directory element to path-like element
 # you need variable, then element
 function genappend {
-	genstrip ${1} ${2}
-	if [ -d ${2} ]; then
-		eval $1=${!1}':'${2}
+	genstrip ${1} "${2}"
+	if [ -d "${2}" ]; then
+		eval $1=\"${!1}':'${2}\"
 	fi
 }
 
 # we keep pathappend, even though not used, for interactive purposes :)
 function pathappend {
-	genappend PATH ${1}
+	genappend PATH "${1}"
 }
 
 # genprepend - add directory element to FRONT of path-like list
 function genprepend {
-	genstrip ${1} ${2}
-	if [ -d ${2} ]; then
-		eval $1=${2}':'${!1}
+	genstrip ${1} "${2}"
+	if [ -d "${2}" ]; then
+		eval $1=\"${2}':'${!1}\"
 	fi
 }
 
 # we keep pathprepend, even though not used, for interactive purposes :)
 function pathprepend {
-	genprepend PATH ${1}
+	genprepend PATH "${1}"
 }
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
@@ -182,10 +182,10 @@ function sourcex {
 function chkcmd {
 	case ${WSTR} in
 		"0 1"|"1 1")
-			${REAL_WHICH} ${1} &> /dev/null
+			"${REAL_WHICH}" ${1} &> /dev/null
 			;;
 		*)
-			${REAL_WHICH} ${1} 2>&1 | grep -q ^no
+			"${REAL_WHICH}" ${1} 2>&1 | grep -q ^no
 			if [ ${?} == "1" ]; then
 				true
 			else
@@ -298,6 +298,15 @@ function gethostinfo {
 		cygwin*)
 			OPSYS=cygwin
 			;;
+		# shorten 'windows32' set USER, HOME
+		windows32)
+			OPSYS=win32
+			unset LVER	# version of MSYS?
+			USER=`whoami`
+			if [ !"$HOME" ]; then
+				HOME=$USERPROFILE
+			fi
+			;;
 		# the first of MANY hacks around solaris
 		sunos)
 			CPU=`uname -p|tr [:upper:] [:lower:]`
@@ -314,8 +323,10 @@ function gethostinfo {
 	esac
 
 	#print_debug x86_check
-	if [ ${CPU:2} == 86 ] && [ ${CPU:0:1} == "i" ]; then
-		CPU="x86"
+	if [ ${CPU:2} == 86 ] || [ ${CPU:2} == "86-pc" ]; then
+		if [ ${CPU:0:1} == "i" ]; then
+			CPU="x86"
+		fi
 	fi
 
 	# while we're here, find 'which' and see if it works
@@ -338,7 +349,7 @@ WHICHERY
 	. ${HOME}/.whichery.sh
 	fi
 
-	WSTR=`${REAL_WHICH} --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
+	WSTR=`"${REAL_WHICH}" --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
 	# 1 0 - which returned an error, grep did not - bad which
 	# 1 1 - which returned an error, grep did too - bad which (?)
 	# 0 1 - which success, grep returned an error - good which
@@ -346,10 +357,10 @@ WHICHERY
 	#print_debug su_hacking
 	# su too
 	#print_debug ${REAL_WHICH}
-	REAL_SU=`${REAL_WHICH} su`
+	REAL_SU=`"${REAL_WHICH}" su`
 	#print_debug sed_hacking
 	# sed three
-	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
+	SED=`"${REAL_WHICH}" sed 2> /dev/null`||SED="/bin/sed"
 	# are we a 'login' shell?
 	if [ ${INVNAME} ] && [ ${INVNAME:0:1} == '-' ]; then
 		LSHELL="yes"
@@ -411,15 +422,15 @@ function pbinsetup {
 	genappend PATH ${HOME}/bin/${OPSYS}${LVER}-${CPU}
 	genappend PATH ${HOME}/hbin/${HOST}
 	# set PERL5LIB here
-	if [ -d ${HOME}/Library/perl5 ]; then
-		export PERL5LIB=${HOME}/Library/perl5
+	if [ -d "${HOME}"/Library/perl5 ]; then
+		export PERL5LIB="${HOME}"/Library/perl5
 	fi
 	# add our personal ~/Applications subdirectories
-	for dir in `ls -d ${HOME}/Applications/*/bin 2> /dev/null`; do
+	for dir in `ls -d "${HOME}"/Applications/*/bin 2> /dev/null`; do
 		genappend PATH $dir
 	done
 	# add out personal ~/Library subdirectories
-	for dir in `ls -d ${HOME}/Library/*/lib 2> /dev/null`; do
+	for dir in `ls -d "${HOME}"/Library/*/lib 2> /dev/null`; do
 		genappend LD_LIBRARY_PATH $dir
 	done
 	export LD_LIBRARY_PATH
@@ -442,6 +453,8 @@ function zapenv {
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
+	# first and formost, prevent others from reading our precious files
+	umask 077
 	#print_debug gethostinfo
 	gethostinfo # set REAL_WHICH!!
 	#print_debug pathsetup
@@ -489,8 +502,8 @@ function pscount {
 
 function .properties {
 	echo -n ${JBVERSTRING}
-	if [ ${RCPATH} ]; then
-		if `test ${RCPATH} = ${HOME}/.bashrc`; then
+	if [ "${RCPATH}" ]; then
+		if `test "${RCPATH}" = "${HOME}"/.bashrc`; then
 			echo ' Personal Edition'
 		else
 			echo ' System Edition'
@@ -500,7 +513,7 @@ function .properties {
 	fi
 	echo 'from SVN: '${JBSVNID}
 	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}' ('${TERM}')'
-	if [ ${RCPATH} ]; then
+	if [ "${RCPATH}" ]; then
 		echo 'RCFile: '${RCPATH}
 	fi
 	echo 'using bash '${BASH_VERSION}
@@ -510,7 +523,7 @@ function .properties {
 # (m)which - which with function expansion (when possible)
 function mwhich {
 	if [[ ${WSTR} == "0 1" ]]; then
-		(alias; declare -f) | ${REAL_WHICH} --tty-only --read-alias --read-functions --show-tilde --show-dot $@
+		(alias; declare -f) | "${REAL_WHICH}" --tty-only --read-alias --read-functions --show-tilde --show-dot $@
 	else
 		if [ ${BASH_MAJOR} -gt "2" ]; then
 			declare -f|grep -q ^${1}
@@ -524,7 +537,7 @@ function mwhich {
 			fi
 		fi
 		alias|grep "alias ${1}="
-		${REAL_WHICH} ${1}
+		"${REAL_WHICH}" ${1}
 	fi
 }
 
@@ -565,15 +578,15 @@ function unsetenv {
 # new functions
 # push2host # copy environment files over using scp, link in to .bashrc and friends (only available in personal copies)
 function push2host {
-	RCDIR=`dirname ${RCPATH}`
-	if [[ ( `expr match ${RCPATH} ${HOME}` = ${#HOME} ) ]]; then
-		if [[ ( `expr match ${BASHFILES} ${HOME}` = ${#HOME} ) ]]; then
-			scp -r ${BASHFILES} ${1}:~
-			scp ${RCPATH} ${1}:~/.bash.d/rc
+	RCDIR=`dirname "${RCPATH}"`
+	if [[ ( `expr match "${RCPATH}" "${HOME}"` = ${#HOME} ) ]]; then
+		if [[ ( `expr match "${BASHFILES}" "${HOME}"` = ${#HOME} ) ]]; then
+			scp -r "${BASHFILES}" ${1}:~
+			scp "${RCPATH}" ${1}:~/.bash.d/rc
 			ssh ln -sf ~/.bash.d/rc ~/.bashrc
 			ssh ln -sf ~/.bash.d/rc ~/.bash_profile
 		else
-			scp ${RCPATH} ${1}:~/.bashrc
+			scp "${RCPATH}" ${1}:~/.bashrc
 			ssh ln -sf ~/.bashrc ~/.bash_profile
 		fi
 	fi
@@ -613,7 +626,7 @@ function httpsnarf {
 
 # following functions require bash 3.x
 if [ ${BASH_MAJOR} -gt "2" ]; then
-if [ ${RCPATH} -nt ${HOME}/.httpfuncs.sh ]; then
+if [ "${RCPATH}" -nt "${HOME}"/.httpfuncs.sh ]; then
 (
 cat <<\HTTPFUNCS
 # http_dechunk # pseudo-dechunker for http
@@ -673,9 +686,9 @@ function http_stripcontent {
 	done
 }
 HTTPFUNCS
-) > ${HOME}/.httpfuncs.sh
+) > "${HOME}"/.httpfuncs.sh
 fi
-. ${HOME}/.httpfuncs.sh
+. "${HOME}"/.httpfuncs.sh
 fi
 
 ## Monolithic version - now we config some things!
@@ -687,13 +700,18 @@ function monolith_setfunc {
 				echo -n `expr \`ps ax|wc -l\` - 6`
 			}
 			;;
-		cygwin)
+		cygwin|win32)
 			# create a .pscount.vbs script if needed
-			if [ ! -f ${HOME}/.pscount.vbs ]; then
-				echo -ne "c = 0\r\nset w = GetObject(\"winmgmts:{impersonationlevel=impersonate}!\\\\\\.\\\root\\\cimv2\")\r\nset l = w.ExecQuery (\"Select * from Win32_Process\")\r\nfor each objProcess in l\r\nc = c + 1\r\nnext\r\nc = c - 3\r\nwscript.stdout.write c\r\n" > ${HOME}/.pscount.vbs
+			if [ ! -f "${HOME}"/.pscount.vbs ]; then
+				echo -ne "c = 0\r\nset w = GetObject(\"winmgmts:{impersonationlevel=impersonate}!\\\\\\.\\\root\\\cimv2\")\r\nset l = w.ExecQuery (\"Select * from Win32_Process\")\r\nfor each objProcess in l\r\nc = c + 1\r\nnext\r\nc = c - 3\r\nwscript.stdout.write c\r\n" > "${HOME}"/.pscount.vbs
 			fi
 
-			PSCVBS=`cygpath -da ${HOME}/.pscount.vbs`
+			# MSYS doesn't seem to have cygpath
+			if [ $OPSYS == "cygwin" ]; then
+				PSCVBS=`cygpath -da "${HOME}"/.pscount.vbs`
+			else
+				PSCVBS=`ls -ld "${HOME}/.pscount.vbs"`
+			fi
 
 			function pscount {
 				cscript //nologo ${PSCVBS}
@@ -827,6 +845,9 @@ function monolith_aliases {
 			fi
 			unalias ipconfig
 			;;
+		win32)
+			alias clear='echo -ne \\033c'
+			;;
 		linux)
 			alias ll='ls -FlAh --color=tty'
 			alias ls='ls --color=tty -h'
@@ -908,14 +929,14 @@ monolith_aliases
 
 #print_debug fortune
 if [[ -n ${PS1} ]]; then
-	lyricsfile=${HOME}/.fortune/song-lyrics
+	lyricsfile="${HOME}"/.fortune/song-lyrics
 	#print_debug fortune_file
-	if [ -f ${lyricsfile} ]; then
+	if [ -f "${lyricsfile}" ]; then
 		chkcmd strfile
 		if [ ${?} == "0" ]; then
 			function lyric {
 				#print_debug cmp_fortune_mods
-				if [ ${lyricsfile} -nt ${lyricsfile}.dat ]; then
+				if [ "${lyricsfile}" -nt "${lyricsfile}".dat ]; then
 					strfile ${lyricsfile} >& /dev/null
 				fi
 				fortune ${lyricsfile}
