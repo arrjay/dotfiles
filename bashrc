@@ -38,7 +38,7 @@ fi
 # version information
 JBVER="4.5.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 23 2008-06-26 07:09:34Z rj $'
+JBSVNID='$Id: .bashrc 24 2008-07-02 03:33:05Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -281,7 +281,7 @@ function getterminfo {
 function gethostinfo {
 	#?# TEST: are all unames created equal?
 	#!# all trs are *not* created equal
-	print_debug trtest
+	#print_debug trtest
 	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
 	FQDN=`uname -n|tr [:upper:] [:lower:]`
 	HOST=${FQDN%%\.*} # in case uname returns FQDN
@@ -292,7 +292,7 @@ function gethostinfo {
 	LVER=`uname -r|sed 's/-.*$//'|awk -F. '{ print $1$2 }'` # x.x
 	CURTTY=`tty`
 	CURTTY=${CURTTY:5}
-	print_debug case_opsys
+	#print_debug case_opsys
 	case $OPSYS in
 		# hack around cygwin including the Windows ver
 		cygwin*)
@@ -313,13 +313,13 @@ function gethostinfo {
 			;;
 	esac
 
-	print_debug x86_check
+	#print_debug x86_check
 	if [ ${CPU:2} == 86 ] && [ ${CPU:0:1} == "i" ]; then
 		CPU="x86"
 	fi
 
 	# while we're here, find 'which' and see if it works
-	print_debug which_hacking
+	#print_debug which_hacking
 	dealias which
 	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
 	# following functions require bash 3.x
@@ -343,11 +343,11 @@ WHICHERY
 	# 1 1 - which returned an error, grep did too - bad which (?)
 	# 0 1 - which success, grep returned an error - good which
 	# 0 0 - which success, grep success           - EVIL WHICH!
-	print_debug su_hacking
+	#print_debug su_hacking
 	# su too
-	print_debug ${REAL_WHICH}
+	#print_debug ${REAL_WHICH}
 	REAL_SU=`${REAL_WHICH} su`
-	print_debug sed_hacking
+	#print_debug sed_hacking
 	# sed three
 	SED=`${REAL_WHICH} sed 2> /dev/null`||SED="/bin/sed"
 	# are we a 'login' shell?
@@ -442,23 +442,23 @@ function zapenv {
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
-	print_debug gethostinfo
+	#print_debug gethostinfo
 	gethostinfo # set REAL_WHICH!!
-	print_debug pathsetup
+	#print_debug pathsetup
 	pathsetup
-	print_debug hostsetup
+	#print_debug hostsetup
 	hostsetup # to extend path, at least for solaris
-	print_debug getuserinfo
+	#print_debug getuserinfo
 	getuserinfo
-	print_debug getterminfo
+	#print_debug getterminfo
 	getterminfo
-	print_debug colordefs
+	#print_debug colordefs
 	colordefs
-	print_debug set_manpath
+	#print_debug set_manpath
 	set_manpath
-	print_debug pbinsetup
+	#print_debug pbinsetup
 	pbinsetup
-	print_debug zapenv
+	#print_debug zapenv
 	zapenv
 }
 
@@ -836,6 +836,7 @@ function monolith_aliases {
 			alias mem='free -m'
 			;;
 		openbsd)
+			export PKG_PATH=ftp://ftp.openbsd.org/pub/OpenBSD/`uname -r`/packages/`machine -a`/
 			alias ll='ls -FlAh'
 			alias du='du -h'
 			alias df='df -h'
@@ -850,9 +851,9 @@ function monolith_aliases {
 
 # export the prompt
 function setprompt {
-	print_debug checkps1
+	#print_debug checkps1
 	if [[ -n $PS1 ]]; then
-	print_debug setps1
+	#print_debug setps1
 	case "$1" in
 	simple)
 		PS1=${INVNAME}"-"${BASH_MAJOR}"."${BASH_MINOR}${HD}" "
@@ -905,22 +906,22 @@ monolith_setfunc
 monolith_setcolors
 monolith_aliases
 
-print_debug fortune
+#print_debug fortune
 if [[ -n ${PS1} ]]; then
 	lyricsfile=${HOME}/.fortune/song-lyrics
-	print_debug fortune_file
+	#print_debug fortune_file
 	if [ -f ${lyricsfile} ]; then
 		chkcmd strfile
 		if [ ${?} == "0" ]; then
 			function lyric {
-				print_debug cmp_fortune_mods
+				#print_debug cmp_fortune_mods
 				if [ ${lyricsfile} -nt ${lyricsfile}.dat ]; then
 					strfile ${lyricsfile} >& /dev/null
 				fi
 				fortune ${lyricsfile}
 			}
+			lyric
 		fi
-		lyric
 	fi
 fi
 setprompt
