@@ -40,7 +40,7 @@ fi
 # version information
 JBVER="4.7"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 27 2008-07-04 17:12:09Z rj $'
+JBSVNID='$Id: .bashrc 28 2008-07-04 17:56:26Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -385,6 +385,7 @@ function gethostinfo {
 	DOMAIN=${FQDN##${HOST}.}
 	CPU=`tolower $HOSTTYPE`
 	OPSYS=${MACHTYPE##${CPU}-}
+	OPSYS=${OPSYS%%-gnu}
 	OPSYS=${OPSYS##*-}
 	OPSYS=${OPSYS%%[0-9]*}
 	AVER=`uname -r`
