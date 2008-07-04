@@ -38,9 +38,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.7"
+JBVER="4.7.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 28 2008-07-04 17:56:26Z rj $'
+JBSVNID='$Id: .bashrc 29 2008-07-04 18:00:02Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -94,6 +94,9 @@ function t_mkdir {
 function getconn {
 	CURTTY=`tty`
 	CURTTY=${CURTTY:5}
+	if [ $OPSYS == "freebsd" ]; then
+		CURTTY=${CURTTY:3}
+	fi
 	CONNFROM=`w|grep ${CURTTY}|awk '{ print $3 }'`
 	echo ${CONNFROM}
 }
