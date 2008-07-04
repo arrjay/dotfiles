@@ -36,9 +36,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.6"
+JBVER="4.6.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 25 2008-07-02 03:57:42Z rj $'
+JBSVNID='$Id: .bashrc 26 2008-07-04 06:02:13Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -53,7 +53,9 @@ INVNAME=(`ps -p $$ -o comm= 2>/dev/null`) # works on Linux and FreeBSD...
 					  # solaris might, depends on which ps
 # This works around openbsd's aggravating ps, possibly others
 ILAST=${#INVNAME[*]}
-((ILAST--))
+if [ $ILAST -ne 0 ]; then
+	((ILAST--))
+fi
 INVNAME=${INVNAME[$ILAST]}
 
 # possible locations for aux files, first one listed wins
