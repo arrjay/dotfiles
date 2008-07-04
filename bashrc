@@ -14,6 +14,8 @@
 #!# This whole shuffling about with 'read' is an attempt to not fork
 #!# unnecessary processes. fork under cygwin is sloooow. so use builtins
 #!# where you can, even if it makes it less clear.
+#!# This was also the driving force behind the entire caching system, which
+#!# cut the startup time for this under cygwin in THIRD.
 
 # prescribe pills to offset the shakes to offset the pills you know you should take it a day at a time
 #             panic! at the disco - "nails for breakfast, tacks for snacks"
@@ -32,13 +34,13 @@ fi
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
 if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
-	RCPATH=`ls -l ${RCPATH}|awk -F' -> ' '{print $2}'`
+	RCPATH=`ls -l "${RCPATH}"|awk -F' -> ' '{print $2}'`
 fi
 
 # version information
-JBVER="4.6.1"
+JBVER="4.7"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 26 2008-07-04 06:02:13Z rj $'
+JBSVNID='$Id: .bashrc 27 2008-07-04 17:12:09Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -47,16 +49,6 @@ JBSVNID='$Id: .bashrc 26 2008-07-04 06:02:13Z rj $'
 BASH_MAJOR=${BASH_VERSION/.*/}
 BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
 BASH_MINOR=${BASH_MINOR%%.*}
-
-# are we a login shell?
-INVNAME=(`ps -p $$ -o comm= 2>/dev/null`) # works on Linux and FreeBSD...
-					  # solaris might, depends on which ps
-# This works around openbsd's aggravating ps, possibly others
-ILAST=${#INVNAME[*]}
-if [ $ILAST -ne 0 ]; then
-	((ILAST--))
-fi
-INVNAME=${INVNAME[$ILAST]}
 
 # possible locations for aux files, first one listed wins
 # FIXME: set script up to use *all* of them
@@ -89,6 +81,28 @@ function genstrip {
 	eval $1=\"${!1%:${2}}\"
 	eval $1=\"${!1#${2}:}\"
 	#print_debug "${1} is now\t${!1}"
+}
+
+# t_mkdir - test and create directory if needed
+function t_mkdir {
+	if [ ! -d "${1}" ]; then
+		mkdir -p "${1}"
+	fi
+}
+
+# getconn - get where we are connecting from
+function getconn {
+	CURTTY=`tty`
+	CURTTY=${CURTTY:5}
+	CONNFROM=`w|grep ${CURTTY}|awk '{ print $3 }'`
+	echo ${CONNFROM}
+}
+
+# initcachedirs - create command cache directories
+function initcachedirs {
+	CMDCACHE="${HOME}/.cmdcache/${FQDN}-${OPSYS}"
+	t_mkdir "${CMDCACHE}/chkcmd"
+	t_mkdir "${CMDCACHE}/env"
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
@@ -144,9 +158,24 @@ function pathsetup {
 	genprepend PATH /opt/local/bin
 	genprepend PATH /usr/local/bin
 	if [ ${OPSYS} == "cygwin" ]; then
-		SystemDrive=`cygpath ${SYSTEMDRIVE}`
-		ProgramFiles=`cygpath ${PROGRAMFILES}`
-		SystemRoot=`cygpath ${SYSTEMROOT}`
+		SystemDrive=`mm_getenv SystemDrive`
+		if [ ${?} -ne 0 ]; then
+			SystemDrive=`cygpath ${SYSTEMDRIVE}`
+			mm_putenv SystemDrive
+		fi
+
+		ProgramFiles=`mm_getenv ProgramFiles`
+		if [ ${?} -ne 0 ]; then
+			ProgramFiles=`cygpath ${PROGRAMFILES}`
+			mm_putenv ProgramFiles
+		fi
+
+		SystemRoot=`mm_getenv SystemRoot`
+		if [ ${?} -ne 0 ]; then
+			SystemRoot=`cygpath ${SYSTEMROOT}`
+			mm_putenv SystemRoot
+		fi
+
 		genappend PATH ${SystemDrive}/bin
 	fi
 }
@@ -175,26 +204,93 @@ function matchstart {
 	grep -q ^${1} ${2}
 }
 
+# tolower - convert string to lower case, in pure bash
+function tolower {
+	output=${1//A/a}
+	output=${output//B/b}
+	output=${output//C/c}
+	output=${output//D/d}
+	output=${output//E/e}
+	output=${output//F/f}
+	output=${output//G/g}
+	output=${output//H/h}
+	output=${output//I/i}
+	output=${output//J/j}
+	output=${output//K/k}
+	output=${output//L/l}
+	output=${output//M/m}
+	output=${output//N/n}
+	output=${output//O/o}
+	output=${output//P/p}
+	output=${output//Q/q}
+	output=${output//R/r}
+	output=${output//S/s}
+	output=${output//T/t}
+	output=${output//U/u}
+	output=${output//V/v}
+	output=${output//W/w}
+	output=${output//X/x}
+	output=${output//Y/y}
+	output=${output//Z/z}
+	echo ${output}
+	unset output
+}
+
 # sourcex - source file if found executable
 function sourcex {
 	if [ -x $1 ]; then source $1; fi
 }
 
+# mm_getenv - read environment memo if available 
+function mm_getenv {
+	if [ -f "${CMDCACHE}/env/${1}" ]; then
+		read output < "${CMDCACHE}/env/${1}"
+		echo $output
+		unset output
+		true
+	else
+		false
+	fi
+}
+
+function mm_putenv {
+	echo ${!1} > ${CMDCACHE}/env/${1}
+}
+
+function zapcmdcache {
+	rm -rf ${CMDCACHE}/chkcmd/*
+	rm -rf ${CMDCACHE}/env/*
+}
+
 # chkcmd - check if specific command is present, wrapper around which being evil on some platforms
 function chkcmd {
-	case ${WSTR} in
-		"0 1"|"1 1")
-			"${REAL_WHICH}" ${1} &> /dev/null
-			;;
-		*)
-			"${REAL_WHICH}" ${1} 2>&1 | grep -q ^no
-			if [ ${?} == "1" ]; then
-				true
-			else
-				false
-			fi
-			;; 
-	esac
+	if [ -f "${CMDCACHE}/chkcmd/${1}" ]; then
+		read found < "${CMDCACHE}/chkcmd/${1}"
+		eval $found
+	else
+		case ${WSTR} in
+			"0 1"|"1 1")
+				"${REAL_WHICH}" ${1} &> /dev/null
+				if [ ${?} == "0" ]; then
+					echo "true" > "${CMDCACHE}/chkcmd/${1}"
+					true
+				else
+					echo "false" > "${CMDCACHE}/chkcmd/${1}"
+					false
+				fi
+				;;
+			*)
+				"${REAL_WHICH}" ${1} 2>&1 | grep -q ^no
+				if [ ${?} == "1" ]; then
+					echo "true" > "${CMDCACHE}/chkcmd/${1}"
+					true
+				else
+					echo "false" > "${CMDCACHE}/chkcmd/${1}"
+					false
+				fi
+				;; 
+		esac
+	fi
 }
 
 # v_alias - overloads command with specified function if command exists
@@ -283,18 +379,21 @@ function getterminfo {
 function gethostinfo {
 	#?# TEST: are all unames created equal?
 	#!# all trs are *not* created equal
-	#print_debug trtest
 	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-	FQDN=`uname -n|tr [:upper:] [:lower:]`
+	FQDN=`tolower $HOSTNAME`
 	HOST=${FQDN%%\.*} # in case uname returns FQDN
 	DOMAIN=${FQDN##${HOST}.}
-	OPSYS=`uname -s|tr [:upper:] [:lower:]`
-	CPU=`uname -m|tr [:upper:] [:lower:]`
-	MVER=`uname -r|awk -F. '{ print $1 }'` # x
-	LVER=`uname -r|sed 's/-.*$//'|awk -F. '{ print $1$2 }'` # x.x
-	CURTTY=`tty`
-	CURTTY=${CURTTY:5}
-	#print_debug case_opsys
+	CPU=`tolower $HOSTTYPE`
+	OPSYS=${MACHTYPE##${CPU}-}
+	OPSYS=${OPSYS##*-}
+	OPSYS=${OPSYS%%[0-9]*}
+	AVER=`uname -r`
+	MVER=${AVER%%\.*}
+	LVER=${AVER##${MVER}.}	# remainder of AVER...
+	LVER=${LVER%%-*}	# don't care about -RELEASE, -STABLE
+	LVER=${LVER%%\.*}	# don't care about sub-minor versions
+	LVER=${MVER}${LVER}
+
 	case $OPSYS in
 		# hack around cygwin including the Windows ver
 		cygwin*)
@@ -304,6 +403,7 @@ function gethostinfo {
 		windows32)
 			OPSYS=win32
 			unset LVER	# version of MSYS?
+			unset MVER
 			USER=`whoami`
 			if [ !"$HOME" ]; then
 				HOME=$USERPROFILE
@@ -315,8 +415,6 @@ function gethostinfo {
 			if [ $MVER == 5 ]; then
 				OPSYS="solaris"
 			fi
-			# we *have* to use SysV ps
-			INVNAME=`/usr/bin/ps -p $$ -o comm= 2>/dev/null`
 			;;
 		# OS X is actually similar here
 		darwin)
@@ -331,42 +429,54 @@ function gethostinfo {
 		fi
 	fi
 
+	# initialize the cache system
+	initcachedirs
+
 	# while we're here, find 'which' and see if it works
-	#print_debug which_hacking
 	dealias which
-	REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
-	# following functions require bash 3.x
-	# this works around the case of cygwin/win32 having gnuwin32's which...
-	if [ ${BASH_MAJOR} -gt "2" ]; then
-	if [ ${RCPATH} -nt ${HOME}/.whichery.sh ]; then
-	(
-	cat <<\WHICHERY
-if [[ "${REAL_WHICH}" =~ ":" ]]; then
-	# paths do not contain colons, wtf?
-	REAL_WHICH=/usr/bin/which
-fi
+	REAL_WHICH=`mm_getenv REAL_WHICH`
+	if [ ${?} -ne 0 ]; then
+		REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
+		# following functions require bash 3.x
+		# this works around the case of cygwin/win32 having gnuwin32's which...
+		if [ ${BASH_MAJOR} -gt "2" ]; then
+			if [ ${RCPATH} -nt ${HOME}/.whichery.sh ]; then
+				(
+				cat <<\WHICHERY
+					if [[ "${REAL_WHICH}" =~ ":" ]]; then
+						# paths do not contain colons, wtf?
+						REAL_WHICH=/usr/bin/which
+					fi
 WHICHERY
-) > ${HOME}/.whichery.sh
-	fi
-	. ${HOME}/.whichery.sh
+				) > ${HOME}/.whichery.sh
+			fi
+			. ${HOME}/.whichery.sh
+		fi
+		mm_putenv REAL_WHICH
 	fi
 
-	WSTR=`"${REAL_WHICH}" --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
-	# 1 0 - which returned an error, grep did not - bad which
-	# 1 1 - which returned an error, grep did too - bad which (?)
-	# 0 1 - which success, grep returned an error - good which
-	# 0 0 - which success, grep success           - EVIL WHICH!
-	#print_debug su_hacking
-	# su too
-	#print_debug ${REAL_WHICH}
-	REAL_SU=`"${REAL_WHICH}" su`
-	#print_debug sed_hacking
-	# sed three
-	SED=`"${REAL_WHICH}" sed 2> /dev/null`||SED="/bin/sed"
-	# are we a 'login' shell?
-	if [ ${INVNAME} ] && [ ${INVNAME:0:1} == '-' ]; then
-		LSHELL="yes"
+	WSTR=`mm_getenv WSTR`
+	if [ ${?} -ne 0 ]; then
+		WSTR=`"${REAL_WHICH}" --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
+		# 1 0 - which returned an error, grep did not - bad which
+		# 1 1 - which returned an error, grep did too - bad which (?)
+		# 0 1 - which success, grep returned an error - good which
+		# 0 0 - which success, grep success           - EVIL WHICH!
+		mm_putenv WSTR
 	fi
+
+	REAL_SU=`mm_getenv REAL_SU`
+	if [ ${?} -ne 0 ]; then
+		REAL_SU=`"${REAL_WHICH}" su`
+		mm_putenv REAL_SU
+	fi
+
+	SED=`mm_getenv SED`
+	if [ ${?} -ne 0 ]; then
+		SED=`"${REAL_WHICH}" sed 2> /dev/null`||SED="/bin/sed"
+		mm_putenv SED
+	fi
+
 	# if we are in the domain 'saic.com', force HTTP/1.1 (websense!)
 	case ${DOMAIN} in
 	*saic.com)
@@ -386,6 +496,7 @@ function getuserinfo {
 			else
 				HD='$'
 			fi
+			INVNAME=(`ps -p $$|awk '{ print $8 }'`)
 			;;
 		solaris)
 			if [ `/usr/xpg4/bin/id -u` == "0" ]; then
@@ -393,6 +504,8 @@ function getuserinfo {
 			else
 				HD='$'
 			fi
+			# have to use SysV ps here
+			INVNAME=`/usr/bin/ps -p $$ -o comm= 2>/dev/null`
 			;;
 		*)
 			if [ `id -u` == "0" ]; then
@@ -400,8 +513,17 @@ function getuserinfo {
 			else
 				HD='$'
 			fi
+			# works on Linux and FreeBSD, solaris (depending on ps)
+			INVNAME=(`ps -p $$ -o comm= 2>/dev/null`)
 			;;
 	esac
+
+	# This works around openbsd's aggravating ps, possibly others
+	ILAST=${#INVNAME[*]}
+	if [ $ILAST -ne 0 ]; then
+		((ILAST--))
+	fi
+	INVNAME=${INVNAME[$ILAST]}
 }
 
 # hostsetup - call host/os-specific subscripts
@@ -418,11 +540,11 @@ function hostsetup {
 
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
-	genappend PATH ${HOME}/bin/noarch
-	genappend PATH ${HOME}/bin/${OPSYS}-${CPU}
-	genappend PATH ${HOME}/bin/${OPSYS}${MVER}-${CPU}
-	genappend PATH ${HOME}/bin/${OPSYS}${LVER}-${CPU}
-	genappend PATH ${HOME}/hbin/${HOST}
+	genappend PATH "${HOME}/bin/noarch"
+	genappend PATH "${HOME}/bin/${OPSYS}-${CPU}"
+	genappend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
+	genappend PATH "${HOME}/bin/${OPSYS}${LVER}-${CPU}"
+	genappend PATH "${HOME}/hbin/${HOST}"
 	# set PERL5LIB here
 	if [ -d "${HOME}"/Library/perl5 ]; then
 		export PERL5LIB="${HOME}"/Library/perl5
@@ -457,23 +579,14 @@ function zapenv {
 function kickenv {
 	# first and formost, prevent others from reading our precious files
 	umask 077
-	#print_debug gethostinfo
 	gethostinfo # set REAL_WHICH!!
-	#print_debug pathsetup
 	pathsetup
-	#print_debug hostsetup
 	hostsetup # to extend path, at least for solaris
-	#print_debug getuserinfo
 	getuserinfo
-	#print_debug getterminfo
 	getterminfo
-	#print_debug colordefs
 	colordefs
-	#print_debug set_manpath
 	set_manpath
-	#print_debug pbinsetup
 	pbinsetup
-	#print_debug zapenv
 	zapenv
 }
 
@@ -519,6 +632,9 @@ function .properties {
 		echo 'RCFile: '${RCPATH}
 	fi
 	echo 'using bash '${BASH_VERSION}
+	if [ ${CONNFROM} ]; then
+		echo 'Connecting From: '${CONNFROM}
+	fi
 }
 
 # overloaded commands
@@ -554,9 +670,7 @@ function msu {
 ## environment manipulation
 # dealias - undefine alias if it exists
 function dealias {
-	if alias|grep -q $1
-		then unalias $1
-	fi
+	unalias $1 >& /dev/null
 }
 
 # setenv - sets an *exported* environment variable
@@ -709,10 +823,14 @@ function monolith_setfunc {
 			fi
 
 			# MSYS doesn't seem to have cygpath
-			if [ $OPSYS == "cygwin" ]; then
-				PSCVBS=`cygpath -da "${HOME}"/.pscount.vbs`
-			else
-				PSCVBS=`ls -ld "${HOME}/.pscount.vbs"`
+			PSCVBS=`mm_getenv PSCVBS`
+			if [ ${?} -ne 0 ]; then
+				if [ $OPSYS == "cygwin" ]; then
+					PSCVBS=`cygpath -da "${HOME}"/.pscount.vbs`
+				else
+					PSCVBS=`ls -ld "${HOME}/.pscount.vbs"`
+				fi
+				mm_putenv PSCVBS
 			fi
 
 			function pscount {
@@ -732,6 +850,7 @@ function monolith_setfunc {
 						;;
 				esac
 			}
+			alias ifconfig=ipconfig
 			;;
 		solaris)
 			function pscount {
@@ -837,6 +956,7 @@ function monolith_aliases {
 			alias du='du -h'
 			alias df='df -h'
 			alias cdw='cd "$USERPROFILE"'
+			t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
 			v_alias ping ${SystemRoot}/system32/ping.exe
 			aspn_rpath=/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl
 			if [ -f ${aspn_rpath}/CurrentVersion ]; then
@@ -900,10 +1020,22 @@ function setprompt {
 				;;
 		esac
 		;;
+	new_nocount)
+		# like new, but hides the process count
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		case ${TERM_COLORSET} in
+			bold|bright)
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				;;
+			*)
+				PS1="# ?"'${?}'" !\! \u@${HOST} {\W} ${HD}\n" # mono
+				;;
+		esac
+		;;
 	new|*)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
-			bold)
+			bold|bright)
 				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
 				;;
 			*)
@@ -947,6 +1079,10 @@ if [[ -n ${PS1} ]]; then
 		fi
 	fi
 fi
-setprompt
+if [ ${OPSYS} != "cygwin" ]; then
+	setprompt
+else
+	setprompt new_nocount
+fi
 
 monolith_cleanup
