@@ -38,9 +38,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.7.1"
+JBVER="4.7.2"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 29 2008-07-04 18:00:02Z rj $'
+JBSVNID='$Id: .bashrc 30 2008-07-06 06:57:04Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -814,7 +814,7 @@ fi
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
 	case $OPSYS in
-		linux)
+		linux|openbsd|darwin)
 			# redifine linux-specific functions
 			function pscount {
 				echo -n `expr \`ps ax|wc -l\` - 6`
@@ -870,16 +870,6 @@ function monolith_setfunc {
 		irix)
 			function pscount {
 				echo -n `expr \`ps -ef|wc -l\` - 6`
-			}
-			;;
-		openbsd)
-			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 6`
-			}
-			;;
-		darwin)
-			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 5`
 			}
 			;;
 		*)
@@ -941,7 +931,7 @@ function monolith_aliases {
 
 	# pretend to be DOS, sometimes
 	alias cls='clear'
-	alias md='mkdir'
+	alias md='t_mkdir'
 	alias rd='rm -rf'
 	alias copy='cp'
 	alias move='mv'
