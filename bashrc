@@ -40,7 +40,7 @@ fi
 # version information
 JBVER="4.7.2"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 30 2008-07-06 06:57:04Z rj $'
+JBSVNID='$Id: .bashrc 31 2008-07-06 23:27:12Z rj $'
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #BASHRC_DEBUG="yes"
@@ -272,7 +272,7 @@ function chkcmd {
 		eval $found
 	else
 		case ${WSTR} in
-			"0 1"|"1 1")
+			"0 1"|"1 1"|"2 1")
 				"${REAL_WHICH}" ${1} &> /dev/null
 				if [ ${?} == "0" ]; then
 					echo "true" > "${CMDCACHE}/chkcmd/${1}"
@@ -464,6 +464,7 @@ WHICHERY
 		WSTR=`"${REAL_WHICH}" --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
 		# 1 0 - which returned an error, grep did not - bad which
 		# 1 1 - which returned an error, grep did too - bad which (?)
+		# 2 1 - which returned an error, grep did too - strange which
 		# 0 1 - which success, grep returned an error - good which
 		# 0 0 - which success, grep success           - EVIL WHICH!
 		mm_putenv WSTR
