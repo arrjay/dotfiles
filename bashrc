@@ -20,7 +20,10 @@
 # prescribe pills to offset the shakes to offset the pills you know you should take it a day at a time
 #             panic! at the disco - "nails for breakfast, tacks for snacks"
 
-# this is the first line! we want to know where this script /is/!
+## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
+#set -x
+
+# this is the first non-debug line! we want to know where this script /is/!
 # appears to not work under 2.x. ah well.
 RCPATH=${BASH_ARGV}
 if [ "${RCPATH}" ]; then
@@ -38,12 +41,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.7.2"
+JBVER="4.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 31 2008-07-06 23:27:12Z rj $'
-
-## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
-#BASHRC_DEBUG="yes"
+JBSVNID='$Id: .bashrc 32 2008-07-16 23:46:07Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -85,6 +85,10 @@ function genstrip {
 
 # t_mkdir - test and create directory if needed
 function t_mkdir {
+	if [ ! -n "${1}" ]; then
+		echo "${FUNCNAME}: missing operand" 1>&2
+		return 1
+	fi
 	if [ ! -d "${1}" ]; then
 		mkdir -p "${1}"
 	fi
@@ -92,13 +96,25 @@ function t_mkdir {
 
 # getconn - get where we are connecting from
 function getconn {
-	CURTTY=`tty`
-	CURTTY=${CURTTY:5}
-	if [ $OPSYS == "freebsd" ]; then
-		CURTTY=${CURTTY:3}
+	if [ -n "${SSH_CONNECTION}" ]; then
+		CURTTY=${SSH_TTY}
+		CONNFROM=`echo ${SSH_CLIENT}|awk '{ print $1 }'`
+	else
+		CURTTY=`tty`
+		if [ $OPSYS != "win32" ]; then
+			CURTTY=${CURTTY:5}
+		fi
+		CONNFROM=`who|grep ${CURTTY}|awk '{ print $5 }'`
+		CONNFROM=${CONNFROM//(/}
+		CONNFROM=${CONNFROM//)/}
 	fi
-	CONNFROM=`w|grep ${CURTTY}|awk '{ print $3 }'`
-	echo ${CONNFROM}
+	if [ ! -n "${CONNFROM}" ]; then
+		echo "no remote connection found" 1>&2
+		unset CONNFROM
+		return 1
+	else
+		echo ${CONNFROM}
+	fi
 }
 
 # initcachedirs - create command cache directories
@@ -181,6 +197,11 @@ function pathsetup {
 
 		genappend PATH ${SystemDrive}/bin
 	fi
+	if [ ${OPSYS} == "win32" ]; then
+		SystemDrive=${SYSTEMDRIVE}
+		SystemRoot=${SYSTEMROOT}
+		ProgramFiles=${PROGRAMFILES}
+	fi
 }
 
 function set_manpath {
@@ -257,6 +278,11 @@ function mm_getenv {
 }
 
 function mm_putenv {
+	if [ ${OPSYS} == "win32" ]; then
+		# needed for memoize to work, win32 seems to not care
+		# how nasty this is...
+		eval $1=\"${!1//'\'/'/'}\"
+	fi
 	echo ${!1} > ${CMDCACHE}/env/${1}
 }
 
@@ -267,6 +293,10 @@ function zapcmdcache {
 
 # chkcmd - check if specific command is present, wrapper around which being evil on some platforms
 function chkcmd {
+	if [ ! -n "${1}" ]; then
+		echo "${FUNCNAME}: check if command exists, indicate via error code" 1>&2
+		return 2
+	fi
 	if [ -f "${CMDCACHE}/chkcmd/${1}" ]; then
 		read found < "${CMDCACHE}/chkcmd/${1}"
 		eval $found
@@ -298,9 +328,13 @@ function chkcmd {
 
 # v_alias - overloads command with specified function if command exists
 function v_alias {
+	if [ ! -n "${1}" ]; then
+		builtin alias
+		return $?
+	fi
 	chkcmd ${2}
 	if [ ${?} == 0 ]; then
-		alias ${1}=${2}
+		builtin alias ${1}=${2}
 	fi
 }
 
@@ -404,7 +438,7 @@ function gethostinfo {
 			OPSYS=cygwin
 			;;
 		# shorten 'windows32' set USER, HOME
-		windows32)
+		windows32|msys)
 			OPSYS=win32
 			unset LVER	# version of MSYS?
 			unset MVER
@@ -444,7 +478,7 @@ function gethostinfo {
 		# following functions require bash 3.x
 		# this works around the case of cygwin/win32 having gnuwin32's which...
 		if [ ${BASH_MAJOR} -gt "2" ]; then
-			if [ ${RCPATH} -nt ${HOME}/.whichery.sh ]; then
+			if [ ${RCPATH} -nt "${HOME}"/.whichery.sh ]; then
 				(
 				cat <<\WHICHERY
 					if [[ "${REAL_WHICH}" =~ ":" ]]; then
@@ -452,9 +486,9 @@ function gethostinfo {
 						REAL_WHICH=/usr/bin/which
 					fi
 WHICHERY
-				) > ${HOME}/.whichery.sh
+				) > "${HOME}"/.whichery.sh
 			fi
-			. ${HOME}/.whichery.sh
+			. "${HOME}"/.whichery.sh
 		fi
 		mm_putenv REAL_WHICH
 	fi
@@ -493,6 +527,12 @@ WHICHERY
 # getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
 function getuserinfo {
 	case ${OPSYS} in
+		win32)
+			# set printer here
+			PRINTER="`cscript //nologo ${SystemRoot}/system32/prnmngr.vbs -g`"
+			PRINTER="${PRINTER//The default printer is /}"
+			export PRINTER
+			;;
 		cygwin*)
 			#?# hardcoded RID here...
 			id -G | grep -q 544
@@ -639,6 +679,24 @@ function .properties {
 	echo 'using bash '${BASH_VERSION}
 	if [ ${CONNFROM} ]; then
 		echo 'Connecting From: '${CONNFROM}
+	fi
+	if [ -n "${1}" ] && [ ${1} == "-x" ]; then
+		echo "--"
+		if [ -f /etc/fedora-release ]; then
+			cat /etc/fedora-release
+		fi
+		if [ ${OPSYS} == "freebsd" ]; then
+			echo -n "FreeBSD "
+			uname -r
+		fi
+		if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == "cygwin" ]; then
+			if [ ! -f "${HOME}"/.sysinfo.vbs ]; then
+				echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset o = w.instancesof(\"win32_operatingsystem\")\r\nfor each i in o\r\nwscript.echo i.caption & \" SP\" & i.servicepackmajorversion\r\nnext" > "${HOME}"/.sysinfo.vbs
+			fi
+			cscript //nologo "${HOME}"/.sysinfo.vbs
+		fi
+		pscount
+		echo " Processes, `who|wc -l` users"
 	fi
 }
 
@@ -833,13 +891,13 @@ function monolith_setfunc {
 				if [ $OPSYS == "cygwin" ]; then
 					PSCVBS=`cygpath -da "${HOME}"/.pscount.vbs`
 				else
-					PSCVBS=`ls -ld "${HOME}/.pscount.vbs"`
+					PSCVBS=`ls -d "${HOME}/.pscount.vbs"`
 				fi
 				mm_putenv PSCVBS
 			fi
 
 			function pscount {
-				cscript //nologo ${PSCVBS}
+				cscript //nologo "${PSCVBS}"
 			}
 			# fake getent - call mkpasswd/mkgroup as appropriate
 			function getent {
@@ -911,6 +969,7 @@ function monolith_aliases {
 	v_alias tail gtail
 	v_alias md5sum gmd5sum
 	v_alias vi vim
+	v_alias wc gwc
 	v_alias expr gexpr
 	v_alias chgrp gchgrp
 	v_alias chown gchown
@@ -944,7 +1003,7 @@ function monolith_aliases {
 	alias which='mwhich'
 
 	case ${OPSYS} in
-		cygwin*)
+		cygwin*|win32)
 			alias ll='ls -FlAh --color=tty'
 			alias ls='ls --color=tty -h'
 			alias start='cygstart'
@@ -952,7 +1011,8 @@ function monolith_aliases {
 			alias df='df -h'
 			alias cdw='cd "$USERPROFILE"'
 			t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
-			v_alias ping ${SystemRoot}/system32/ping.exe
+			builtin alias ping=${SystemRoot}/system32/ping.exe
+			builtin alias traceroute=${SystemRoot}/system32/tracert.exe
 			aspn_rpath=/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl
 			if [ -f ${aspn_rpath}/CurrentVersion ]; then
 				read aspn_hive < ${aspn_rpath}/CurrentVersion
@@ -961,9 +1021,11 @@ function monolith_aliases {
 				v_alias perl ${ASPN_PATH}/perl.exe
 			fi
 			unalias ipconfig
-			;;
-		win32)
-			alias clear='echo -ne \\033c'
+			if [ ${OPSYS} == "win32" ]; then
+				builtin alias clear='echo -ne\\033c'
+				builtin alias ll='ls -Flah'
+				builtin alias ls='ls -h'
+			fi
 			;;
 		linux)
 			alias ll='ls -FlAh --color=tty'
@@ -972,6 +1034,7 @@ function monolith_aliases {
 			alias du='du -h'
 			alias df='df -h'
 			alias mem='free -m'
+			alias free='free -m'
 			;;
 		openbsd)
 			export PKG_PATH=ftp://ftp.openbsd.org/pub/OpenBSD/`uname -r`/packages/`machine -a`/
@@ -1074,7 +1137,7 @@ if [[ -n ${PS1} ]]; then
 		fi
 	fi
 fi
-if [ ${OPSYS} != "cygwin" ]; then
+if [ ${OPSYS} != "cygwin" ] && [ ${OPSYS} != "win32" ]; then
 	setprompt
 else
 	setprompt new_nocount
