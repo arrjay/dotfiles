@@ -43,7 +43,7 @@ fi
 # version information
 JBVER="4.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 35 2008-07-17 00:56:18Z rj $'
+JBSVNID='$Id: .bashrc 36 2008-07-17 01:06:39Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -704,7 +704,7 @@ function .properties {
 			if [ "${CPUTYPE}" ]; then
 				echo -n "(${CPUSUB}) "
 			fi
-			echo "Processor"
+			echo "Processor(s)"
 		fi
 		if [ -f /etc/fedora-release ]; then
 			cat /etc/fedora-release
@@ -712,6 +712,10 @@ function .properties {
 		if [ ${OPSYS} == "freebsd" ]; then
 			echo -n "FreeBSD "
 			uname -r
+			NCPU=`sysctl -n hw.ncpu`
+			CPUSPEED=`sysctl -n hw.clockrate`
+			CPUTYPE=`sysctl -n hw.model`
+			echo "${NCPU} ${CPUSPEED}MHz ${CPUTYPE} Processor(s)"
 		fi
 		if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == "cygwin" ]; then
 			if [ ! -f "${HOME}"/.sysinfo.vbs ]; then
