@@ -43,7 +43,7 @@ fi
 # version information
 JBVER="4.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 32 2008-07-16 23:46:07Z rj $'
+JBSVNID='$Id: .bashrc 33 2008-07-17 00:00:31Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -693,10 +693,12 @@ function .properties {
 			if [ ! -f "${HOME}"/.sysinfo.vbs ]; then
 				echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset o = w.instancesof(\"win32_operatingsystem\")\r\nfor each i in o\r\nwscript.echo i.caption & \" SP\" & i.servicepackmajorversion\r\nnext" > "${HOME}"/.sysinfo.vbs
 			fi
-			cscript //nologo "${HOME}"/.sysinfo.vbs
+			PC=`cscript //nologo "${HOME}"/.sysinfo.vbs`
+		else
+			PC=`pscount + 1`
 		fi
-		pscount
-		echo " Processes, `who|wc -l` users"
+		echo "${PC} Processes, `who|wc -l` users"
+		unset PC
 	fi
 }
 
