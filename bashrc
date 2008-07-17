@@ -43,7 +43,7 @@ fi
 # version information
 JBVER="4.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 33 2008-07-17 00:00:31Z rj $'
+JBSVNID='$Id: .bashrc 34 2008-07-17 00:26:32Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -682,6 +682,12 @@ function .properties {
 	fi
 	if [ -n "${1}" ] && [ ${1} == "-x" ]; then
 		echo "--"
+		if [ ${OPSYS} == "darwin" ]; then
+			OSXVER=`echo -e 'Tell application "Finder"\nget version\nend tell'|osascript -`
+			if [ $? == "0" ]; then
+				echo "Apple Mac OS X ${OSXVER}"
+			fi
+		fi
 		if [ -f /etc/fedora-release ]; then
 			cat /etc/fedora-release
 		fi
@@ -697,8 +703,10 @@ function .properties {
 		else
 			PC=`pscount + 1`
 		fi
-		echo "${PC} Processes, `who|wc -l` users"
+		UCOUNT=`who|wc -l|sed 's/^ *//g'`
+		echo "${PC} Processes, ${UCOUNT} users"
 		unset PC
+		unset UCOUNT
 	fi
 }
 
