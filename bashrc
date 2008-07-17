@@ -43,7 +43,7 @@ fi
 # version information
 JBVER="4.8"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 34 2008-07-17 00:26:32Z rj $'
+JBSVNID='$Id: .bashrc 35 2008-07-17 00:56:18Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -687,6 +687,24 @@ function .properties {
 			if [ $? == "0" ]; then
 				echo "Apple Mac OS X ${OSXVER}"
 			fi
+			NCPU=`sysctl -n hw.ncpu`
+			CPUSPEED=`expr \`sysctl -n hw.cpufrequency\` / 1000000`
+			CPUTYPE=`machine`
+			echo $CPUTYPE|grep -q ppc
+			if [ $? == "0" ]; then
+				CPUARCH="PowerPC"
+			fi
+			CPUTYPE=${CPUTYPE//ppc/}
+			case ${CPUTYPE} in
+				7450)
+					CPUSUB="G4"
+					;;
+			esac
+			echo -n "${NCPU} ${CPUSPEED}MHz ${CPUARCH} ${CPUTYPE} "
+			if [ "${CPUTYPE}" ]; then
+				echo -n "(${CPUSUB}) "
+			fi
+			echo "Processor"
 		fi
 		if [ -f /etc/fedora-release ]; then
 			cat /etc/fedora-release
