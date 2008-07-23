@@ -41,9 +41,9 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 fi
 
 # version information
-JBVER="4.8"
+JBVER="4.8.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 36 2008-07-17 01:06:39Z rj $'
+JBSVNID='$Id: .bashrc 37 2008-07-23 03:23:38Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -278,17 +278,17 @@ function mm_getenv {
 }
 
 function mm_putenv {
-	if [ ${OPSYS} == "win32" ]; then
+	if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == 'cygwin' ]; then
 		# needed for memoize to work, win32 seems to not care
 		# how nasty this is...
 		eval $1=\"${!1//'\'/'/'}\"
 	fi
-	echo ${!1} > ${CMDCACHE}/env/${1}
+	echo ${!1} > "${CMDCACHE}"/env/${1}
 }
 
 function zapcmdcache {
-	rm -rf ${CMDCACHE}/chkcmd/*
-	rm -rf ${CMDCACHE}/env/*
+	rm -rf "${CMDCACHE}"/chkcmd/*
+	rm -rf "${CMDCACHE}"/env/*
 }
 
 # chkcmd - check if specific command is present, wrapper around which being evil on some platforms
@@ -478,7 +478,7 @@ function gethostinfo {
 		# following functions require bash 3.x
 		# this works around the case of cygwin/win32 having gnuwin32's which...
 		if [ ${BASH_MAJOR} -gt "2" ]; then
-			if [ ${RCPATH} -nt "${HOME}"/.whichery.sh ]; then
+			if [ "${RCPATH}" -nt "${HOME}"/.whichery.sh ]; then
 				(
 				cat <<\WHICHERY
 					if [[ "${REAL_WHICH}" =~ ":" ]]; then
@@ -721,10 +721,18 @@ function .properties {
 			if [ ! -f "${HOME}"/.sysinfo.vbs ]; then
 				echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset o = w.instancesof(\"win32_operatingsystem\")\r\nfor each i in o\r\nwscript.echo i.caption & \" SP\" & i.servicepackmajorversion\r\nnext" > "${HOME}"/.sysinfo.vbs
 			fi
-			PC=`cscript //nologo "${HOME}"/.sysinfo.vbs`
-		else
-			PC=`pscount + 1`
+			SYSIVBS=`mm_getenv SYSIVBS`
+			if [ $? -ne 0 ]; then
+				if [ $OPSYS == 'cygwin' ]; then
+					SYSIVBS=`cygpath -da "${HOME}"/.sysinfo.vbs`
+				else
+					SYSIVBS=`ls -d "${HOME}"/.sysinfo.vbs`
+				fi
+				mm_putenv SYSIVBS
+			fi
+			cscript //nologo "${SYSIVBS}"
 		fi
+		PC=`pscount + 1`
 		UCOUNT=`who|wc -l|sed 's/^ *//g'`
 		echo "${PC} Processes, ${UCOUNT} users"
 		unset PC
