@@ -43,7 +43,7 @@ fi
 # version information
 JBVER="4.8.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 37 2008-07-23 03:23:38Z rj $'
+JBSVNID='$Id: .bashrc 52 2008-08-18 05:36:50Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -708,6 +708,8 @@ function .properties {
 		fi
 		if [ -f /etc/fedora-release ]; then
 			cat /etc/fedora-release
+		elif [ -f /etc/redhat-release ]; then
+			cat /etc/redhat-release
 		fi
 		if [ ${OPSYS} == "freebsd" ]; then
 			echo -n "FreeBSD "
