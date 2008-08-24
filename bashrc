@@ -53,7 +53,7 @@ fi
 # version information
 JBVER="4.8.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 91 2008-08-24 06:51:46Z rj $'
+JBSVNID='$Id: .bashrc 93 2008-08-24 07:16:58Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -678,10 +678,17 @@ function .properties {
 		else
 			echo ' System Edition'
 		fi
+		chkcmd svn
+		if [ $? == "0" ]; then
+			SVNURL=`svn info ${RCPATH}|grep URL`
+		fi
 	else
 		echo ''
 	fi
 	echo 'from SVN: '${JBSVNID}
+	if [ -n "${SVNURL}" ]; then
+		echo SVN ${SVNURL}
+	fi
 	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}' ('${TERM}')'
 	if [ "${RCPATH}" ]; then
 		echo 'RCFile: '${RCPATH}
