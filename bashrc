@@ -40,10 +40,20 @@ if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
 	RCPATH=`ls -l "${RCPATH}"|awk -F' -> ' '{print $2}'`
 fi
 
+# Run rcdir again, in an attempt to get more information
+if [ "${RCPATH}" ]; then
+	RCDIR=`dirname "$RCPATH"`
+
+	if [ "${RCDIR}" == "." ]; then
+		RCPATH=${PWD}/${RCPATH}
+	fi
+fi
+
+
 # version information
 JBVER="4.8.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 52 2008-08-18 05:36:50Z rj $'
+JBSVNID='$Id: .bashrc 91 2008-08-24 06:51:46Z rj $'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
