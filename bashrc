@@ -53,7 +53,9 @@ fi
 # version information
 JBVER="4.8.1"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 93 2008-08-24 07:16:58Z rj $'
+JBSVNID='$Id: .bashrc 95 2008-08-24 16:37:09Z rj $'
+JBSVNREV=${JBSVNID#'$Id: .bashrc '}
+JBSVNREV=${JBSVNREV/ */}
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -698,6 +700,13 @@ function .properties {
 		echo 'Connecting From: '${CONNFROM}
 	fi
 	if [ -n "${1}" ] && [ ${1} == "-x" ]; then
+		if [ -n "${SVNURL}" ]; then
+			SVNURL=${SVNURL#'URL: '}
+			SVNRREV=`svn info ${SVNURL}|grep Revision|awk '{ print $2 }'`
+			if [ "$SVNRREV" -gt "$JBSVNREV" ]; then
+				echo "Upgrade avalable, Revision: "${SVNRREV}
+			fi
+		fi
 		echo "--"
 		if [ ${OPSYS} == "darwin" ]; then
 			OSXVER=`echo -e 'Tell application "Finder"\nget version\nend tell'|osascript -`
