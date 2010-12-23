@@ -443,7 +443,7 @@ function gethostinfo {
 	LVER=${LVER%%-*}	# don't care about -RELEASE, -STABLE
 	LVER=${LVER%%\.*}	# don't care about sub-minor versions
 	LVER=${MVER}${LVER}
-
+	
 	case $OPSYS in
 		# hack around cygwin including the Windows ver
 		cygwin*)
@@ -454,7 +454,10 @@ function gethostinfo {
 			OPSYS=win32
 			unset LVER	# version of MSYS?
 			unset MVER
-			USER=`whoami`
+			# you cannot call chkcmd yet
+			if [ !"$USER" ]; then
+				USER=$USERNAME
+			fi
 			if [ !"$HOME" ]; then
 				HOME=$USERPROFILE
 			fi
@@ -478,7 +481,7 @@ function gethostinfo {
 			CPU="x86"
 		fi
 	fi
-
+	
 	# initialize the cache system
 	initcachedirs
 
@@ -672,7 +675,7 @@ function pscount {
 	echo -n "-255"
 }
 
-function .properties {
+function _properties {
 	echo -n ${JBVERSTRING}
 	if [ "${RCPATH}" ]; then
 		if `test "${RCPATH}" = "${HOME}"/.bashrc`; then
@@ -761,7 +764,10 @@ function .properties {
 			cscript //nologo "${SYSIVBS}"
 		fi
 		PC=`pscount + 1`
-		UCOUNT=`who|wc -l|sed 's/^ *//g'`
+		if [ ! -f "${HOME}"/.ucount.vbs ]; then
+			echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset c = w.execquery(\"select * from win32_logonsession where logontype = 2\")\r\nwscript.echo c.count" > "${HOME}"/.ucount.vbs
+		fi
+		UCOUNT=`cscript //nologo "${HOME}"/.ucount.vbs`
 		echo "${PC} Processes, ${UCOUNT} users"
 		unset PC
 		unset UCOUNT
@@ -822,24 +828,6 @@ function unsetenv {
 	fi
 }
 
-# new functions
-# push2host # copy environment files over using scp, link in to .bashrc and friends (only available in personal copies)
-function push2host {
-	RCDIR=`dirname "${RCPATH}"`
-	if [[ ( `expr match "${RCPATH}" "${HOME}"` = ${#HOME} ) ]]; then
-		if [[ ( `expr match "${BASHFILES}" "${HOME}"` = ${#HOME} ) ]]; then
-			scp -r "${BASHFILES}" ${1}:~
-			scp "${RCPATH}" ${1}:~/.bash.d/rc
-			ssh ln -sf ~/.bash.d/rc ~/.bashrc
-			ssh ln -sf ~/.bash.d/rc ~/.bash_profile
-		else
-			scp "${RCPATH}" ${1}:~/.bashrc
-			ssh ln -sf ~/.bashrc ~/.bash_profile
-		fi
-	fi
-
-}
-
 # httpsnarf # quick and dirty http(s) fetch [https requires openssl]
 function httpsnarf {
 	HTTP_PURI=`echo ${1}|sed s@https://@@`
@@ -870,73 +858,6 @@ function httpsnarf {
 		cat <&5
 	fi
 }
-
-# following functions require bash 3.x
-if [ ${BASH_MAJOR} -gt "2" ]; then
-if [ "${RCPATH}" -nt "${HOME}"/.httpfuncs.sh ]; then
-(
-cat <<\HTTPFUNCS
-# http_dechunk # pseudo-dechunker for http
-function http_dechunk {
-	setter=-u
-	if shopt -q nocasematch; then
-		setter=-s
-	fi
-	chunklen=0
-	is_chunked=0
-	hdr_line=0
-	shopt -s nocasematch
-	while read line; do
-		#line=${line%}
-		if [[ ${line} =~ '^transfer-encoding:.*chunked;?.*' ]]; then
-			is_chunked=1
-			line=`echo ${line}|sed 's/[Cc]hunked;*//'`
-			if [[ ! ${line} =~ '^transfer-encoding: *$' ]]; then
-				echo ${line}
-			fi
-		fi
-		if [[ (${chunklen} == 0 && (${hdr_line} == 1 && ${line} != "0")) ]]; then
-			chunklen=${line%}
-		elif [[ ! ${line} == "0" ]]; then
-			echo ${line}
-		fi
-		if [[ ${line} =~ '^$' ]]; then
-			hdr_line=1
-		fi
-	done
-	shopt $setter nocasematch
-}
-
-# http_striphdr # this is *supposed* to remove the http header bits, but I'm not guaranteeing it.
-function http_striphdr {
-	hdr_line=0
-	while read line; do
-		if [ ${hdr_line} == 1 ]; then
-			echo ${line}
-		fi
-		if [[ ${line} =~ '^$' ]]; then
-			hdr_line=1
-		fi
-	done
-}
-
-# http_stripcontent # only show http headers. maybe.
-function http_stripcontent {
-	hdr_line=0
-	while read line; do
-		if [[ ${line} =~ '^$' ]]; then
-			hdr_line=1
-		fi
-		if [ ! ${hdr_line} == 1 ]; then
-			echo ${line}
-		fi
-	done
-}
-HTTPFUNCS
-) > "${HOME}"/.httpfuncs.sh
-fi
-. "${HOME}"/.httpfuncs.sh
-fi
 
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
