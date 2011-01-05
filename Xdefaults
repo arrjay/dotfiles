@@ -1,2 +1,5 @@
-! turn of the compose windows on solaris UTF8 locales
+! from http://developers.sun.com/global/products_platforms/jds/reference/faqs/input-mode-window.html
+! turn off the compose windows on solaris UTF8 locales
 *preeditType:
+! xterm is special, don't set to blank, set to none?
+Xterm*preeditType: None
