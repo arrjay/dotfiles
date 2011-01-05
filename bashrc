@@ -51,11 +51,8 @@ fi
 
 
 # version information
-JBVER="4.8.1"
+JBVER="4.9"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
-JBSVNID='$Id: .bashrc 95 2008-08-24 16:37:09Z rj $'
-JBSVNREV=${JBSVNID#'$Id: .bashrc '}
-JBSVNREV=${JBSVNREV/ */}
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
@@ -679,39 +676,12 @@ function pscount {
 
 function _properties {
 	echo -n ${JBVERSTRING}
-	if [ "${RCPATH}" ]; then
-		if `test "${RCPATH}" = "${HOME}"/.bashrc`; then
-			echo ' Personal Edition'
-		else
-			echo ' System Edition'
-		fi
-		chkcmd svn
-		if [ $? == "0" ]; then
-			SVNURL=`svn info ${RCPATH}|grep URL`
-		fi
-	else
-		echo ''
-	fi
-	echo 'from SVN: '${JBSVNID}
-	if [ -n "${SVNURL}" ]; then
-		echo SVN ${SVNURL}
-	fi
 	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}' ('${TERM}')'
-	if [ "${RCPATH}" ]; then
-		echo 'RCFile: '${RCPATH}
-	fi
 	echo 'using bash '${BASH_VERSION}
 	if [ ${CONNFROM} ]; then
 		echo 'Connecting From: '${CONNFROM}
 	fi
 	if [ -n "${1}" ] && [ ${1} == "-x" ]; then
-		if [ -n "${SVNURL}" ]; then
-			SVNURL=${SVNURL#'URL: '}
-			SVNRREV=`svn info ${SVNURL}|grep Revision|awk '{ print $2 }'`
-			if [ "$SVNRREV" -gt "$JBSVNREV" ]; then
-				echo "Upgrade avalable, Revision: "${SVNRREV}
-			fi
-		fi
 		echo "--"
 		if [ ${OPSYS} == "darwin" ]; then
 			OSXVER=`echo -e 'Tell application "Finder"\nget version\nend tell'|osascript -`
@@ -764,12 +734,14 @@ function _properties {
 				mm_putenv SYSIVBS
 			fi
 			cscript //nologo "${SYSIVBS}"
+			if [ ! -f "${HOME}"/.ucount.vbs ]; then
+				echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset c = w.execquery(\"select * from win32_logonsession where logontype = 2\")\r\nwscript.echo c.count" > "${HOME}"/.ucount.vbs
+			fi
+			UCOUNT=`cscript //nologo "${HOME}"/.ucount.vbs`
+		else
+			UCOUNT=`who|wc -l|sed 's/^ *//g'`
 		fi
 		PC=`pscount + 1`
-		if [ ! -f "${HOME}"/.ucount.vbs ]; then
-			echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset c = w.execquery(\"select * from win32_logonsession where logontype = 2\")\r\nwscript.echo c.count" > "${HOME}"/.ucount.vbs
-		fi
-		UCOUNT=`cscript //nologo "${HOME}"/.ucount.vbs`
 		echo "${PC} Processes, ${UCOUNT} users"
 		unset PC
 		unset UCOUNT
@@ -1034,6 +1006,9 @@ function monolith_aliases {
 			alias df='df -h'
 			alias free='vmstat'
 			alias mem='vmstat'
+			;;
+		solaris)
+			alias ln='/usr/bin/ln'
 			;;
 		*)
 			alias ll='ls -FlAh'
