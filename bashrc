@@ -745,6 +745,10 @@ function _properties {
 		echo "${PC} Processes, ${UCOUNT} users"
 		unset PC
 		unset UCOUNT
+		if [ ${DISPLAY} ]; then
+			echo 'X Display: '${DISPLAY}
+			xdpyinfo | grep -E 'dimensions|depth of root window'
+		fi
 	fi
 }
 
@@ -920,6 +924,17 @@ function monolith_aliases {
 	chkcmd vim
 	if [ ${?} == 0 ]; then
 		export EDITOR=vim
+	fi
+	# stomp on the vim alias if we have working graphics
+	chkcmd gvim
+	if [ ${?} == 0 ]; then
+		if [ ${DISPLAY} ]; then
+			xdpyinfo > /dev/null
+			if [ ${?} == 0 ]; then
+				# we have DISPLAY and access to it
+				export EDITOR='gvim -f'
+			fi
+		fi
 	fi
 	# try to call coreutils & friends
 	v_alias ls gls
