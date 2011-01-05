@@ -510,7 +510,7 @@ WHICHERY
 
 	WSTR=`mm_getenv WSTR`
 	if [ ${?} -ne 0 ]; then
-		WSTR=`"${REAL_WHICH}" --help 2>&1 | grep -q ^no ; echo ${PIPESTATUS[@]}`
+		WSTR=`"${REAL_WHICH}" --help 2>&1 | grep ^no > /dev/null ; echo ${PIPESTATUS[@]}`
 		# 1 0 - which returned an error, grep did not - bad which
 		# 1 1 - which returned an error, grep did too - bad which (?)
 		# 2 1 - which returned an error, grep did too - strange which
