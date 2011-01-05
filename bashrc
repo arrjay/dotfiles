@@ -23,6 +23,9 @@
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
+# nastyish hack for mingw32
+PATH=/usr/bin:$PATH
+
 # this is the first non-debug line! we want to know where this script /is/!
 # appears to not work under 2.x. ah well.
 RCPATH=${BASH_ARGV}
