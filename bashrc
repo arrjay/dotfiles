@@ -174,6 +174,7 @@ function pathsetup {
 	genprepend PATH /sbin
 	genprepend PATH /usr/sysadm/bin
 	genprepend PATH /usr/sbin
+	genprepend PATH /usr/pkg/sbin
 	genprepend PATH /usr/local/sbin
 	genprepend PATH /usr/dt/bin
 	genprepend PATH /usr/openwin/bin
@@ -181,6 +182,7 @@ function pathsetup {
 	genprepend PATH /usr/X11R6/bin
 	genprepend PATH /bin
 	genprepend PATH /usr/bin
+	genprepend PATH /usr/pkg/bin
 	genprepend PATH /usr/xpg4/bin
 	genprepend PATH /usr/bsd
 	genprepend PATH /usr/ucb
@@ -217,7 +219,7 @@ function pathsetup {
 }
 
 function set_manpath {
-	for dir in /usr/X11R6/man /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/local/share/man /usr/local/man; do
+	for dir in /usr/X11R6/man /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/pkg/man /usr/local/share/man /usr/local/man; do
 		genprepend MANPATH ${dir}
 	done
 	if [ -d /opt ]; then
