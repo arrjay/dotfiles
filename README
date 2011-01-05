@@ -1,0 +1,4 @@
+Miscallaneous startup files.
+
+bashrc - can be run as .bashrc and/or .bash_profile. Sets up BOTH.
+gvimrc - just a few niceties for GVIM (*not* VIM)
