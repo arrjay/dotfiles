@@ -1,0 +1,2 @@
+! turn of the compose windows on solaris UTF8 locales
+*preeditType:
