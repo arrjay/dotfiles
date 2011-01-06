@@ -174,6 +174,8 @@ function pathsetup {
 	genprepend PATH /sbin
 	genprepend PATH /usr/sysadm/bin
 	genprepend PATH /usr/sbin
+	genprepend PATH /usr/ccs/bin
+	genprepend PATH /usr/sfw/bin
 	genprepend PATH /usr/pkg/sbin
 	genprepend PATH /usr/local/sbin
 	genprepend PATH /usr/dt/bin
