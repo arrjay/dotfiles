@@ -435,7 +435,8 @@ function gethostinfo {
 	HOST=${FQDN%%\.*} # in case uname returns FQDN
 	DOMAIN=${FQDN##${HOST}.}
 	CPU=`tolower $HOSTTYPE`
-	OPSYS=${MACHTYPE##${CPU}-}
+	CPU=${CPU%%-linux}
+	OPSYS=${BASH_VERSINFO[5]##${CPU}-}
 	OPSYS=${OPSYS%%-gnu}
 	OPSYS=${OPSYS##*-}
 	OPSYS=${OPSYS%%[0-9]*}
@@ -558,7 +559,6 @@ function getuserinfo {
 			else
 				HD='$'
 			fi
-			INVNAME=(`ps -p $$|awk '{ print $8 }'`)
 			;;
 		solaris)
 			if [ `/usr/xpg4/bin/id -u` == "0" ]; then
@@ -566,8 +566,6 @@ function getuserinfo {
 			else
 				HD='$'
 			fi
-			# have to use SysV ps here
-			INVNAME=`/usr/bin/ps -p $$ -o comm= 2>/dev/null`
 			;;
 		*)
 			if [ `id -u` == "0" ]; then
@@ -575,17 +573,8 @@ function getuserinfo {
 			else
 				HD='$'
 			fi
-			# works on Linux and FreeBSD, solaris (depending on ps)
-			INVNAME=(`ps -p $$ -o comm= 2>/dev/null`)
 			;;
 	esac
-
-	# This works around openbsd's aggravating ps, possibly others
-	ILAST=${#INVNAME[*]}
-	if [ $ILAST -ne 0 ]; then
-		((ILAST--))
-	fi
-	INVNAME=${INVNAME[$ILAST]}
 }
 
 # hostsetup - call host/os-specific subscripts
