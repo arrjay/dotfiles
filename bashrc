@@ -542,6 +542,30 @@ WHICHERY
 		USE_HTTP_1DOT1="yes"
 		;;
 	esac
+
+	# are we a laptop (rather, do we have ACPI or APM batteries?)
+	case ${OPSYS} in
+		linux)
+			# try sysfs first.
+			ls /sys/class/power_supply/BAT* > /dev/null 2>&1
+			if [ $? -eq 0 ]; then
+				# using sysfs to deal with power status
+				PMON_TYPE="lxsysfs"
+				# clear battery list
+				PMON_BATTERIES=""
+				for x in /sys/class/power_supply/BAT*/present ; do
+					read p < $x ; if [ $p == 1 ]; then
+						# we have a battery here
+						PMON_BATTERIES=`basename ${x///present/}`" "$PMON_BATTERIES
+					fi
+				done
+			fi
+			# different CPU classes generally have different power methods
+			;;
+		*)
+			# I have no idea.
+			;;
+	esac
 }
 
 # getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
@@ -743,6 +767,20 @@ function _properties {
 			echo 'X Display: '${DISPLAY}
 			xdpyinfo | grep -E 'dimensions|depth of root window'
 		fi
+		if [ "${PMON_BATTERIES}" ]; then
+			echo -n "Batteries installed, using "
+			case $PMON_TYPE in
+				lxsysfs)
+					echo -n "Linux /sys FS"
+					;;
+			esac
+			echo " for monitoring"
+			echo " Monitoring ${PMON_BATTERIES}"
+			echo -n " Batteries are "
+			x=`battstat chrg`; echo -n ${x}"/"
+			x=`battstat cap`; echo -n ${x}" ("
+			x=`battstat chgpct`; echo ${x}"%) charged"
+		fi
 	fi
 }
 
@@ -829,6 +867,64 @@ function httpsnarf {
 		echo -ne ${HTTP_REQ}>&5
 		cat <&5
 	fi
+}
+
+# battstatt - pull battery status generic-ish
+function battstat {
+	case $1 in
+		cap)
+			PMON_CAP=0
+			# get total capacity
+			case $PMON_TYPE in
+				lxsysfs)
+					for x in $PMON_BATTERIES; do
+						read p < /sys/class/power_supply/${x}/energy_full
+						PMON_CAP=$(($p + $PMON_CAP))
+					done
+					;;
+			esac
+			echo $PMON_CAP
+			;;
+		chrg)
+			PMON_CHARGE=0
+			case $PMON_TYPE in
+				lxsysfs)
+					for x in $PMON_BATTERIES; do
+						read p < /sys/class/power_supply/${x}/energy_now
+						PMON_CHARGE=$(($p + $PMON_CHARGE))
+					done
+					;;
+			esac
+			echo $PMON_CHARGE
+			;;
+		chgpct)
+			echo $((`battstat chrg`00 / `battstat cap`))
+			;;
+		stat)
+			# discahrge (v), idle (-), or charging (^)?
+			# batteries at idle is the default state
+			PMON_STAT="-"
+			case $PMON_TYPE in
+				lxsysfs)
+					for x in $PMON_BATTERIES; do
+						read p < /sys/class/power_supply/${x}/status
+						if [ $p == "Charging" ]; then
+							PMON_STAT="^"
+						fi
+						if [ $p == "Discharging" ]; then
+							PMON_STAT="v"
+						fi
+					done
+					;;
+			esac
+			echo $PMON_STAT
+			;;
+		*)
+			echo "I don't know how to $1"
+			echo "$0 (cap|chrg|chgpct|stat)"
+			return 2;
+			;;
+	esac
 }
 
 ## Monolithic version - now we config some things!
@@ -1065,6 +1161,18 @@ function setprompt {
 				;;
 		esac
 		;;
+	new_pmon)
+		# new prompt with battery minder
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		case ${TERM_COLORSET} in
+			bold|bright)
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				;;
+			*)
+				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` (`battstat chgpct`%`battstat stat`) {\W} ${HD}\n" # mono
+				;;
+		esac
+		;;
 	new|*)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
@@ -1113,7 +1221,11 @@ if [[ -n ${PS1} ]]; then
 	fi
 fi
 if [ ${OPSYS} != "cygwin" ] && [ ${OPSYS} != "win32" ]; then
-	setprompt
+	if [ "${PMON_BATTERIES}" ] ; then
+		setprompt new_pmon
+	else
+		setprompt
+	fi
 else
 	setprompt new_nocount
 fi
