@@ -410,12 +410,22 @@ function getterminfo {
 			TERM_CAN_TITLE=1
 			TERM_COLORSET="bold"
 			TERM_CAN_SETCOLOR=1
-			if [[ ! ( `matchstart ${TERM} /etc/termcap` = 0 ) ]]; then
-				if [[ ! ( `matchstart screen /etc/termcap` = 0 ) ]]; then
-					# be an xterm!
-					export TERM=xterm
-				else
-					export TERM=screen
+			if [ -f /etc/termcap ]; then
+				if [[ ! ( `matchstart ${TERM} /etc/termcap` = 0 ) ]]; then
+					if [[ ! ( `matchstart screen /etc/termcap` = 0 ) ]]; then
+						# be an xterm!
+						export TERM=xterm
+					else
+						export TERM=screen
+					fi
+				fi
+			elif [ -d /usr/share/terminfo/s ]; then
+				if [ ! -f /usr/share/terminfo/s/${TERM} ]; then
+					if [ -f /usr/share/terminfo/s/screen ]; then
+						export TERM=screen
+					else
+						export TERM=xterm
+					fi
 				fi
 			fi
 			;;
@@ -1098,7 +1108,6 @@ function monolith_aliases {
 		linux)
 			alias ll='ls -FlAh --color=tty'
 			alias ls='ls --color=tty -h'
-			alias vi='vim'
 			alias du='du -h'
 			alias df='df -h'
 			alias mem='free -m'
