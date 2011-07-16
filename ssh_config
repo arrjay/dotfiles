@@ -1,0 +1,4 @@
+Host github.com
+IdentitiesOnly yes
+IdentityFile /nethome/rj/.ssh/github.com.id
+User git
