@@ -1,0 +1,15 @@
+# Use UTF8, always
+defutf8 on
+# scrollback buffering? disable for irssi-wrapping screens
+defscrollback 2048
+# register our windows as actual logins? (really shouldn't for irssi bouncers)
+deflogin off
+# turn off the startup message
+startup_message off
+# useful to not block when your remote endpoint disappears
+nonblock on
+# multiuser can be handy if you are trying to debug something...
+multiuser off
+# set a nice status line (shows in xterm titlebars, among other things)
+hardstatus string "[screen %n%?: %t%?] %h"
+#caption always %t
