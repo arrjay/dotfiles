@@ -4,7 +4,8 @@ bashrc    	- can be run as .bashrc and/or .bash_profile. Sets up BOTH.
 gitconfig 	- settings for git ;)
 gvimrc    	- just a few niceties for GVIM (*not* VIM)
 Xdefaults 	- misc. X application settings (XAthena/Xlib/old-school X toolkits)
-screenrc  	- GNU screen
-ssh_config	- OpenSSH client configuration for github
+screen/rc  	- GNU screen
+screen/irssi.rc - GNU screen for wrapping irssi sessions
+ssh_config	- OpenSSH client configuration for github (save as ~/.ssh/config)
 
 fluxbox/init - fluxbox toolbar layout, startup settings
