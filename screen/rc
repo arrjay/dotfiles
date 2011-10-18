@@ -13,3 +13,5 @@ multiuser off
 # set a nice status line (shows in xterm titlebars, among other things)
 hardstatus string "[screen %n%?: %t%?] %h"
 #caption always %t
+# force screen to use your home directory on startup
+chdir
