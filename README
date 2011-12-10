@@ -7,5 +7,6 @@ Xdefaults 	- misc. X application settings (XAthena/Xlib/old-school X toolkits)
 screen/rc  	- GNU screen
 screen/irssi.rc - GNU screen for wrapping irssi sessions
 ssh_config	- OpenSSH client configuration for github (save as ~/.ssh/config)
+terminalrc	- XFCE4 Terminal (save as .config/Terminal/terminalrc)
 
 fluxbox/init - fluxbox toolbar layout, startup settings
