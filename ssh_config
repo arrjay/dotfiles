@@ -3,7 +3,7 @@ Host *
   ControlPath /tmp/%r@%h:%p
 Host github.com
   IdentitiesOnly yes
-  IdentityFile /nethome/rj/.ssh/github.com.id
+  IdentityFile %d/.ssh/github.com.id
   User git
 Host *
   ForwardX11Trusted no
