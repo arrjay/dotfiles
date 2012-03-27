@@ -910,8 +910,8 @@ function battstat {
 					for x in $PMON_BATTERIES; do
 						if [ -f $_SYSFSPATH/energy_now ]; then
 							read p < $_SYSFSPATH/energy_now
-						elif [ -f $_SYSFSPATH/energy_full ] ; then
-							read p < $_SYSFSPATH/energy_full
+						elif [ -f $_SYSFSPATH/charge_now ] ; then
+							read p < $_SYSFSPATH/charge_now
 						fi
 						PMON_CHARGE=$(($p + $PMON_CHARGE))
 					done
