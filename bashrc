@@ -887,8 +887,15 @@ function battstat {
 			# get total capacity
 			case $PMON_TYPE in
 				lxsysfs)
+					_SYSFSPATH="/sys/class/power_supply/${x}"
 					for x in $PMON_BATTERIES; do
-						read p < /sys/class/power_supply/${x}/energy_full
+						# if we're reporting energy, use that first
+						# FIXME: what happens when one battery reports in energy, the other in charge? (never seen!)
+						if [ -f $_SYSFSPATH/energy_full ]; then
+							read p < $_SYSFSPATH/energy_full
+						elif [ -f $_SYSFSPATH/charge_full ]; then
+							read p < $_SYSFSPATH/charge_full
+						fi
 						PMON_CAP=$(($p + $PMON_CAP))
 					done
 					;;
@@ -899,8 +906,13 @@ function battstat {
 			PMON_CHARGE=0
 			case $PMON_TYPE in
 				lxsysfs)
+					_SYSFSPATH="/sys/class/power_supply/${x}"
 					for x in $PMON_BATTERIES; do
-						read p < /sys/class/power_supply/${x}/energy_now
+						if [ -f $_SYSFSPATH/energy_now ]; then
+							read p < $_SYSFSPATH/energy_now
+						elif [ -f $_SYSFSPATH/energy_full ] ; then
+							read p < $_SYSFSPATH/energy_full
+						fi
 						PMON_CHARGE=$(($p + $PMON_CHARGE))
 					done
 					;;
