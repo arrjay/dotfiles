@@ -3,11 +3,11 @@ Host *-switch-*
   ControlMaster no
 Host *
   ControlMaster auto
-  ControlPath %d/.ssh/%r@%h:%p.cm
+  ControlPath ~/.ssh/%r@%h:%p.cm
   ControlPersist 1h
 Host github.com
   IdentitiesOnly yes
-  IdentityFile %d/.ssh/github.com.id
+  IdentityFile ~/.ssh/github.com.id
   User git
 Host *
   ForwardX11Trusted no
