@@ -1,6 +1,10 @@
+# switches are such stupid things.
+Host *-switch-*
+  ControlMaster no
 Host *
   ControlMaster auto
-  ControlPath /tmp/%r@%h:%p
+  ControlPath %d/.ssh/%r@%h:%p.cm
+  ControlPersist 1h
 Host github.com
   IdentitiesOnly yes
   IdentityFile %d/.ssh/github.com.id
@@ -8,4 +12,5 @@ Host github.com
 Host *
   ForwardX11Trusted no
   ForwardX11 no
-
+  ServerAliveInterval 180
+  ServerAliveCountMax 3
