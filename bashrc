@@ -848,6 +848,14 @@ function unsetenv {
 	fi
 }
 
+# leverage ssh with ControlMaster to push latest .bashrc and ssh key to a host
+function g2 {
+	scp ${HOME}/.bashrc $1:
+	ssh $1 t_mkdir .ssh
+	scp ${HOME}/.ssh/id_rsa.pub ${1}:.ssh
+	ssh $1
+}
+
 # httpsnarf # quick and dirty http(s) fetch [https requires openssl]
 function httpsnarf {
 	HTTP_PURI=`echo ${1}|sed s@https://@@`
