@@ -179,6 +179,7 @@ function pathsetup {
 	genprepend PATH /usr/pkg/sbin
 	genprepend PATH /usr/tgcware/sbin
 	genprepend PATH /usr/local/sbin
+	genprepend PATH /usr/gfx
 	genprepend PATH /usr/dt/bin
 	genprepend PATH /usr/openwin/bin
 	genprepend PATH /usr/bin/X11
