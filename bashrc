@@ -177,6 +177,7 @@ function pathsetup {
 	genprepend PATH /usr/ccs/bin
 	genprepend PATH /usr/sfw/bin
 	genprepend PATH /usr/pkg/sbin
+	genprepend PATH /usr/tgcware/sbin
 	genprepend PATH /usr/local/sbin
 	genprepend PATH /usr/dt/bin
 	genprepend PATH /usr/openwin/bin
@@ -190,6 +191,7 @@ function pathsetup {
 	genprepend PATH /usr/ucb
 	genprepend PATH /usr/kerberos/bin # iunno, it's like redhat now...
 	genprepend PATH /usr/nekoware/bin
+	genprepend PATH /usr/tgcware/bin
 	genprepend PATH /opt/local/bin
 	genprepend PATH /usr/local/bin
 	if [ ${OPSYS} == "cygwin" ]; then
