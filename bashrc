@@ -960,6 +960,17 @@ function battstat {
 	esac
 }
 
+# kill ssh mux processes
+# FIXME: serious linuxisms. *might* work on BSDs, untested!
+function ssh-kill {
+	for proc in `ps aux|awk '{ print $2 ,$1 ,$13 }'|grep $USER' \[mux\]'|awk '{ print $1 }'`; do kill -TERM $proc;done
+}
+
+# this is a function because pulling up a graphical editor when running 'vi' is *very* surprising
+function _ed {
+	$EDITOR "$1"
+}
+
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
 	case $OPSYS in
