@@ -33,6 +33,8 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 		mkdir "${HOME}/.ssh"
 	fi
 	cp "$source_dir"/ssh_config "${HOME}"/.ssh/config
+	# fix permissions lest ssh freak out
+	chmod 0600 "${HOME}"/.ssh/config
 
 	ln -sf "$source_dir"/Xdefaults "${HOME}"/.Xdefaults
 
