@@ -1,0 +1,4 @@
+%packager       RJ Bergeron
+%vendor         Produxi Internetworks
+
+%_topdir        %(eval echo $HOME)/rpm
