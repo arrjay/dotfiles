@@ -308,6 +308,7 @@ function mm_putenv {
 function zapcmdcache {
 	rm -rf "${CMDCACHE}"/chkcmd/*
 	rm -rf "${CMDCACHE}"/env/*
+	hash -r
 }
 
 # chkcmd - check if specific command is present, wrapper around which being evil on some platforms
@@ -1107,7 +1108,6 @@ function monolith_aliases {
 	alias rd='rm -rf'
 	alias copy='cp'
 	alias move='mv'
-	alias type='cat'
 	alias tracert='traceroute'
 	alias ipconfig='ifconfig'
 
