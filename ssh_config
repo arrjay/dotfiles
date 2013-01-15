@@ -1,9 +1,12 @@
 # switches are such stupid things.
 Host *-switch-*
+# OpenSSH 4.0
   ControlMaster no
 Host *
   ControlMaster auto
+# OpenSSH 4.2
   ControlPath ~/.ssh/%r@%h:%p.cm
+# OpenSSH 5.6
   ControlPersist 1h
 Host github.com
   IdentitiesOnly yes
