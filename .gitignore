@@ -1,3 +1,5 @@
-irssi.internal
-irssi-internal
-*.bak
+gpgkeyring/
+rack/
+puppet.conf
+modules/stdlib/
+modules/vcsrepo/
