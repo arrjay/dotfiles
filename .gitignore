@@ -4,3 +4,4 @@ puppet.conf
 modules/stdlib/
 modules/vcsrepo/
 modules/concat/
+modules/puppet-pkgng/
