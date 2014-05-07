@@ -3,3 +3,19 @@
 *preeditType:
 ! xterm is special, don't set to blank, set to none?
 Xterm*preeditType: None
+! force xterm to tolerable
+xterm*VT100.geometry: 160x52
+! utf8 errywhere
+xterm*utf8: 2
+xterm*eightBitInput: true
+! scrollback/scrollbar
+xterm*saveLines: 2048
+xterm*scrollBar: true
+xterm*rightScrollBar: true
+! fuck that toolbar
+xterm*toolBar: false
+! a nice font
+xterm*faceName: Terminus:style=Regular:size=9
+! colors
+xterm*background: black
+xterm*foreground: gray
