@@ -1,0 +1,161 @@
+## server strings are pulled from include
+SERVERS
+
+chatnets = {
+  WORK = {
+    type = "IRC";
+#ifdef WORKPASS
+    WORKPASS
+#endif
+  };
+  slack = { type = "IRC"; nick = "rbergeron"; username = "rbergeron"; };
+  bitlbee = {
+    type = "IRC";
+#ifdef BITLBEEPASS
+    BITLBEEPASS
+#endif
+  };
+};
+
+channels = (
+#ifdef WORKCHANNELS
+  WORKCHANNELS
+#endif
+  ## this lets the channel list stay valid regardless of included defs
+  { name = "#irssi"; chatnet = "ircnet"; autojoin = "No"; },
+);
+
+aliases = {
+  LEAVE = "part";
+  DESCRIBE = "action";
+  DATE = "time";
+  HOST = "userhost";
+  LAST = "lastlog";
+  SAY = "msg *";
+  WI = "whois";
+  WII = "whois $0 $0";
+  WW = "whowas";
+  W = "who";
+  N = "names";
+  M = "msg";
+  T = "topic";
+  C = "clear";
+  CL = "clear";
+  CLS = "clear";
+  K = "kick";
+  KB = "kickban";
+  KN = "knockout";
+  BANS = "ban";
+  B = "ban";
+  MUB = "unban *";
+  UB = "unban";
+  IG = "ignore";
+  UNIG = "unignore";
+  UIG = "unignore";
+  SB = "scrollback";
+  UMODE = "mode $N";
+  WC = "window close";
+  WN = "window new hide";
+  GOTO = "scrollback goto";
+  RUN = "SCRIPT LOAD";
+  CALC = "exec - if command -v bc >/dev/null 2>&1\\; then printf '%s=' '$*'\\; echo '$*' | bc -l\\; else echo bc was not found\\; fi";
+  SBAR = "STATUSBAR";
+  INVITELIST = "mode $C +I";
+  Q = "QUERY";
+  EXEMPTLIST = "mode $C +e";
+  ATAG = "WINDOW SERVER";
+  UNSET = "set -clear";
+  RESET = "set -default";
+};
+
+statusbar = {
+  items = {
+    barstart = "{sbstart}";
+    barend = "{sbend}";
+    topicbarstart = "{topicsbstart}";
+    topicbarend = "{topicsbend}";
+    time = "{sb $Z}";
+    user = "{sb {sbnickmode $cumode}$N{sbmode $usermode}{sbaway $A}}";
+    window = "{sb $winref:$tag/$itemname{sbmode $M}}";
+    window_empty = "{sb $winref{sbservertag $tag}}";
+    prompt = "{prompt $[.15]itemname}";
+    prompt_empty = "{prompt $winname}";
+    topic = " $topic";
+    topic_empty = " Irssi v$J - http://www.irssi.org";
+    lag = "{sb Lag: $0-}";
+    act = "{sb Act: $0-}";
+    more = "-- more --";
+  };
+  default = {
+    window = {
+      disabled = "no";
+      type = "window";
+      placement = "bottom";
+      position = "1";
+      visible = "active";
+      items = {
+        barstart = { priority = "100"; };
+        time = { };
+        user = { };
+        window = { };
+        window_empty = { };
+        lag = { priority = "-1"; };
+        act = { priority = "10"; };
+        more = { priority = "-1"; alignment = "right"; };
+        barend = { priority = "100"; alignment = "right"; };
+      };
+    };
+    window_inact = {
+      type = "window";
+      placement = "bottom";
+      position = "1";
+      visible = "inactive";
+      items = {
+        barstart = { priority = "100"; };
+        window = { };
+        window_empty = { };
+        more = { priority = "-1"; alignment = "right"; };
+        barend = { priority = "100"; alignment = "right"; };
+      };
+    };
+    prompt = {
+      type = "root";
+      placement = "bottom";
+      position = "100";
+      visible = "always";
+      items = {
+        prompt = { priority = "-1"; };
+        prompt_empty = { priority = "-1"; };
+        input = { priority = "10"; };
+      };
+    };
+    topic = {
+      type = "root";
+      placement = "top";
+      position = "1";
+      visible = "always";
+      items = {
+        topicbarstart = { priority = "100"; };
+        topic = { };
+        topic_empty = { };
+        topicbarend = { priority = "100"; alignment = "right"; };
+      };
+    };
+  };
+};
+
+settings = {
+  code = {
+    real_name = REALNAME;
+    user_name = USERNAME;
+    nick = rj;
+  };
+  "fe-text" = { actlist_sort = "refnum"; };
+  "perl/core/scripts" = { nicklist_automode = "screen"; };
+  "fe-common/core" = { autolog = "yes"; };
+  proxy = {
+    PROXYCONFIG
+  };
+};
+
+ignores = ( { mask = "MODES"; level = "ALL"; servertag = "slack"; } );
