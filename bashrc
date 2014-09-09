@@ -572,13 +572,13 @@ WHICHERY
 	case ${OPSYS} in
 		linux)
 			# try sysfs first.
-			ls /sys/class/power_supply/BAT* > /dev/null 2>&1
+			ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || ls /sys/class/power_supply/CMB* > /dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				# using sysfs to deal with power status
 				PMON_TYPE="lxsysfs"
 				# clear battery list
 				PMON_BATTERIES=""
-				for x in /sys/class/power_supply/BAT*/present ; do
+				for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present ; do
 					read p < $x ; if [ $p == 1 ]; then
 						# we have a battery here
 						PMON_BATTERIES=`basename ${x///present/}`" "$PMON_BATTERIES
