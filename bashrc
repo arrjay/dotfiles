@@ -579,9 +579,11 @@ WHICHERY
 				# clear battery list
 				PMON_BATTERIES=""
 				for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present ; do
-					read p < $x ; if [ $p == 1 ]; then
-						# we have a battery here
-						PMON_BATTERIES=`basename ${x///present/}`" "$PMON_BATTERIES
+					if [ -f $x ] ; then
+						read p < $x ; if [ -n "$p" ] && [ $p == 1 ]; then
+							# we have a battery here
+							PMON_BATTERIES=`basename ${x///present/}`" "$PMON_BATTERIES
+						fi
 					fi
 				done
 			fi
