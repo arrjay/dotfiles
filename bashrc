@@ -1144,6 +1144,9 @@ function monolith_aliases {
 	# override system which with our more flexible version...
 	alias which='mwhich'
 
+	# common typo
+	alias Grep='grep'
+
 	case ${OPSYS} in
 		cygwin*|win32)
 			alias ll='ls -FlAh --color=tty'
