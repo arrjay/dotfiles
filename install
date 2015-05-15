@@ -2,6 +2,8 @@
 # eh, run the whole thing here in debug mode. good reminder of what we're doing
 set -x
 
+case "${@[@]}" in *"nopro"*) skip_profile=1 ;; esac
+
 # assumption: your home directory doesn't move. AUTOMOUNT WILL SCREW YOU.
 
 # find our little file friends
@@ -10,9 +12,11 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 	# we found ourselves, do the needful.
 	source_dir=$(dirname $(readlink -f "$BASH_SOURCE"))
 
+    if [[ -z "skip_profile" ]] ; then
 	# bashrc and bash_profile are the same for me, I switch on PS1...
 	ln -sf "$source_dir"/bashrc "${HOME}"/.bashrc
 	ln -sf "$source_dir"/bashrc "${HOME}"/.bash_profile
+    fi
 
 	# vimrc is linked, gvimrc is copied as we often have to muck with fonts
 	ln -sf "$source_dir"/vimrc "${HOME}"/.vimrc
@@ -25,8 +29,10 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 	fi
 	cp "$source_dir"/terminalrc "${HOME}"/.config/Terminal/terminalrc
 
+    if [ ! -f "${HOME}"/.gitconfig ] ; then
 	# global gitconfig is a copy
 	cp "$source_dir"/gitconfig "${HOME}"/.gitconfig
+    fi
 
 	# ssh_config is a copy. we also create .ssh directory if needed
 	if [ ! -d "${HOME}/.ssh" ]; then
