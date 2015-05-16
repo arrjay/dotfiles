@@ -1165,6 +1165,19 @@ function monolith_aliases {
 			alias mem='free -m'
 			alias free='free -m'
 			;;
+		darwin)
+			ppid=$(ps -o ppid $$)
+			pcomm=$(ps -o comm ${ppid/PPID/})
+			case ${pcomm} in
+				*Term*/Contents/MacOS/*Term*)
+					chkcmd mvim
+					if [ ${?} == 0 ] ; then
+						export EDITOR='mvim -f'
+						alias gvim=mvim
+					fi
+				;;
+			esac
+			;;
 		openbsd)
 			export PKG_PATH=ftp://ftp.openbsd.org/pub/OpenBSD/`uname -r`/packages/`machine -a`/
 			alias ll='ls -FlAh'
