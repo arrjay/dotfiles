@@ -1086,26 +1086,6 @@ function monolith_aliases {
 	if [ ${?} == 0 ]; then
 		export PAGER=less
 	fi
-    case ${EDITOR} in
-        *vim*) ;;
-        *)
-	chkcmd vim
-	if [ ${?} == 0 ]; then
-		export EDITOR=vim
-	fi
-	# stomp on the vim alias if we have working graphics
-	chkcmd gvim
-	if [ ${?} == 0 ]; then
-		if [ ${DISPLAY} ]; then
-			xdpyinfo > /dev/null
-			if [ ${?} == 0 ]; then
-				# we have DISPLAY and access to it
-				export EDITOR='gvim -f'
-			fi
-		fi
-	fi
-        ;;
-    esac
 	# try to call coreutils & friends
 	v_alias ls gls
 	v_alias cp gcp
@@ -1198,6 +1178,27 @@ function monolith_aliases {
 			;;
 		*)
 			alias ll='ls -FlAh'
+			;;
+	esac
+	case ${EDITOR} in
+		*vim*)
+			;;
+		*)
+			chkcmd vim
+			if [ ${?} == 0 ]; then
+				export EDITOR=vim
+			fi
+			# stomp on the vim alias if we have working graphics
+			chkcmd gvim
+			if [ ${?} == 0 ]; then
+				if [ ${DISPLAY} ]; then
+					xdpyinfo > /dev/null
+					if [ ${?} == 0 ]; then
+						# we have DISPLAY and access to it
+						export EDITOR='gvim -f'
+					fi
+				fi
+			fi
 			;;
 	esac
 }
