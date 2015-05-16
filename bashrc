@@ -1086,6 +1086,9 @@ function monolith_aliases {
 	if [ ${?} == 0 ]; then
 		export PAGER=less
 	fi
+    case ${EDITOR} in
+        *vim*) ;;
+        *)
 	chkcmd vim
 	if [ ${?} == 0 ]; then
 		export EDITOR=vim
@@ -1101,6 +1104,8 @@ function monolith_aliases {
 			fi
 		fi
 	fi
+        ;;
+    esac
 	# try to call coreutils & friends
 	v_alias ls gls
 	v_alias cp gcp
