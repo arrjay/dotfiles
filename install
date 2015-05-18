@@ -12,7 +12,7 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 	# we found ourselves, do the needful.
 	source_dir=$(dirname $(readlink -f "$BASH_SOURCE"))
 
-    if [[ -z "skip_profile" ]] ; then
+    if [[ ! -z "skip_profile" ]] ; then
 	# bashrc and bash_profile are the same for me, I switch on PS1...
 	ln -sf "$source_dir"/bashrc "${HOME}"/.bashrc
 	ln -sf "$source_dir"/bashrc "${HOME}"/.bash_profile
