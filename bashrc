@@ -1170,6 +1170,14 @@ function monolith_aliases {
 			pcomm=$(ps -o comm ${ppid/PPID/})
 			case ${pcomm} in
 				*Term*/Contents/MacOS/*Term*)
+					pgrep -U "${USER}" gpg-agent >& /dev/null
+					if [ ${?} -eq 0 ] ; then
+						if [ -f "${HOME}/.gpg-agent-info" ] ; then
+							. "${HOME}/.gpg-agent-info"
+							export GPG_AGENT_INFO
+							export SSH_AUTH_SOCK
+						fi
+					fi
 					chkcmd mvim
 					if [ ${?} == 0 ] ; then
 						export EDITOR='mvim -f'
