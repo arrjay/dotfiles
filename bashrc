@@ -1110,6 +1110,7 @@ function monolith_aliases {
 	v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
 	v_alias mpg321 mpg123	# else mpg123
 	v_alias ftp ncftp
+	v_alias gpg gpg2
 	
 	# common custom aliases
 	alias path='echo ${PATH}'
