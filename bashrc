@@ -1308,6 +1308,8 @@ monolith_aliases
 
 #print_debug fortune
 if [[ -n ${PS1} ]]; then
+	# configure history for interactive sessions
+	HISTCONTROL=ignoreboth
 	lyricsfile="${HOME}"/.fortune/song-lyrics
 	#print_debug fortune_file
 	if [ -f "${lyricsfile}" ]; then
