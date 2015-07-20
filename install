@@ -44,6 +44,11 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 	chmod 0600 "${HOME}"/.ssh/config
     fi
 
+	if [ ! -d "${HOME}/.gnupg" ] ; then
+		mkdir "${HOME}/.gnupg"
+	fi
+	cp "$source_dir"/gnupg/gpg.conf "${HOME}"/.gnupg/gpg.conf
+
 	ln -sf "$source_dir"/Xdefaults "${HOME}"/.Xdefaults
 
 else
