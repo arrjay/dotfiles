@@ -1,1 +1,3 @@
-keys/
+pkg/
+Gemfile.lock
+.rspec
