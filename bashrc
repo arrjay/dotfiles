@@ -1170,7 +1170,7 @@ function monolith_aliases {
 			ppid=$(ps -o ppid $$)
 			pcomm=$(ps -o comm ${ppid/PPID/})
 			case ${pcomm} in
-				*Term*/Contents/MacOS/*Term*)
+				*Term*/Contents/MacOS/*Term* | *login)
 					pgrep -U "${USER}" gpg-agent >& /dev/null
 					if [ ${?} -eq 0 ] ; then
 						if [ -f "${HOME}/.gpg-agent-info" ] ; then
