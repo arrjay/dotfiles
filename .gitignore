@@ -1,1 +1,9 @@
-keys/
+.librarian
+.tmp
+.vagrant
+Gemfile.lock
+Puppetfile.lock
+spec/fixtures/*
+!spec/fixtures/files
+pkg
+log
