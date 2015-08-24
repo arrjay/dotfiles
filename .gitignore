@@ -1,1 +1,5 @@
-keys/
+spec/fixtures/modules/*
+spec/fixtures/manifests/*
+*swp
+
+.DS_Store
