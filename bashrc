@@ -1170,7 +1170,7 @@ function monolith_aliases {
 			ppid=$(ps -o ppid $$)
 			pcomm=$(ps -o comm ${ppid/PPID/})
 			case ${pcomm} in
-				*Term*/Contents/MacOS/*Term*)
+				*Term*/Contents/MacOS/*Term* | *login)
 					pgrep -U "${USER}" gpg-agent >& /dev/null
 					if [ ${?} -eq 0 ] ; then
 						if [ -f "${HOME}/.gpg-agent-info" ] ; then
@@ -1223,6 +1223,10 @@ function monolith_aliases {
 			fi
 			;;
 	esac
+	chkcmd pass
+	if [ ${?} == 0 ]; then
+		export PASSWORD_STORE_KEY='0xCFDDCCFE1E0EC4FE! 0xA529582A2A35C510!'
+	fi
 }
 
 # export the prompt
