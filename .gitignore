@@ -1,3 +1,2 @@
-irssi.internal
-irssi-internal
-*.bak
+conf.tar
+*.tar
