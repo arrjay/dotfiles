@@ -32,6 +32,7 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
     if [ ! -f "${HOME}"/.gitconfig ] ; then
 	# global gitconfig is a copy
 	cp "$source_dir"/gitconfig "${HOME}"/.gitconfig
+        cp -R "$source_dir"/git "${HOME}"/.git
     fi
 
 	# ssh_config is a copy. we also create .ssh directory if needed
