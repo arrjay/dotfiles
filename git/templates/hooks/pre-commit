@@ -1,0 +1,34 @@
+#!/bin/sh
+# a git hook to set emails in a source-dependent fashion
+
+EMAIL=$(git config user.email)
+ORIGIN=$(git config --get remote.origin.url)
+
+TGT_EMAIL=""
+
+if [ ! -z "${ORIGIN}" ] ; then
+  case "${ORIGIN}" in
+    *yojoe*|*palantir*)
+      TGT_EMAIL="rbergeron@palantir.com"
+      ;;
+    *)
+      # if we have any other origin we _probably_ want the gmail addr
+      TGT_EMAIL="rbergero@gmail.com"
+      ;;
+  esac
+fi
+
+if [ ! -z "${TGT_EMAIL}" ] ; then
+  if [ -z "${EMAIL}" ] ; then
+    # no email configured - set one
+    echo "Configuring committer/author email ${TGT_EMAIL}"
+    git config user.email "${TGT_EMAIL}"
+  else
+    # see if TGT and EMAIL match
+    if [ "${EMAIL}" != "${TGT_EMAIL}" ] ; then
+      echo "WARN: Email address for repo and hook email address mismatch"
+    fi
+  fi
+else
+  echo "WARN: Email address not caught in pre-commit hook"
+fi
