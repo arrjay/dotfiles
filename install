@@ -46,6 +46,18 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 
 	ln -sf "$source_dir"/Xdefaults "${HOME}"/.Xdefaults
 
+	if [ ! -d "${HOME}/.gnupg" ] ; then
+		mkdir "${HOME}/.gnupg"
+	fi
+
+	if [ ! -f "${HOME}/.gnupg/gpg.conf" ] ; then
+		cp "$source_dir"/gnupg/gpg.conf "${HOME}"/.gnupg/gpg.conf
+	fi
+
+	if [ ! -f "${HOME}/.gnupg/gpg-agent.conf" ] ; then
+		cp "$source_dir"/gnupg/gpg-agent.conf "${HOME}"/.gnupg/gpg-agent.conf
+	fi
+
 else
 	echo "sorry, you'll need to set up this system manually!"
 fi
