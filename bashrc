@@ -652,22 +652,23 @@ function pbinsetup {
 	genappend PATH "${HOME}/.rvm/bin"
 	# set PERL5LIB here
 	if [ -d "${HOME}"/Library/perl5 ]; then
+		export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
+		export PERL_MM_OPT="INSTALL_BASE=${HOME}/Library/perl5"
+		export PERL_LOCAL_LIB_ROOT="${HOME}/Library/perl5"
 		genappend PERL5LIB "${HOME}/Library/perl5"
-	fi
-	if [ -d "${HOME}"/perl5 ]; then
-		export PERL_MB_OPT="--install_base ${HOME}/perl5"
-		export PERL_MM_OPT="INSTALL_BASE=${HOME}/perl5"
-		export PERL_LOCAL_LIB_ROOT="${HOME}/perl5"
-		genappend PERL5LIB "${HOME}/perl5"
-		if [ -d "${HOME}/perl5/lib/perl5" ]; then
-			genappend PERL5LIB "${HOME}/perl5/lib/perl5"
-			if [ -d "${HOME}/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
-				genappend PERL5LIB "${HOME}/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" 
+		if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
+			genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
+			if [ -d "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
+				genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
 			fi
 		fi
-		if [ -d "${HOME}/perl5/bin" ]; then
-			genappend PATH "${HOME}/perl5/bin"
+		if [ -d "${HOME}/Library/perl5/bin" ]; then
+			genappend PATH "${HOME}/Library/perl5/bin"
 		fi
+	fi
+	# Python binaries actually hide in the python library dir
+	if [ -d "${HOME}/Library/Python/2.7/bin" ]; then
+		genappend PATH "${HOME}/Library/Python/2.7/bin"
 	fi
 	# add our personal ~/Applications subdirectories
 	for dir in `ls -d "${HOME}"/Applications/*/bin 2> /dev/null`; do
