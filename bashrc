@@ -667,12 +667,17 @@ function pbinsetup {
 			fi
 		fi
 	fi
-	# configure GOPATH here
+	# configure GOPATH/GOROOT here
 	if [ -d "${HOME}"/Library/go ]; then
-		if [ ! -z "${GOPATH}" ] ; then
-			genprepend GOPATH "${HOME}/Library/go"
+		if [ -f "${HOME}"/Library/go/bin/go ] ; then
+			# found a go _compiler_ so this is a complete install.
+			export GOROOT="${HOME}/Library/go"
 		else
-			export GOPATH="${HOME}/Library/go"
+			if [ ! -z "${GOPATH}" ] ; then
+				genprepend GOPATH "${HOME}/Library/go"
+			else
+				export GOPATH="${HOME}/Library/go"
+			fi
 		fi
 	fi
 	# add our personal ~/Library subdirectories
