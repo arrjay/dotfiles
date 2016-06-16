@@ -667,6 +667,14 @@ function pbinsetup {
 			fi
 		fi
 	fi
+	# configure GOPATH here
+	if [ -d "${HOME}"/Library/go ]; then
+		if [ ! -z "${GOPATH}" ] ; then
+			genprepend GOPATH "${HOME}/Library/go"
+		else
+			export GOPATH="${HOME}/Library/go"
+		fi
+	fi
 	# add our personal ~/Library subdirectories
 	for dir in "${HOME}"/Library/*/lib ; do
 		genappend LD_LIBRARY_PATH $dir
