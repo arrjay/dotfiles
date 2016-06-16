@@ -644,12 +644,16 @@ function hostsetup {
 
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
-	genappend PATH "${HOME}/bin/noarch"
-	genappend PATH "${HOME}/bin/${OPSYS}-${CPU}"
-	genappend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
-	genappend PATH "${HOME}/bin/${OPSYS}${LVER}-${CPU}"
-	genappend PATH "${HOME}/hbin/${HOST}"
-	genappend PATH "${HOME}/.rvm/bin"
+	# add our personal ~/Applications subdirectories
+	for dir in "${HOME}"/Library/Python/*/bin "${HOME}"/Library/*/bin "${HOME}"/Applications/*/bin ; do
+		genprepend PATH $dir
+	done
+	genprepend PATH "${HOME}/.rvm/bin"
+	genprepend PATH "${HOME}/bin/${OPSYS}-${CPU}"
+	genprepend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
+	genprepend PATH "${HOME}/bin/${OPSYS}${LVER}-${CPU}"
+	genprepend PATH "${HOME}/bin/noarch"
+	genprepend PATH "${HOME}/bin/${HOST}"
 	# set PERL5LIB here
 	if [ -d "${HOME}"/Library/perl5 ]; then
 		export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
@@ -662,20 +666,9 @@ function pbinsetup {
 				genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
 			fi
 		fi
-		if [ -d "${HOME}/Library/perl5/bin" ]; then
-			genappend PATH "${HOME}/Library/perl5/bin"
-		fi
 	fi
-	# Python binaries actually hide in the python library dir
-	if [ -d "${HOME}/Library/Python/2.7/bin" ]; then
-		genappend PATH "${HOME}/Library/Python/2.7/bin"
-	fi
-	# add our personal ~/Applications subdirectories
-	for dir in `ls -d "${HOME}"/Applications/*/bin 2> /dev/null`; do
-		genappend PATH $dir
-	done
-	# add out personal ~/Library subdirectories
-	for dir in `ls -d "${HOME}"/Library/*/lib 2> /dev/null`; do
+	# add our personal ~/Library subdirectories
+	for dir in "${HOME}"/Library/*/lib ; do
 		genappend LD_LIBRARY_PATH $dir
 	done
 	export LD_LIBRARY_PATH
