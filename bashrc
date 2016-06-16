@@ -668,9 +668,19 @@ function pbinsetup {
 		fi
 	fi
 	# configure GOPATH/GOROOT here
+	if [ -f "${HOME}"/Library/go-dist/bin/go ] ; then
+		# go distribution in go-dist, gopath in go, gox is happy, go away.
+		export GOROOT="${HOME}/Library/go-dist"
+	fi
 	if [ -d "${HOME}"/Library/go ]; then
 		if [ -f "${HOME}"/Library/go/bin/go ] ; then
 			# found a go _compiler_ so this is a complete install.
+			if [ ! -z "${GOROOT}" ] ; then
+				if [[ -n ${PS1} ]]; then
+					# warn of stupid times ahead.
+					echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
+				fi
+			fi
 			export GOROOT="${HOME}/Library/go"
 		else
 			if [ ! -z "${GOPATH}" ] ; then
