@@ -1,1 +1,6 @@
 Packages/
+EFI/
+LiveOS/
+images/
+overhead.img
+usb.img
