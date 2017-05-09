@@ -62,15 +62,7 @@ BASH_MAJOR=${BASH_VERSION/.*/}
 BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
 BASH_MINOR=${BASH_MINOR%%.*}
 
-# possible locations for aux files, first one listed wins
-# FIXME: set script up to use *all* of them
-if [ -d "${HOME}"/.bash.d ]; then
-	BASHFILES="${HOME}/.bash.d"
-elif [ -d /etc/bash.d ]; then
-	BASHFILES="/usr/local/etc/bash.d"
-elif [ -d /usr/local/etc/bash.d ]; then
-	BASHFILES="/etc/bash.d"
-fi
+BASHFILES="${HOME}/.bash.d"
 
 # qnd debug function
 function print_debug {
