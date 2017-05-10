@@ -495,6 +495,9 @@ function gethostinfo {
 		darwin)
 			CPU=`uname -p|tr [:upper:] [:lower:]`
 			;;
+		androideabi)
+			export USER=rjlocal
+			;;
 	esac
 
 	#print_debug x86_check
@@ -562,15 +565,16 @@ WHICHERY
 
 	# are we a laptop (rather, do we have ACPI or APM batteries?)
 	case ${OPSYS} in
-		linux)
+		linux|androideabi)
 			# try sysfs first.
-			ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || ls /sys/class/power_supply/CMB* > /dev/null 2>&1
+			ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || ls /sys/class/power_supply/CMB* > /dev/null 2>&1 || \
+			  ls /sys/class/power_supply/battery > /dev/null 2>&1
 			if [ $? -eq 0 ]; then
 				# using sysfs to deal with power status
 				PMON_TYPE="lxsysfs"
 				# clear battery list
 				PMON_BATTERIES=""
-				for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present ; do
+				for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present /sys/class/power_supply/battery/present ; do
 					if [ -f $x ] ; then
 						read p < $x ; if [ -n "$p" ] && [ $p == 1 ]; then
 							# we have a battery here
@@ -971,7 +975,22 @@ function battstat {
 			echo $PMON_CHARGE
 			;;
 		chgpct)
-			echo $((`battstat chrg`00 / `battstat cap`))
+			_candidate=''
+			case $PMON_TYPE in
+				lxsysfs)
+					_SYSFSPATH="/sys/class/power_supply"
+					for x in $PMON_BATTERIES; do
+						if [ -f $_SYSFSPATH/${x}/capacity ]; then
+							read _candidate < $_SYSFSPATH/${x}/capacity
+					fi
+					done
+					;;
+			esac
+			if [ -z "${_candidate}" ]; then
+				echo $((`battstat chrg`00 / `battstat cap`))
+			else
+				echo ${_candidate}
+			fi
 			;;
 		stat)
 			# discahrge (v), idle (-), or charging (^)?
@@ -981,10 +1000,10 @@ function battstat {
 				lxsysfs)
 					for x in $PMON_BATTERIES; do
 						read p < /sys/class/power_supply/${x}/status
-						if [ $p == "Charging" ]; then
+						if [ "$p" == "Charging" ]; then
 							PMON_STAT="^"
 						fi
-						if [ $p == "Discharging" ]; then
+						if [ "$p" == "Discharging" ]; then
 							PMON_STAT="v"
 						fi
 					done
@@ -1020,6 +1039,11 @@ function monolith_setfunc {
 				echo -n `expr \`ps ax|wc -l\` - 6`
 			}
 			;;
+                androideabi)
+                        function pscount {
+                                echo -n `expr \`ps aux|grep -F -v '['|wc -l\` - 7`
+                        }
+                        ;;
 		cygwin|win32)
 			# create a .pscount.vbs script if needed
 			if [ ! -f "${HOME}"/.pscount.vbs ]; then
@@ -1294,10 +1318,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` {\W} ${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! ${USER}@${HOST} `pscount` {\W} ${HD}\n" # mono
 				;;
 		esac
 		;;
