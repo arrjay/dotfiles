@@ -1,9 +1,2 @@
-Packages/
-EFI/
-LiveOS/
-images/
-overhead.img
-usb.img
-disk.vmdk
-discinfo
-repodata/
+image.img
+image.tar
