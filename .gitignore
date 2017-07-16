@@ -5,3 +5,5 @@ images/
 overhead.img
 usb.img
 disk.vmdk
+discinfo
+repodata/
