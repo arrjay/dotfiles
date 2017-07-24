@@ -2,3 +2,4 @@ manifests/*
 packer_cache
 output-qemu-*
 *.swp
+console-logs/*
