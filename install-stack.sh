@@ -9,7 +9,7 @@ chroot_ag() {
 }
 
 # install libvirt, firewalld
-chroot_ag install -y libvirt-bin firewalld dnsmasq
+chroot_ag install -y libvirt-bin firewalld dnsmasq dhcpcd
 
 # enable systemd-networkd
 ln -s /lib/systemd/system/systemd-networkd.service /mnt/target/etc/systemd/system/multi-user.target.wants/systemd-networkd.service
@@ -56,14 +56,14 @@ if [ -f /sys/class/dmi/id/chassis_serial ] ; then
       printf '[NetDev]\nName=mgmt\nKind=bridge\n'                                                    > /mnt/target/etc/systemd/network/mgmt.netdev
       printf '[Match]\nName=mgmt\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' > /mnt/target/etc/systemd/network/mgmt.network
       printf '[Match]\nName=%s\n[Network]\nBridge=mgmt\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' enp8s4 > /mnt/target/etc/systemd/network/enp8s4.network
-      # configure mgmt to use dhclient, with a fallback managed via systemd...
+      # configure mgmt to use dhcpcd, with a fallback managed via systemd...
       mkdir -p /usr/local/libexec
       {
-        printf '[Unit]\nDescription=dhclient on %%I\nWants=network.target\nBefore=network.target\nOnFailure=dhclient-fallback@%%i.service\n'
-        printf '[Service]\nEnvironment=PATH_DHCLIENT_PID=/var/run/dhclient-%%i.pid\nEnvironment=PATH_DHCLIENT_DB=/var/lib/dhclient/dhclient-%%i.leases\n'
-        printf 'ExecStart=/sbin/dhclient -4 -d -1 %%i\nRestart=on-success\n'
-      } > "/mnt/target/etc/systemd/system/dhclient@.service"
-      printf '[Unit]\nDescription=dhclient watchdog for %%I\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=30min\nUnit=dhclient@%%i.service\n[Install]\nWantedBy=timers.target\n' > "/mnt/target/etc/systemd/system/dhclient@.timer"
+        printf '[Unit]\nDescription=dhcpcd on %%I\nWants=network.target\nBefore=network.target\nOnFailure=dhclient-fallback@%%i.service\n'
+        printf '[Service]\n'
+        printf 'ExecStart=/sbin/dhcpcd -4 -d -1 -w %%i\nRestart=on-success\n'
+      } > "/mnt/target/etc/systemd/system/dhcpcd@.service"
+      printf '[Unit]\nDescription=dhcpcd watchdog for %%I\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=30min\nUnit=dhcpcd@%%i.service\n[Install]\nWantedBy=timers.target\n' > "/mnt/target/etc/systemd/system/dhcpcd@.timer"
       printf '[Unit]\nDescription=dhclient fallback for %%I\n[Service]\nType=oneshot\nExecStart=/usr/local/libexec/dhclient-fallback.sh %%i\n' > "/mnt/target/etc/systemd/system/dhclient-fallback@.service"
 
       printf '[Match]\nName=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' enp8s5 > /mnt/target/etc/systemd/network/enp8s5.network
