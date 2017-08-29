@@ -16,6 +16,8 @@ ln -s /lib/systemd/system/systemd-networkd.service /mnt/target/etc/systemd/syste
 ln -s /lib/systemd/system/systemd-networkd.socket /mnt/target/etc/systemd/system/sockets.target.wants/systemd-networkd.service
 #ln -s /lib/systemd/system/systemd-networkd-wait-online.service /mnt/target/etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
 
+chroot /mnt/target systemctl disable dhcpcd
+
 mkdir -p /mnt/taret/etc/systemd/network
 
 # disable ipv6 for most things
@@ -57,11 +59,11 @@ if [ -f /sys/class/dmi/id/chassis_serial ] ; then
       printf '[Match]\nName=mgmt\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' > /mnt/target/etc/systemd/network/mgmt.network
       printf '[Match]\nName=%s\n[Network]\nBridge=mgmt\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' enp8s4 > /mnt/target/etc/systemd/network/enp8s4.network
       # configure mgmt to use dhcpcd, with a fallback managed via systemd...
-      mkdir -p /usr/local/libexec
+      mkdir -p /mnt/target/usr/local/libexec
       {
         printf '[Unit]\nDescription=dhcpcd on %%I\nWants=network.target\nBefore=network.target\nOnFailure=dhclient-fallback@%%i.service\n'
         printf '[Service]\n'
-        printf 'ExecStart=/sbin/dhcpcd -4 -d -1 -w %%i\nRestart=on-success\n'
+        printf 'ExecStart=/sbin/dhcpcd -4 -A -d -1 -w %%i\nRestart=on-success\n'
       } > "/mnt/target/etc/systemd/system/dhcpcd@.service"
       printf '[Unit]\nDescription=dhcpcd watchdog for %%I\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=30min\nUnit=dhcpcd@%%i.service\n[Install]\nWantedBy=timers.target\n' > "/mnt/target/etc/systemd/system/dhcpcd@.timer"
       printf '[Unit]\nDescription=dhclient fallback for %%I\n[Service]\nType=oneshot\nExecStart=/usr/local/libexec/dhclient-fallback.sh %%i\n' > "/mnt/target/etc/systemd/system/dhclient-fallback@.service"
@@ -72,10 +74,10 @@ if [ -f /sys/class/dmi/id/chassis_serial ] ; then
         printf ' source "/usr/local/etc/dhclient-fallback/${1}.conf"\nelse\n exit 0\nfi\n'
         printf 'ip addr add "${IPADDR0}" dev "${1}"\n'
         printf 'if [ ! -z "${GATEWAY}" ]; then\n ip route add default via "${GATEWAY}"\nfi\n'
-      } > /usr/local/libexec/dhclient-fallback.sh
+      } > /mnt/target/usr/local/libexec/dhclient-fallback.sh
       chmod +x /mnt/target/usr/local/libexec/dhclient-fallback.sh
 
-      ln -s /etc/systemd/system/dhclient@.timer /mnt/target/etc/systemd/system/timers.target.wants/dhclient@mgmt.timer
+      ln -s /etc/systemd/system/dhcpcd@.timer /mnt/target/etc/systemd/system/timers.target.wants/dhcpcd@mgmt.timer
 
       mkdir -p /mnt/target/usr/local/etc/dhclient-fallback
       printf 'IPADDR0=192.168.129.30/24\n' > /mnt/target/usr/local/etc/dhclient-fallback/mgmt.conf
