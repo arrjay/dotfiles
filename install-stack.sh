@@ -26,6 +26,7 @@ printf '[NetDev]\nName=vmm\nKind=bridge\n' > "/mnt/target/etc/systemd/network/vm
 printf '[Match]\nName=vmm\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\nAddress=192.168.128.129/25\n' > "/mnt/target/etc/systemd/network/vmm.network"
 
 # update firewalld for vmm
+mkdir /mnt/target/run/firewalld
 chroot /mnt/target /usr/bin/firewall-offline-cmd --new-zone vmm
 chroot /mnt/target /usr/bin/firewall-offline-cmd --zone vmm --add-interface vmm
 chroot /mnt/target /usr/bin/firewall-offline-cmd --direct --add-rule eb filter FORWARD 0 --logical-in vmm -j DROP
@@ -41,7 +42,7 @@ chroot /mnt/target /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
   printf 'dhcp-option=3\ndhcp-option=6\ndhcp-option=12\ndhcp-option=42,0.0.0.0\n'
   printf 'dhcp-option=vendor:BBXN,1,0.0.0.0\n'
   printf 'dhcp-authoritative\n'
-} > /mnt/sysimage/etc/dnsmasq.conf
+} > /mnt/target/etc/dnsmasq.conf
 ln -s /lib/systemd/system/dnsmasq.service /mnt/target/etc/systemd/system/multi-user.target.wants/dnsmasq.service
 mkdir -p /mnt/target/etc/systemd/system/dnsmasq.service.d
 printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > /mnt/target/etc/systemd/system/dnsmasq.service.d/local.conf
