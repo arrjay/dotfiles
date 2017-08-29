@@ -46,3 +46,39 @@ chroot /mnt/target /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
 ln -s /lib/systemd/system/dnsmasq.service /mnt/target/etc/systemd/system/multi-user.target.wants/dnsmasq.service
 mkdir -p /mnt/target/etc/systemd/system/dnsmasq.service.d
 printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > /mnt/target/etc/systemd/system/dnsmasq.service.d/local.conf
+
+# configure hostname, mgmt ip
+if [ -f /sys/class/dmi/id/chassis_serial ] ; then
+  read cha_ser < /sys/class/dmi/id/chassis_serial
+  case $cha_ser in
+    GHXLTL1)
+      echo 'xn--l3h' > /mnt/target/etc/hostname
+      printf '[NetDev]\nName=mgmt\nKind=bridge\n'                                                    > /mnt/target/etc/systemd/network/mgmt.netdev
+      printf '[Match]\nName=mgmt\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' > /mnt/target/etc/systemd/network/mgmt.network
+      printf '[Match]\nName=%s\n[Network]\nBridge=mgmt\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' enp8s4 > /mnt/target/etc/systemd/network/enp8s4.network
+      # configure mgmt to use dhclient, with a fallback managed via systemd...
+      mkdir -p /usr/local/libexec
+      {
+        printf '[Unit]\nDescription=dhclient on %%I\nWants=network.target\nBefore=network.target\nOnFailure=dhclient-fallback@%%i.service\n'
+        printf '[Service]\nEnvironment=PATH_DHCLIENT_PID=/var/run/dhclient-%%i.pid\nEnvironment=PATH_DHCLIENT_DB=/var/lib/dhclient/dhclient-%%i.leases\n'
+        printf 'ExecStart=/sbin/dhclient -4 -d -1 %%i\nRestart=on-success\n'
+      } > "/mnt/target/etc/systemd/system/dhclient@.service"
+      printf '[Unit]\nDescription=dhclient watchdog for %%I\n[Timer]\nOnBootSec=5min\nOnUnitActiveSec=30min\nUnit=dhclient@%%i.service\n[Install]\nWantedBy=timers.target\n' > "/mnt/target/etc/systemd/system/dhclient@.timer"
+      printf '[Unit]\nDescription=dhclient fallback for %%I\n[Service]\nType=oneshot\nExecStart=/usr/local/libexec/dhclient-fallback.sh %%i\n' > "/mnt/target/etc/systemd/system/dhclient-fallback@.service"
+
+      printf '[Match]\nName=%s\n[Network]\nLinkLocalAddressing=no\nLLMNR=false\nIPv6AcceptRA=no\n' enp8s5 > /mnt/target/etc/systemd/network/enp8s5.network
+      {
+        printf '#!/usr/bin/env bash\nif [ -f "/usr/local/etc/dhclient-fallback/${1}.conf" ] ; then\n'
+        printf ' source "/usr/local/etc/dhclient-fallback/${1}.conf"\nelse\n exit 0\nfi\n'
+        printf 'ip addr add "${IPADDR0}" dev "${1}"\n'
+        printf 'if [ ! -z "${GATEWAY}" ]; then\n ip route add default via "${GATEWAY}"\nfi\n'
+      } > /usr/local/libexec/dhclient-fallback.sh
+      chmod +x /mnt/target/usr/local/libexec/dhclient-fallback.sh
+
+      ln -s /etc/systemd/system/dhclient@.timer /mnt/target/etc/systemd/system/timers.target.wants/dhclient@mgmt.timer
+
+      mkdir -p /mnt/target/usr/local/etc/dhclient-fallback
+      printf 'IPADDR0=192.168.129.30/24\n' > /mnt/target/usr/local/etc/dhclient-fallback/mgmt.conf
+      ;;
+  esac
+fi
