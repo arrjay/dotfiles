@@ -9,7 +9,7 @@ chroot_ag() {
 }
 
 # install libvirt, firewalld
-chroot_ag install -y libvirt-bin firewalld dnsmasq dhcpcd
+chroot_ag install -y libvirt-bin firewalld dnsmasq dhcpcd5
 
 # enable systemd-networkd
 ln -s /lib/systemd/system/systemd-networkd.service /mnt/target/etc/systemd/system/multi-user.target.wants/systemd-networkd.service
