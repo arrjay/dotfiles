@@ -45,7 +45,7 @@ chroot /mnt/target /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
   printf 'dhcp-option=vendor:BBXN,1,0.0.0.0\n'
   printf 'dhcp-authoritative\n'
 } > /mnt/target/etc/dnsmasq.conf
-ln -s /lib/systemd/system/dnsmasq.service /mnt/target/etc/systemd/system/multi-user.target.wants/dnsmasq.service
+ln -sf /lib/systemd/system/dnsmasq.service /mnt/target/etc/systemd/system/multi-user.target.wants/dnsmasq.service
 mkdir -p /mnt/target/etc/systemd/system/dnsmasq.service.d
 printf '[Service]\nRestartSec=1s\nRestart=on-failure\n' > /mnt/target/etc/systemd/system/dnsmasq.service.d/local.conf
 
