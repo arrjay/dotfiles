@@ -39,8 +39,8 @@ chroot /mnt/target /usr/bin/firewall-offline-cmd --zone vmm --add-port 3493/tcp
 
 # libvirtd/firewalld act poorly here, shoot filtering on bridges
 {
-  printf 'install xt_physdev /bin/false'
-  printf 'install br_netfilter /bin/false'
+  printf 'install xt_physdev /bin/false\n'
+  printf 'install br_netfilter /bin/false\n'
 } > /mnt/target/etc/modprobe.d/blacklist-xt_physdev.conf
 
 # configure dnsmasq
