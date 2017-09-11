@@ -18,7 +18,7 @@ ln -s /lib/systemd/system/systemd-networkd.socket /mnt/target/etc/systemd/system
 
 chroot /mnt/target systemctl disable dhcpcd
 
-mkdir -p /mnt/taret/etc/systemd/network
+mkdir -p /mnt/target/etc/systemd/network
 
 # disable ipv6 for most things
 printf 'net.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 0\n' > /mnt/target/etc/sysctl.d/40-ipv6.conf
