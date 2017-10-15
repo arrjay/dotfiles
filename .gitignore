@@ -13,3 +13,4 @@ image.tar
 ks/*.groups
 ks/*.packages
 ks/*.txt
+*.iso
