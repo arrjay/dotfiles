@@ -7,3 +7,5 @@ usb.img
 disk.vmdk
 discinfo
 repodata/
+image.img
+image.tar
