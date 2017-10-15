@@ -10,3 +10,6 @@ discinfo
 repodata/
 image.img
 image.tar
+ks/*.groups
+ks/*.packages
+ks/*.txt
