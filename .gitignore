@@ -5,6 +5,7 @@ LiveOS/
 images/
 overhead.img
 usb.img
+usb.offset
 disk.vmdk
 discinfo
 repodata/
@@ -15,3 +16,4 @@ ks/*.packages
 ks/*.txt
 *.iso
 *.img
+certs/index.txt
