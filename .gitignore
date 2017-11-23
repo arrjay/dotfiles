@@ -17,3 +17,5 @@ ks/*.txt
 *.iso
 *.img
 certs/index.txt
+private/
+private-isos/*
