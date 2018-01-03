@@ -19,3 +19,4 @@ ks/*.txt
 certs/index.txt
 private/
 private-isos/*
+fio-files/
