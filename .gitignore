@@ -20,3 +20,4 @@ certs/index.txt
 private/
 private-isos/*
 fio-files/
+tf-output/common/intmac-remap.sh
