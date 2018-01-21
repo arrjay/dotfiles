@@ -22,4 +22,5 @@ private-isos/*
 fio-files/
 tf-output/common/intmac-remap.sh
 tf-output/common/intmac-bridge.sh
+tf-output/*.zip
 .terraform
