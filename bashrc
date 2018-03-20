@@ -52,7 +52,6 @@ if [ "${RCPATH}" ]; then
 	fi
 fi
 
-
 # version information
 JBVER="4.9"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
@@ -715,6 +714,7 @@ function kickenv {
 	umask 077
 	gethostinfo # set REAL_WHICH!!
 	pathsetup
+	[[ -f "${RCDIR}/vendor/git-prompt.sh" ]] && source "${RCDIR}/vendor/git-prompt.sh"
 	hostsetup # to extend path, at least for solaris
 	getuserinfo
 	getterminfo
@@ -1283,16 +1283,16 @@ function setprompt {
 		;;
 	old)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		PS1="${BC_LT_GRA}\t ${BC_PR}[\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'`prompt_ext`'"\n${BC_RED}<"'`pscount`'"> ${BC_GRN}(\W) ${BC_BR}${HD}${RS} "
+		PS1="${BC_LT_GRA}\t ${BC_PR}[\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'`__git_ps1``prompt_ext`'"\n${BC_RED}<"'`pscount`'"> ${BC_GRN}(\W) ${BC_BR}${HD}${RS} "
 		;;
 	timely)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold)
-				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount` {\W} ${HD}\n" # mono
+				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount` {\W}`__git_ps1``prompt_ext` ${HD}\n" # mono
 				;;
 		esac
 		;;
@@ -1301,10 +1301,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} {\W}"'`prompt_ext`'"${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! \u@${HOST} {\W}"'`__git_ps1``prompt_ext`'"${HD}\n" # mono
 				;;
 		esac
 		;;
@@ -1313,10 +1313,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` (`battstat chgpct`%`battstat stat`) {\W}"'`prompt_ext`'"${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` (`battstat chgpct`%`battstat stat`) {\W}"'`__git_ps1``prompt_ext`'"${HD}\n" # mono
 				;;
 		esac
 		;;
@@ -1324,10 +1324,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! ${USER}@${HOST} `pscount` {\W}"'`prompt_ext`'"${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! ${USER}@${HOST} `pscount` {\W}"'`__git_ps1``prompt_ext`'"${HD}\n" # mono
 				;;
 		esac
 		;;
