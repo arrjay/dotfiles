@@ -636,6 +636,7 @@ function hostsetup {
 	sourcex ${BASHFILES}/opsys/${OPSYS}${LVER}.sh
 	sourcex ${BASHFILES}/opsys/${OPSYS}${LVER}-${CPU}.sh
 	sourcex ${BASHFILES}/host/${HOST}.sh
+	sourcex ${BASHFILES}/extensions.sh
 }
 
 # pbinsetup - load personal bin directory for host
@@ -1262,6 +1263,11 @@ function monolith_aliases {
 	fi
 }
 
+# hook for extension.sh prompt text
+function prompt_ext {
+	echo -n ' '
+}
+
 # export the prompt
 function setprompt {
 	#print_debug checkps1
@@ -1277,13 +1283,13 @@ function setprompt {
 		;;
 	old)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		PS1="${BC_LT_GRA}\t ${BC_PR}[\u@${HOST}] ${BC_BL}{${CURTTY}}\n${BC_RED}<"'`pscount`'"> ${BC_GRN}(\W) ${BC_BR}${HD}${RS} "
+		PS1="${BC_LT_GRA}\t ${BC_PR}[\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'`prompt_ext`'"\n${BC_RED}<"'`pscount`'"> ${BC_GRN}(\W) ${BC_BR}${HD}${RS} "
 		;;
 	timely)
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold)
-				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
 				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount` {\W} ${HD}\n" # mono
@@ -1295,10 +1301,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} {\W} ${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! \u@${HOST} {\W}"'`prompt_ext`'"${HD}\n" # mono
 				;;
 		esac
 		;;
@@ -1307,10 +1313,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` (`battstat chgpct`%`battstat stat`) {\W} ${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` (`battstat chgpct`%`battstat stat`) {\W}"'`prompt_ext`'"${HD}\n" # mono
 				;;
 		esac
 		;;
@@ -1318,10 +1324,10 @@ function setprompt {
 		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
 		case ${TERM_COLORSET} in
 			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS} ${BC_BR}${HD}${RS}\n"
+				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`prompt_ext`'"${BC_BR}${HD}${RS}\n"
 				;;
 			*)
-				PS1="# ?"'${?}'" !\! ${USER}@${HOST} `pscount` {\W} ${HD}\n" # mono
+				PS1="# ?"'${?}'" !\! ${USER}@${HOST} `pscount` {\W}"'`prompt_ext`'"${HD}\n" # mono
 				;;
 		esac
 		;;
