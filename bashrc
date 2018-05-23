@@ -76,14 +76,13 @@ function print_debug {
 # genstrip - remove element from path-type variable
 # you need to specify the variable and the element!
 function genstrip {
-	# NOTE: debugging is commented out because quoting is parsed every
-	#       time this function runs... whether debugging is enabled or not.
-	#print_debug "Stripping ${2} from ${1}"
-	#print_debug "${1} is\t\t${!1}"
-	eval $1=\"${!1//':'${2}':'/':'}\"
-	eval $1=\"${!1%:${2}}\"
-	eval $1=\"${!1#${2}:}\"
-	#print_debug "${1} is now\t${!1}"
+  local n s t
+  t="${!1}"
+  n="${2%/}"         ; s="${n}/"
+  t="${t//:${n}:/:}" ; t="${t//:${s}:/:}"
+  t="${t%:${n}}"     ; t="${t%:${s}}"
+  t="${t#${n}:}"     ; t="${t%${s}:}"
+  builtin printf -v "${1}" '%s' "${t}"
 }
 
 # t_mkdir - test and create directory if needed
