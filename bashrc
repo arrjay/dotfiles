@@ -582,7 +582,9 @@ WHICHERY
 					fi
 				done
 			fi
+                        # if we have termux-battery-status *and* jq, use those.
 			# different CPU classes generally have different power methods
+                        chkcmd termux-battery-status && chkcmd jq && PMON_TYPE="termux" && PMON_BATTERIES="termux-api"
 			;;
 		*)
 			# I have no idea.
@@ -831,6 +833,9 @@ function _properties {
 				lxsysfs)
 					echo -n "Linux /sys FS"
 					;;
+                                termux)
+                                        echo -n "Termux API"
+                                        ;;
 			esac
 			echo " for monitoring"
 			echo " Monitoring ${PMON_BATTERIES}"
@@ -955,6 +960,10 @@ function battstat {
 						PMON_CAP=$(($p + $PMON_CAP))
 					done
 					;;
+                                termux)
+                                        # termux only returns percentage
+                                        PMON_CAP=100
+                                        ;;
 			esac
 			echo $PMON_CAP
 			;;
@@ -972,6 +981,9 @@ function battstat {
 						PMON_CHARGE=$(($p + $PMON_CHARGE))
 					done
 					;;
+                                termux)
+                                        PMON_CHARGE=$(termux-battery-status|jq .percentage)
+                                        ;;
 			esac
 			echo $PMON_CHARGE
 			;;
@@ -1009,6 +1021,13 @@ function battstat {
 						fi
 					done
 					;;
+                                termux)
+                                        __api_rd=$(termux-battery-status)
+                                        __plugged=$(echo $__api_rd | jq -r .plugged)
+                                        __status=$(echo $__api_rd | jq -r .status)
+                                        [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
+                                        [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
+                                        ;;
 			esac
 			echo $PMON_STAT
 			;;
