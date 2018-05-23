@@ -494,7 +494,7 @@ function gethostinfo {
 		darwin)
 			CPU=`uname -p|tr [:upper:] [:lower:]`
 			;;
-		androideabi)
+		android*)
 			export USER=rjlocal
 			;;
 	esac
@@ -564,7 +564,7 @@ WHICHERY
 
 	# are we a laptop (rather, do we have ACPI or APM batteries?)
 	case ${OPSYS} in
-		linux|androideabi)
+		linux|android*)
 			# try sysfs first.
 			ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || ls /sys/class/power_supply/CMB* > /dev/null 2>&1 || \
 			  ls /sys/class/power_supply/battery > /dev/null 2>&1
@@ -1034,15 +1034,18 @@ function _ed {
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
 	case $OPSYS in
-		linux|openbsd|darwin)
+		openbsd|darwin)
 			# redifine linux-specific functions
 			function pscount {
 				echo -n `expr \`ps ax|wc -l\` - 6`
 			}
 			;;
-                androideabi)
+                linux|android)
                         function pscount {
-                                echo -n `expr \`ps aux|grep -F -v '['|wc -l\` - 7`
+                                local __psc __psf
+                                __psf=( /proc/[0-9]* )
+                                __psc=$(( ${#__psf[@]} - 1 ))
+                                echo "${__psc}"
                         }
                         ;;
 		cygwin|win32)
