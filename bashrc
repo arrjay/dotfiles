@@ -1021,8 +1021,8 @@ function battstat {
 					done
 					;;
                                 termux)
-                                        __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status)
-                                        __status=$(jq -r .status < "$HOME/.termux-battery-status)
+                                        __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status")
+                                        __status=$(jq -r .status < "$HOME/.termux-battery-status")
                                         [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
                                         [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
                                         ;;
