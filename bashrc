@@ -981,7 +981,7 @@ function battstat {
 					done
 					;;
                                 termux)
-                                        PMON_CHARGE=$(termux-battery-status|jq .percentage)
+                                        PMON_CHARGE=$(jq .percentage < "$HOME/.termux-battery-status")
                                         ;;
 			esac
 			echo $PMON_CHARGE
@@ -1021,9 +1021,8 @@ function battstat {
 					done
 					;;
                                 termux)
-                                        __api_rd=$(termux-battery-status)
-                                        __plugged=$(echo $__api_rd | jq -r .plugged)
-                                        __status=$(echo $__api_rd | jq -r .status)
+                                        __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status)
+                                        __status=$(jq -r .status < "$HOME/.termux-battery-status)
                                         [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
                                         [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
                                         ;;
@@ -1058,7 +1057,7 @@ function monolith_setfunc {
 				echo -n `expr \`ps ax|wc -l\` - 6`
 			}
 			;;
-                linux|android)
+                linux|android*)
                         function pscount {
                                 local __psc __psf
                                 __psf=( /proc/[0-9]* )
@@ -1331,7 +1330,7 @@ function setprompt {
 		;;
 	new_pmon)
 		# new prompt with battery minder
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
 		case ${TERM_COLORSET} in
 			bold|bright)
 				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
