@@ -40,16 +40,16 @@ fi
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
 if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
-	RCPATH=`ls -l "${RCPATH}"|awk -F' -> ' '{print $2}'`
+	RCPATH="${RCDIR}/$(ls -l "${RCPATH}"|awk -F' -> ' '{print $2}')"
 fi
 
 # Run rcdir again, in an attempt to get more information
 if [ "${RCPATH}" ]; then
+        case "${RCPATH}" in
+         /* ) : ;;
+         *)   RCPATH=${RCDIR}/${RCPATH} ;;
+        esac
 	RCDIR=`dirname "$RCPATH"`
-
-	if [ "${RCDIR}" == "." ]; then
-		RCPATH=${PWD}/${RCPATH}
-	fi
 fi
 
 # version information
