@@ -48,19 +48,11 @@ fi
 JBVER="5.0b"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
 
-# what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
 BASH_MAJOR=${BASH_VERSION/.*/}
 BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
 BASH_MINOR=${BASH_MINOR%%.*}
 
 BASHFILES="${HOME}/.bash.d"
-
-# qnd debug function
-function print_debug {
-	if [ ${BASHRC_DEBUG} ]; then
-		echo -e ${@} >&2
-	fi
-}
 
 ## path(-like) functions
 #?# TEST: do these work for directories with spaces?
@@ -490,7 +482,6 @@ function gethostinfo {
 			;;
 	esac
 
-	#print_debug x86_check
 	if [ ${CPU:2} == 86 ] || [ ${CPU:2} == "86-pc" ]; then
 		if [ ${CPU:0:1} == "i" ]; then
 			CPU="x86"
@@ -1282,9 +1273,7 @@ function prompt_ext {
 
 # export the prompt
 function setprompt {
-	#print_debug checkps1
 	if [[ -n $PS1 ]]; then
-	#print_debug setps1
 	case "$1" in
 	simple)
 		PS1=${INVNAME}"-"${BASH_MAJOR}"."${BASH_MINOR}${HD}" "
@@ -1361,17 +1350,14 @@ monolith_setfunc
 monolith_setcolors
 monolith_aliases
 
-#print_debug fortune
 if [[ -n ${PS1} ]]; then
 	# configure history for interactive sessions
 	HISTCONTROL=ignoreboth
 	lyricsfile="${HOME}"/.fortune/song-lyrics
-	#print_debug fortune_file
 	if [ -f "${lyricsfile}" ]; then
 		chkcmd strfile
 		if [ ${?} == "0" ]; then
 			function lyric {
-				#print_debug cmp_fortune_mods
 				if [ "${lyricsfile}" -nt "${lyricsfile}".dat ]; then
 					strfile ${lyricsfile} >& /dev/null
 				fi
