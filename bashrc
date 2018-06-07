@@ -1,16 +1,5 @@
 #!/bin/bash
 
-#!# WARNING! ACHTUNG! NOTICE!
-#!# This script has control characters embedded in it!
-#!# If you try to use anyth 'intelligent' editor on it, you have a good chance
-#!# of mangling them! This will show as errors in parsing .httpfuncs.sh ...
-#!# I use vi...
-
-#!# If we run into bash 2.x, we get /weird/. I'm not sure I care...
-#!# though I did some trickery with here documents to make bash 2.x not
-#!# parse 3+ regexp operators.
-#!# Using this for bash 1.x is likely a /bad/ idea.
-
 #!# This whole shuffling about with 'read' is an attempt to not fork
 #!# unnecessary processes. fork under cygwin is sloooow. so use builtins
 #!# where you can, even if it makes it less clear.
@@ -28,7 +17,7 @@ PATH=/usr/bin:$PATH
 
 # this is the first non-debug line! we want to know where this script /is/!
 # appears to not work under 2.x. ah well.
-RCPATH=${BASH_ARGV}
+RCPATH="${BASH_ARGV[0]}"
 if [ "${RCPATH}" ]; then
 	RCDIR=`dirname "$RCPATH"`
 
@@ -40,7 +29,11 @@ fi
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
 if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
-	RCPATH="${RCDIR}/$(ls -l "${RCPATH}"|awk -F' -> ' '{print $2}')"
+  ___linkdest="$(ls -l "${RCPATH}"|awk -F' -> ' '{print $2}')"
+  case "${___linkdest}" in
+    /* ) RCPATH="${___linkdest}" ;;
+    *)   RCPATH="${RCDIR}/${___linkdest}" ;;
+  esac
 fi
 
 # Run rcdir again, in an attempt to get more information
