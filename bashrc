@@ -16,37 +16,36 @@
 PATH=/usr/bin:$PATH
 
 # this is the first non-debug line! we want to know where this script /is/!
-# appears to not work under 2.x. ah well.
-RCPATH="${BASH_ARGV[0]}"
-if [ "${RCPATH}" ]; then
-	RCDIR=`dirname "$RCPATH"`
+__bashrc_path="${BASH_ARGV[0]}"
 
-	if [ "${RCDIR}" == "." ]; then
-		RCPATH=${PWD}/${RCPATH}
-	fi
+# try turning these into absolute paths
+if [ "${__bashrc_path}" ]; then
+  __bashrc_dir="${__bashrc_path%/*}"
+
+  [ "${__bashrc_dir}" == "." ] && __bashrc_path="${PWD}/${__bashrc_path}"
 fi
 
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
-if [[ ${RCPATH} && -h "${RCPATH}" ]]; then
-  ___linkdest="$(ls -l "${RCPATH}"|awk -F' -> ' '{print $2}')"
+if [[ ${__bashrc_path} && -h "${__bashrc_path}" ]]; then
+  ___linkdest="$(ls -l "${__bashrc_path}"|awk -F' -> ' '{print $2}')"
   case "${___linkdest}" in
-    /* ) RCPATH="${___linkdest}" ;;
-    *)   RCPATH="${RCDIR}/${___linkdest}" ;;
+    /*) __bashrc_path="${___linkdest}" ;;
+    *)  __bashrc_path="${__bashrc_dir}/${___linkdest}" ;;
   esac
 fi
 
 # Run rcdir again, in an attempt to get more information
-if [ "${RCPATH}" ]; then
-        case "${RCPATH}" in
-         /* ) : ;;
-         *)   RCPATH=${RCDIR}/${RCPATH} ;;
-        esac
-	RCDIR=`dirname "$RCPATH"`
+if [ "${__bashrc_path}" ]; then
+  case "${__bashrc_path}" in
+    /*) : ;;
+    *)  __bashrc_path=${__bashrc_dir}/${__bashrc_path} ;;
+  esac
+  __bashrc_dir="${__bashrc_path%/*}"
 fi
 
 # version information
-JBVER="4.9"
+JBVER="5.0b"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
 
 # what version of bash are we dealing with? (please be 3.x, please be 3.x ...)
@@ -509,7 +508,7 @@ function gethostinfo {
 		# following functions require bash 3.x
 		# this works around the case of cygwin/win32 having gnuwin32's which...
 		if [ ${BASH_MAJOR} -gt "2" ]; then
-			if [ "${RCPATH}" -nt "${HOME}"/.whichery.sh ]; then
+			if [ "${__bashrc_path}" -nt "${HOME}"/.whichery.sh ]; then
 				(
 				cat <<\WHICHERY
 					if [[ "${REAL_WHICH}" =~ ":" ]]; then
@@ -708,7 +707,7 @@ function kickenv {
 	umask 077
 	gethostinfo # set REAL_WHICH!!
 	pathsetup
-	[[ -f "${RCDIR}/vendor/git-prompt.sh" ]] && source "${RCDIR}/vendor/git-prompt.sh"
+	[[ -f "${__bashrc_dir}/vendor/git-prompt.sh" ]] && source "${__bashrc_dir}/vendor/git-prompt.sh"
 	hostsetup # to extend path, at least for solaris
 	getuserinfo
 	getterminfo
