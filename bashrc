@@ -557,162 +557,152 @@ WHICHERY
 
 # getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
 function getuserinfo {
-	case ${OPSYS} in
-		win32)
-			# set printer here
-			PRINTER="`cscript //nologo ${SystemRoot}/system32/prnmngr.vbs -g`"
-			PRINTER="${PRINTER//The default printer is /}"
-			export PRINTER
-			;;
-		cygwin*)
-			#?# hardcoded RID here...
-			id -G | grep -q 544
-			if [ $? == 0 ]; then
-				HD='#'
-			else
-				HD='$'
-			fi
-			;;
-		solaris)
-			if [ `/usr/xpg4/bin/id -u` == "0" ]; then
-				HD='#'
-			else
-				HD='$'
-			fi
-			;;
-		*)
-			if [ `id -u` == "0" ]; then
-				HD='#'
-			else
-				HD='$'
-			fi
-			;;
-	esac
+  case ${OPSYS} in
+    win32)
+      # set printer here
+      PRINTER="$(cscript //nologo "${SystemRoot}/system32/prnmngr.vbs" -g)"
+      PRINTER="${PRINTER//The default printer is /}"
+      export PRINTER
+    ;;
+    cygwin*)
+      id -G | grep -q 544 && HD='#' || HD='$' ;;
+    solaris)
+      [ "$(/usr/xpg4/bin/id -u)" == "0" ] && HD='#' || HD='$' ;;
+    *)
+      [ "$(id -u)" == "0" ] && HD='#' || HD='$' ;;
+  esac
 }
 
 # hostsetup - call host/os-specific subscripts
 # call after gethostinfo, BEFORE getuserinfo!
 function hostsetup {
-	sourcex ${BASHFILES}/opsys/${OPSYS}.sh
-	sourcex ${BASHFILES}/opsys/${OPSYS}-${CPU}.sh
-	sourcex ${BASHFILES}/opsys/${OPSYS}${MVER}.sh
-	sourcex ${BASHFILES}/opsys/${OPSYS}${MVER}-${CPU}.sh
-	sourcex ${BASHFILES}/opsys/${OPSYS}${LVER}.sh
-	sourcex ${BASHFILES}/opsys/${OPSYS}${LVER}-${CPU}.sh
-	sourcex ${BASHFILES}/host/${HOST}.sh
-	sourcex ${BASHFILES}/extensions.sh
+  sourcex "${BASHFILES}/opsys/${OPSYS}.sh"
+  sourcex "${BASHFILES}/opsys/${OPSYS}-${CPU}.sh"
+  sourcex "${BASHFILES}/opsys/${OPSYS}${MVER}.sh"
+  sourcex "${BASHFILES}/opsys/${OPSYS}${MVER}-${CPU}.sh"
+  sourcex "${BASHFILES}/opsys/${OPSYS}${LVER}.sh"
+  sourcex "${BASHFILES}/opsys/${OPSYS}${LVER}-${CPU}.sh"
+  sourcex "${BASHFILES}/host/${HOST}.sh"
+  sourcex "${BASHFILES}/extensions.sh"
 }
 
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
-	# add our personal ~/Applications subdirectories
-	for dir in "${HOME}"/Library/Python/*/bin "${HOME}"/Library/*/bin "${HOME}"/Applications/*/bin ; do
-		genprepend PATH $dir
-	done
-	genprepend PATH "${HOME}/.rvm/bin"
-	genprepend PATH "${HOME}/bin/${OPSYS}-${CPU}"
-	genprepend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
-	genprepend PATH "${HOME}/bin/${OPSYS}${LVER}-${CPU}"
-	genprepend PATH "${HOME}/bin/noarch"
-	genprepend PATH "${HOME}/bin/${HOST}"
-	# set PERL5LIB here
-	if [ -d "${HOME}"/Library/perl5 ]; then
-		export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
-		export PERL_MM_OPT="INSTALL_BASE=${HOME}/Library/perl5"
-		export PERL_LOCAL_LIB_ROOT="${HOME}/Library/perl5"
-		genappend PERL5LIB "${HOME}/Library/perl5"
-		if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
-			genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
-			if [ -d "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
-				genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
-			fi
-		fi
-	fi
-	# configure GOPATH/GOROOT here
-	if [ -f "${HOME}"/Library/go-dist/bin/go ] ; then
-		# go distribution in go-dist, gopath in go, gox is happy, go away.
-		export GOROOT="${HOME}/Library/go-dist"
-	fi
-	if [ -d "${HOME}"/Library/go ]; then
-		if [ -f "${HOME}"/Library/go/bin/go ] ; then
-			# found a go _compiler_ so this is a complete install.
-			if [ ! -z "${GOROOT}" ] ; then
-				if [[ -n ${PS1} ]]; then
-					# warn of stupid times ahead.
-					echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
-				fi
-			fi
-			export GOROOT="${HOME}/Library/go"
-		else
-			if [ ! -z "${GOPATH}" ] ; then
-				genprepend GOPATH "${HOME}/Library/go"
-			else
-				export GOPATH="${HOME}/Library/go"
-			fi
-		fi
-	fi
-	# add our personal ~/Library subdirectories
-	for dir in "${HOME}"/Library/*/lib ; do
-		genappend LD_LIBRARY_PATH $dir
-	done
-	export LD_LIBRARY_PATH
+  local dir
+  # add our personal ~/Applications subdirectories
+  for dir in "${HOME}"/Library/Python/*/bin "${HOME}"/Library/*/bin "${HOME}"/Applications/*/bin ; do
+    genprepend PATH "${dir}"
+  done
+
+  genprepend PATH "${HOME}/.rvm/bin"
+  genprepend PATH "${HOME}/bin/${OPSYS}-${CPU}"
+  genprepend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
+  genprepend PATH "${HOME}/bin/${OPSYS}${LVER}-${CPU}"
+  genprepend PATH "${HOME}/bin/noarch"
+  genprepend PATH "${HOME}/bin/${HOST}"
+
+  # set PERL5LIB here
+  if [ -d "${HOME}"/Library/perl5 ]; then
+    export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
+    export PERL_MM_OPT="INSTALL_BASE=${HOME}/Library/perl5"
+    export PERL_LOCAL_LIB_ROOT="${HOME}/Library/perl5"
+    genappend PERL5LIB "${HOME}/Library/perl5"
+    if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
+      genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
+      if [ -d "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
+        genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
+      fi
+    fi
+  fi
+
+  # configure GOPATH/GOROOT here
+  if [ -f "${HOME}"/Library/go-dist/bin/go ] ; then
+    # go distribution in go-dist, gopath in go, gox is happy, go away.
+    export GOROOT="${HOME}/Library/go-dist"
+  fi
+  if [ -d "${HOME}"/Library/go ]; then
+    if [ -f "${HOME}"/Library/go/bin/go ] ; then
+      # found a go _compiler_ so this is a complete install.
+      if [ ! -z "${GOROOT}" ] ; then
+        if [[ -n ${PS1} ]]; then
+          # warn of stupid times ahead.
+          echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
+        fi
+      fi
+      export GOROOT="${HOME}/Library/go"
+    else
+      if [ ! -z "${GOPATH}" ] ; then
+        genprepend GOPATH "${HOME}/Library/go"
+      else
+        export GOPATH="${HOME}/Library/go"
+      fi
+    fi
+  fi
+
+  # add our personal ~/Library subdirectories
+  for dir in "${HOME}"/Library/*/lib ; do
+    genappend LD_LIBRARY_PATH "${dir}"
+  done
+  cke LD_LIBRARY_PATH
 }
 
 # zapenv - kill all environment setup routines, including itself(!)
 function zapenv {
-	unset -f pathsetup
-	unset -f getterminfo
-	unset -f gethostinfo
-	unset -f getuserinfo
-	unset -f hostsetup
-	unset -f pbinsetup
-	unset -f kickenv
-	unset -f colordef
-	unset -f matchstart
-	unset -f set_manpath
-	unset -f zapenv
+  unset -f pathsetup
+  unset -f getterminfo
+  unset -f gethostinfo
+  unset -f getuserinfo
+  unset -f hostsetup
+  unset -f pbinsetup
+  unset -f kickenv
+  unset -f colordef
+  unset -f matchstart
+  unset -f set_manpath
+  unset -f zapenv
 }
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
-	# first and formost, prevent others from reading our precious files
-	umask 077
-	gethostinfo # set REAL_WHICH!!
-	pathsetup
-	[[ -f "${__bashrc_dir}/vendor/git-prompt.sh" ]] && source "${__bashrc_dir}/vendor/git-prompt.sh"
-	hostsetup # to extend path, at least for solaris
-	getuserinfo
-	getterminfo
-	colordefs
-	set_manpath
-	pbinsetup
-	[[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
-	zapenv
+  # first and formost, prevent others from reading our precious files
+  umask 077
+  gethostinfo # set REAL_WHICH!!
+  pathsetup
+  # shellcheck disable=SC1090
+  [[ -f "${__bashrc_dir}/vendor/git-prompt.sh" ]] && source "${__bashrc_dir}/vendor/git-prompt.sh"
+  hostsetup # to extend path, at least for solaris
+  getuserinfo
+  getterminfo
+  colordefs
+  set_manpath
+  pbinsetup
+  # shellcheck disable=SC1090
+  [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
+  zapenv
 }
 
 #-# TERMINAL FUNCTIONS
 # writetitle - update xterm titlebar
 function writetitle {
-	if [ ${TERM_CAN_TITLE} == 1 ]; then
-		echo -ne "\e]0;${@}\a"
-	fi
+  # shellcheck disable=SC2145
+  [ ${TERM_CAN_TITLE} == 1 ] && echo -ne "\\e]0;${@}\\a"
 }
 
 # setcolors - set xterm/rxvt background/foreground/highlight colors
 # arguments (fgcolor bgcolor) <- arguments as colorstrings (termspecific)
 function setcolors {
-	if [ ${TERM_CAN_SETCOLOR} == 1 ]; then
-		echo -ne "\e]10;${1}\a" # foreground
-		echo -ne "\e]17;${1}\a" # highlight
-		echo -ne "\e]11;${2}\a" # background
-	fi
+  # shellcheck disable=SC2145
+  [ ${TERM_CAN_SETCOLOR} == 1 ] && {
+    echo -ne "\\e]10;${1}\\a" # foreground
+    echo -ne "\\e]17;${1}\\a" # highlight
+    echo -ne "\\e]11;${2}\\a" # background
+  }
 }
 
 
 # display functions
 # pscount - return count of processes on this system (stub, returns -1. should be replaced by opsys-specific call.)
 function pscount {
-	echo -n "-255"
+  echo -n "-255"
 }
 
 function _properties {
