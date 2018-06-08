@@ -28,6 +28,8 @@ fi
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
 if [[ ${__bashrc_path} && -h "${__bashrc_path}" ]]; then
+  # yeaaaah, but I don't have chkcmd yet.
+  # shellcheck disable=SC2012
   ___linkdest="$(ls -l "${__bashrc_path}"|awk -F' -> ' '{print $2}')"
   case "${___linkdest}" in
     /*) __bashrc_path="${___linkdest}" ;;
@@ -71,156 +73,180 @@ function genstrip {
 
 # t_mkdir - test and create directory if needed
 function t_mkdir {
-	if [ ! -n "${1}" ]; then
-		echo "${FUNCNAME}: missing operand" 1>&2
-		return 1
-	fi
-	if [ ! -d "${1}" ]; then
-		mkdir -p "${1}"
-	fi
+  if [ ! -n "${1}" ]; then
+    echo "${FUNCNAME[$0]}: missing operand" 1>&2
+    return 1
+  fi
+
+  if [ ! -d "${1}" ]; then
+    mkdir -p "${1}"
+  fi
 }
 
 # getconn - get where we are connecting from
 function getconn {
-	if [ -n "${SSH_CONNECTION}" ]; then
-		CURTTY=${SSH_TTY}
-		CONNFROM=`echo ${SSH_CLIENT}|awk '{ print $1 }'`
-	else
-		CURTTY=`tty`
-		if [ $OPSYS != "win32" ]; then
-			CURTTY=${CURTTY:5}
-		fi
-		CONNFROM=`who|grep ${CURTTY}|awk '{ print $5 }'`
-		CONNFROM=${CONNFROM//(/}
-		CONNFROM=${CONNFROM//)/}
-	fi
-	if [ ! -n "${CONNFROM}" ]; then
-		echo "no remote connection found" 1>&2
-		unset CONNFROM
-		return 1
-	else
-		echo ${CONNFROM}
-	fi
+  if [ -n "${SSH_CONNECTION}" ]; then
+    CURTTY=${SSH_TTY}
+    CONNFROM=${SSH_CLIENT/ *}
+  else
+    CURTTY=$(tty)
+    [ "${OPSYS}" != "win32" ] && CURTTY=${CURTTY:5}
+    CONNFROM=$(who|awk '$0 ~ "'"${CURTTY}"'" { print $5 }')
+    CONNFROM=${CONNFROM//(/}
+    CONNFROM=${CONNFROM//)/}
+  fi
+  if [ ! -n "${CONNFROM}" ]; then
+    echo "no remote connection found" 1>&2
+    unset CONNFROM
+    return 1
+  else
+    echo "${CONNFROM}"
+  fi
 }
 
 # initcachedirs - create command cache directories
 function initcachedirs {
-	CMDCACHE="${HOME}/.cmdcache/${FQDN}-${OPSYS}"
-	t_mkdir "${CMDCACHE}/chkcmd"
-	t_mkdir "${CMDCACHE}/env"
+  CMDCACHE="${HOME}/.cmdcache/${FQDN}-${OPSYS}"
+  t_mkdir "${CMDCACHE}/chkcmd"
+  t_mkdir "${CMDCACHE}/env"
 }
 
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
 #!# ALL FUNCTIONS CHECK EXISTENCE OF DIRECTORY BEFORE ADDING!
 function cke {
-	# check if environment variable exists, make if needed
-	if [[ -z "$1" ]]; then
-		eval $1=\"\"
-	fi
-	# always export the thing
-	eval export $1
+  local x
+  for x in "${@}" ; do
+    # check if environment variable exists, make if needed
+    if [[ -z "${x}" ]]; then
+      printf -v "${x}" ""
+    fi
+    # always export the thing
+    # shellcheck disable=SC2163
+    export "${x}"
+  done
 }
 
 # genappend - add directory element to path-like element
 # you need variable, then element
 function genappend {
-	cke ${1}
-	genstrip ${1} "${2}"
-	if [ -d "${2}" ]; then
-		eval $1=\"${!1}':'${2}\"
-	fi
-}
-
-# we keep pathappend, even though not used, for interactive purposes :)
-function pathappend {
-	genappend PATH "${1}"
+  local t d
+  t="${!1}"
+  d="${2}"
+  cke "${1}"
+  genstrip "${1}" "${d}"
+  [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${t}:${d}"
 }
 
 # genprepend - add directory element to FRONT of path-like list
 function genprepend {
-	cke ${1}
-	genstrip ${1} "${2}"
-	if [ -d "${2}" ]; then
-		eval $1=\"${2}':'${!1}\"
-	fi
+  local t d
+  t="${!1}"
+  d="${2}"
+  cke "${1}"
+  genstrip "${1}" "${2}"
+  [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${d}:${t}"
 }
 
-# we keep pathprepend, even though not used, for interactive purposes :)
+# we keep pathappend and pathprepend, even though not used, for interactive purposes :)
+function pathappend {
+  genappend PATH "${1}"
+}
 function pathprepend {
-	genprepend PATH "${1}"
+  genprepend PATH "${1}"
 }
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
-	genprepend PATH /etc
-	genprepend PATH /usr/etc
-	genprepend PATH /usr/sysadm/privbin
-	genprepend PATH /usr/games
-	genprepend PATH /sbin
-	genprepend PATH /usr/sysadm/bin
-	genprepend PATH /usr/sbin
-	genprepend PATH /usr/ccs/bin
-	genprepend PATH /usr/sfw/bin
-	genprepend PATH /usr/pkg/sbin
-	genprepend PATH /usr/tgcware/sbin
-	genprepend PATH /usr/local/sbin
-	genprepend PATH /usr/gfx
-	genprepend PATH /usr/dt/bin
-	genprepend PATH /usr/openwin/bin
-	genprepend PATH /usr/bin/X11
-	genprepend PATH /usr/X11R6/bin
-	genprepend PATH /bin
-	genprepend PATH /usr/bin
-	genprepend PATH /usr/pkg/bin
-	genprepend PATH /usr/xpg4/bin
-	genprepend PATH /usr/bsd
-	genprepend PATH /usr/ucb
-	genprepend PATH /usr/kerberos/bin # iunno, it's like redhat now...
-	genprepend PATH /usr/nekoware/bin
-	genprepend PATH /usr/tgcware/bin
-	genprepend PATH /opt/local/bin
-	genprepend PATH /usr/local/bin
-	if [ ${OPSYS} == "cygwin" ]; then
-		SystemDrive=`mm_getenv SystemDrive`
-		if [ ${?} -ne 0 ]; then
-			SystemDrive=`cygpath ${SYSTEMDRIVE}`
-			mm_putenv SystemDrive
-		fi
+  local __path_prepend_list d
+  __path_prepend_list=(
+    "/etc"
+    "/usr/etc"
+    "/usr/sysadm/privbin"
+    "/usr/games"
+    "/sbin"
+    "/usr/sysadm/bin"
+    "/usr/sbin"
+    "/usr/ccs/bin"
+    "/usr/sfw/bin"
+    "/usr/pkg/sbin"
+    "/usr/tgcware/sbin"
+    "/usr/local/sbin"
+    "/usr/gfx"
+    "/usr/dt/bin"
+    "/usr/openwin/bin"
+    "/usr/bin/X11"
+    "/usr/X11R6/bin"
+    "/bin"
+    "/usr/bin"
+    "/usr/pkg/bin"
+    "/usr/xpg4/bin"
+    "/usr/bsd"
+    "/usr/ucb"
+    "/usr/kerberos/bin"
+    "/usr/nekoware/bin"
+    "/usr/tgcware/bin"
+    "/opt/local/bin"
+    "/usr/local/bin"
+  )
+  for d in "${__path_prepend_list[@]}" ; do genappend PATH "${d}" ; done
 
-		ProgramFiles=`mm_getenv ProgramFiles`
-		if [ ${?} -ne 0 ]; then
-			ProgramFiles=`cygpath ${PROGRAMFILES}`
-			mm_putenv ProgramFiles
-		fi
+  case "${OPSYS}" in
+    cygwin*)
+      SystemDrive=$(mm_getenv SystemDrive) || {
+        # shellcheck disable=SC2153
+        SystemDrive=$(cygpath "${SYSTEMDRIVE}")
+        mm_putenv SystemDrive
+      }
 
-		SystemRoot=`mm_getenv SystemRoot`
-		if [ ${?} -ne 0 ]; then
-			SystemRoot=`cygpath ${SYSTEMROOT}`
-			mm_putenv SystemRoot
-		fi
+      ProgramFiles=$(mm_getenv ProgramFiles) || {
+        # shellcheck disable=SC2153
+        ProgramFiles=$(cygpath "${PROGRAMFILES}")
+        mm_putenv ProgramFiles
+      }
 
-		genappend PATH ${SystemDrive}/bin
-	fi
-	if [ ${OPSYS} == "win32" ]; then
-		SystemDrive=${SYSTEMDRIVE}
-		SystemRoot=${SYSTEMROOT}
-		ProgramFiles=${PROGRAMFILES}
-	fi
+      SystemRoot=$(mm_getenv SystemRoot) || {
+        # shellcheck disable=SC2153
+        SystemRoot=$(cygpath "${SYSTEMROOT}")
+        mm_putenv SystemRoot
+      }
+
+        genappend PATH "${SystemDrive}/bin"
+      ;;
+
+    win32)
+      SystemDrive=${SYSTEMDRIVE}
+      SystemRoot=${SYSTEMROOT}
+      # shellcheck disable=SC2034
+      ProgramFiles=${PROGRAMFILES}
+      ;;
+
+  esac
+
+  cke SystemDrive SystemRoot ProgramFiles
 }
 
 function set_manpath {
-	for dir in /usr/X11R6/man /usr/openwin/man /usr/dt/man /usr/share/man /usr/man /usr/pkg/man /usr/local/share/man /usr/local/man; do
-		genprepend MANPATH ${dir}
-	done
-	if [ -d /opt ]; then
-		for dir in `ls /opt`; do
-			genappend MANPATH /opt/${dir}/man
-		done
-	fi
-	if [ ${OPSYS} == "cygwin" ]; then
-		genappend MANPATH ${SystemRoot}/man
-	fi
-	export MANPATH
+  local __path_prepend_list d
+  __path_prepend_list=(
+    "/usr/X11R6/man"
+    "/usr/openwin/man"
+    "/usr/dt/man"
+    "/usr/share/man"
+    "/usr/man"
+    "/usr/pkg/man"
+    "/usr/local/share/man"
+    "/usr/local/man"
+  )
+  for d in "${__path_prepend_list[@]}" ; do genappend MANPATH "${d}" ; done
+
+  if [ -d /opt ]; then
+    for d in /opt/*/man ; do
+      genappend MANPATH "${d}"
+    done
+  fi
+  genappend MANPATH "${SystemRoot}/man"
+
+  cke MANPATH
 }
 
 ## internal functions
@@ -229,349 +255,304 @@ function set_manpath {
 # matchstart - match word at beginning of a line (anywhere in a file) [used by getterminfo]
 #?# TEST: spaces?
 function matchstart {
-	grep -q ^${1} ${2}
+  grep -q "^${1}" "${2}"
 }
 
 # tolower - convert string to lower case, in pure bash
 function tolower {
-	output=${1//A/a}
-	output=${output//B/b}
-	output=${output//C/c}
-	output=${output//D/d}
-	output=${output//E/e}
-	output=${output//F/f}
-	output=${output//G/g}
-	output=${output//H/h}
-	output=${output//I/i}
-	output=${output//J/j}
-	output=${output//K/k}
-	output=${output//L/l}
-	output=${output//M/m}
-	output=${output//N/n}
-	output=${output//O/o}
-	output=${output//P/p}
-	output=${output//Q/q}
-	output=${output//R/r}
-	output=${output//S/s}
-	output=${output//T/t}
-	output=${output//U/u}
-	output=${output//V/v}
-	output=${output//W/w}
-	output=${output//X/x}
-	output=${output//Y/y}
-	output=${output//Z/z}
-	echo ${output}
-	unset output
+  local output
+  output=${1//A/a}
+  output=${output//B/b}
+  output=${output//C/c}
+  output=${output//D/d}
+  output=${output//E/e}
+  output=${output//F/f}
+  output=${output//G/g}
+  output=${output//H/h}
+  output=${output//I/i}
+  output=${output//J/j}
+  output=${output//K/k}
+  output=${output//L/l}
+  output=${output//M/m}
+  output=${output//N/n}
+  output=${output//O/o}
+  output=${output//P/p}
+  output=${output//Q/q}
+  output=${output//R/r}
+  output=${output//S/s}
+  output=${output//T/t}
+  output=${output//U/u}
+  output=${output//V/v}
+  output=${output//W/w}
+  output=${output//X/x}
+  output=${output//Y/y}
+  output=${output//Z/z}
+  echo "${output}"
 }
 
 # sourcex - source file if found executable
 function sourcex {
-	if [ -x $1 ]; then source $1; fi
+  # shellcheck disable=SC1090
+  [ -x "${1}" ] && source "${1}"
 }
 
 # mm_getenv - read environment memo if available 
 function mm_getenv {
-	if [ -f "${CMDCACHE}/env/${1}" ]; then
-		read output < "${CMDCACHE}/env/${1}"
-		echo $output
-		unset output
-		true
-	else
-		false
-	fi
+  local output
+  if [ -f "${CMDCACHE}/env/${1}" ]; then
+    read -r output < "${CMDCACHE}/env/${1}"
+    echo "${output}"
+  else
+    false
+  fi
 }
 
 function mm_putenv {
-	if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == 'cygwin' ]; then
-		# needed for memoize to work, win32 seems to not care
-		# how nasty this is...
-		eval $1=\"${!1//'\'/'/'}\"
-	fi
-	echo ${!1} > "${CMDCACHE}"/env/${1}
+  echo "${!1}" > "${CMDCACHE}/env/${1}"
 }
 
 function zapcmdcache {
-	rm -rf "${CMDCACHE}"/chkcmd/*
-	rm -rf "${CMDCACHE}"/env/*
-	hash -r
+  rm -rf "${CMDCACHE}"/chkcmd/*
+  rm -rf "${CMDCACHE}"/env/*
+  hash -r
 }
 
 # chkcmd - check if specific command is present, wrapper around which being evil on some platforms
 function chkcmd {
-	if [ ! -n "${1}" ]; then
-		echo "${FUNCNAME}: check if command exists, indicate via error code" 1>&2
-		return 2
-	fi
-	if [ -f "${CMDCACHE}/chkcmd/${1}" ]; then
-		read found < "${CMDCACHE}/chkcmd/${1}"
-		eval $found
-	else
-		case ${WSTR} in
-			"0 1"|"1 1"|"2 1")
-				"${REAL_WHICH}" ${1} &> /dev/null
-				if [ ${?} == "0" ]; then
-					echo "true" > "${CMDCACHE}/chkcmd/${1}"
-					true
-				else
-					echo "false" > "${CMDCACHE}/chkcmd/${1}"
-					false
-				fi
-				;;
-			*)
-				"${REAL_WHICH}" ${1} 2>&1 | grep -q ^no
-				if [ ${?} == "1" ]; then
-					echo "true" > "${CMDCACHE}/chkcmd/${1}"
-					true
-				else
-					echo "false" > "${CMDCACHE}/chkcmd/${1}"
-					false
-				fi
-				;; 
-		esac
-	fi
+  local found
+  if [ ! -n "${1}" ]; then
+    echo "${FUNCNAME[0]}: check if command exists, indicate via error code" 1>&2
+    return 2
+  fi
+  if [ -f "${CMDCACHE}/chkcmd/${1}" ]; then
+    read -r found < "${CMDCACHE}/chkcmd/${1}"
+    case "${found}" in
+      true) return 0 ;;
+      *)    return 1 ;;
+    esac
+  else
+    case ${WSTR} in
+      "0 1"|"1 1"|"2 1")
+        if "${REAL_WHICH}" "${1}" &> /dev/null ; then
+          echo "true" > "${CMDCACHE}/chkcmd/${1}"
+          return 0
+        else
+          echo "false" > "${CMDCACHE}/chkcmd/${1}"
+          return 1
+        fi
+      ;;
+      *)
+        "${REAL_WHICH}" "${1}" 2>&1 | grep -q ^no
+        if [ ${?} == "1" ]; then
+          echo "true" > "${CMDCACHE}/chkcmd/${1}"
+          return 0
+        else
+          echo "false" > "${CMDCACHE}/chkcmd/${1}"
+          return 1
+        fi
+      ;; 
+    esac
+  fi
 }
 
 # v_alias - overloads command with specified function if command exists
 function v_alias {
-	if [ ! -n "${1}" ]; then
-		builtin alias
-		return $?
-	fi
-	chkcmd ${2}
-	if [ ${?} == 0 ]; then
-		builtin alias ${1}=${2}
-	fi
+  if [ ! -n "${1}" ]; then
+    builtin alias
+    return $?
+  fi
+  chkcmd "${2}" && builtin alias "${1}=${2}"
 }
 
 #-# SETUP FUNCTIONS
 # colordefs - defines for XTerm/Console colors
+# shellcheck disable=SC2034
 function colordefs {
-	RS='\[\e[0m\]' # I think this is xterm specific?
-	# BC - bold colorset
-	BC_LT_GRA='\[\e[0;37m\]'
-	BC_BO_LT_GRA='\[\e[1;37m\]'
-	#BC_DM_GRA='\[\e[2;37m\]' # 2-series not supported by xterm?
-	BC_CY='\[\e[0;36m\]'
-	BC_GRN='\[\e[0;32m\]'
-	BC_BL='\[\e[0;34m\]'
-	BC_PR='\[\e[0;35m\]'
-	BC_BR='\[\e[0;33m\]'
-	BC_RED='\[\e[0;31m\]'
+  RS='\[\e[0m\]' # I think this is xterm specific?
+  # BC - bold colorset
+  BC_LT_GRA='\[\e[0;37m\]'
+  BC_BO_LT_GRA='\[\e[1;37m\]'
+  #BC_DM_GRA='\[\e[2;37m\]' # 2-series not supported by xterm?
+  BC_CY='\[\e[0;36m\]'
+  BC_GRN='\[\e[0;32m\]'
+  BC_BL='\[\e[0;34m\]'
+  BC_PR='\[\e[0;35m\]'
+  BC_BR='\[\e[0;33m\]'
+  BC_RED='\[\e[0;31m\]'
 }
 
 # getterminfo - initialize term variables for function use
 # we set color caps EVERY time in case of environment being handed to us via ssh/screen/?
 function getterminfo {
-	case ${TERM} in
-		# bright (vs. bold), titleable terms
-		cygwin*)
-			TERM_CAN_TITLE=1
-			TERM_COLORSET="bright"
-			TERM_CAN_SETCOLOR=0
-			;;
-		# bold, titleable terms (with background colorset cmds!)
-		xterm*|rxvt*)
-			TERM_CAN_TITLE=1
-			TERM_COLORSET="bold"
-			TERM_CAN_SETCOLOR=1
-			;;
-		# bold, titlable terms (w/o background color caps)
-		# putty - not available in everyone's termcaps... we work around that.
-		putty*)
-			TERM_CAN_TITLE=1
-			TERM_COLORSET="bold"
-			TERM_CAN_SETCOLOR=0
-			if [[ ! ( `matchstart ${TERM} /etc/termcap` = 0 ) ]]; then
-				export TERM=xterm
-			fi
-			;;
-		# bright, not titleable
-		linux*|ansi*)
-			TERM_CAN_TITLE=0
-			TERM_COLORSET="bright"
-			TERM_CAN_SETCOLOR=0 # okay, a lie for linux, but it sets codes very differently than Xterm.
-			;;
-		# bold, not titleable (have not seen...)
-		# ah yes, screen... just assume we're running it as an xterm
-		# it drops color codes the incoming terminal doesn't understand :)
-		# also, work around missing termcap entry. or the 'screen.linux' shit
-		screen*)
-			TERM_CAN_TITLE=1
-			TERM_COLORSET="bold"
-			TERM_CAN_SETCOLOR=1
-			if [ -f /etc/termcap ]; then
-				if [[ ! ( `matchstart ${TERM} /etc/termcap` = 0 ) ]]; then
-					if [[ ! ( `matchstart screen /etc/termcap` = 0 ) ]]; then
-						# be an xterm!
-						export TERM=xterm
-					else
-						export TERM=screen
-					fi
-				fi
-			elif [ -d /usr/share/terminfo/s ]; then
-				if [ ! -f /usr/share/terminfo/s/${TERM} ]; then
-					if [ -f /usr/share/terminfo/s/screen ]; then
-						export TERM=screen
-					else
-						export TERM=xterm
-					fi
-				fi
-			fi
-			;;
-		# failsafe for when we have no idea
-		*)
-			TERM_CAN_TITLE=0
-			TERM_COLORSET="none"
-			TERM_CAN_SETCOLOR=0
-			;;
-		esac
+  case ${TERM} in
+    ## bright (vs. bold), titleable terms
+    cygwin*)
+      TERM_CAN_TITLE=1 ; TERM_COLORSET="bright" ;TERM_CAN_SETCOLOR=0 ;;
+    ## bold, titleable terms (with background colorset cmds!)
+    xterm*|rxvt*)
+      TERM_CAN_TITLE=1 ; TERM_COLORSET="bold" ; TERM_CAN_SETCOLOR=1 ;;
+    ## bold, titlable terms (w/o background color caps)
+    # putty - not available in everyone's termcaps... we work around that.
+    putty*)
+      TERM_CAN_TITLE=1 ; TERM_COLORSET="bold" ; TERM_CAN_SETCOLOR=0
+      [[ ! ( $(matchstart "${TERM}" /etc/termcap) = 0 ) ]] && export TERM=xterm ;;
+    ## bright, not titleable
+    linux*|ansi*)
+      TERM_CAN_TITLE=0 ; TERM_COLORSET="bright" ; TERM_CAN_SETCOLOR=0 ;;
+      # okay, a lie for linux, but it sets codes very differently than Xterm.
+    ## bold, not titleable (have not seen...)
+
+    ## SCREEN
+    # ah yes, screen... just assume we're running it as an xterm
+    # it drops color codes the incoming terminal doesn't understand :)
+    # also, work around missing termcap entry. or the 'screen.linux' shit
+    screen*)
+      TERM_CAN_TITLE=1 ; TERM_COLORSET="bold" ; TERM_CAN_SETCOLOR=1
+      if [ -f /etc/termcap ]; then
+        if [[ ! ( $(matchstart "${TERM}" /etc/termcap) = 0 ) ]]; then
+          if [[ ! ( $(matchstart screen /etc/termcap) = 0 ) ]]; then
+            export TERM=xterm # be an xterm!
+          else
+            export TERM=screen
+          fi
+        fi
+        elif [ -d /usr/share/terminfo/s ]; then
+          if [ ! -f "/usr/share/terminfo/s/${TERM}" ]; then
+            if [ -f /usr/share/terminfo/s/screen ]; then
+              export TERM=screen
+            else
+              export TERM=xterm
+            fi
+          fi
+        fi
+      ;;
+      ## failsafe for when we have no idea
+      *)
+        TERM_CAN_TITLE=0 ; TERM_COLORSET="none" ; TERM_CAN_SETCOLOR=0 ;;
+  esac
 }
 
 # gethostinfo - initialize host variables for function use
 function gethostinfo {
-	#?# TEST: are all unames created equal?
-	#!# all trs are *not* created equal
-	if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-	FQDN=`tolower $HOSTNAME`
-	HOST=${FQDN%%\.*} # in case uname returns FQDN
-	DOMAIN=${FQDN##${HOST}.}
-	CPU=`tolower $HOSTTYPE`
-	CPU=${CPU%%-linux}
-	OPSYS=${BASH_VERSINFO[5]##${CPU}-}
-	OPSYS=${OPSYS%%-gnu}
-	OPSYS=${OPSYS##*-}
-	OPSYS=${OPSYS%%[0-9]*}
-	AVER=`uname -r`
-	MVER=${AVER%%\.*}
-	LVER=${AVER##${MVER}.}	# remainder of AVER...
-	LVER=${LVER%%-*}	# don't care about -RELEASE, -STABLE
-	LVER=${LVER%%\.*}	# don't care about sub-minor versions
-	LVER=${MVER}${LVER}
+  local x p
+  #?# TEST: are all unames created equal?
+  #!# all trs are *not* created equal
+  if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
+  FQDN=$(tolower "${HOSTNAME}")
+  HOST=${FQDN%%\.*} # in case uname returns FQDN
+  # shellcheck disable=SC2034
+  DOMAIN=${FQDN##${HOST}.}
+  CPU=$(tolower "${HOSTTYPE}")
+  CPU=${CPU%%-linux}
+  OPSYS=${BASH_VERSINFO[5]##${CPU}-}
+  OPSYS=${OPSYS%%-gnu}
+  OPSYS=${OPSYS##*-}
+  OPSYS=${OPSYS%%[0-9]*}
+  AVER=$(uname -r)
+  MVER=${AVER%%\.*}
+  LVER=${AVER##${MVER}.}	# remainder of AVER...
+  LVER=${LVER%%-*}	# don't care about -RELEASE, -STABLE
+  LVER=${LVER%%\.*}	# don't care about sub-minor versions
+  LVER=${MVER}${LVER}
 	
-	case $OPSYS in
-		# hack around cygwin including the Windows ver
-		cygwin*)
-			OPSYS=cygwin
-			;;
-		# shorten 'windows32' set USER, HOME
-		windows32|msys)
-			OPSYS=win32
-			unset LVER	# version of MSYS?
-			unset MVER
-			# you cannot call chkcmd yet
-			if [ !"$USER" ]; then
-				USER=$USERNAME
-			fi
-			if [ !"$HOME" ]; then
-				HOME=$USERPROFILE
-			fi
-			;;
-		# the first of MANY hacks around solaris
-		sunos)
-			CPU=`uname -p|tr [:upper:] [:lower:]`
-			if [ $MVER == 5 ]; then
-				OPSYS="solaris"
-			fi
-			;;
-		# OS X is actually similar here
-		darwin)
-			CPU=`uname -p|tr [:upper:] [:lower:]`
-			;;
-		android*)
-			export USER=rjlocal
-			;;
-	esac
+  case $OPSYS in
+    # hack around cygwin including the Windows ver
+    cygwin*) OPSYS=cygwin ;;
+    # shorten 'windows32' set USER, HOME
+    windows32|msys)
+      OPSYS=win32
+      unset LVER	# version of MSYS?
+      unset MVER
+      # you cannot call chkcmd yet
+      [ -z "$USER" ] && USER=$USERNAME
+      [ -z "$HOME" ] && HOME=$USERPROFILE
+      ;;
+    # the first of MANY hacks around solaris
+    sunos)
+      CPU=$(uname -p|tr '[:upper:]' '[:lower:]')
+      [ "${MVER}" == 5 ] && OPSYS="solaris"
+      ;;
+    # OS X is actually similar here
+    darwin)
+      CPU=$(uname -p|tr '[:upper:]' '[:lower:]') ;;
+    android*) export USER=rjlocal ;;
+  esac
 
-	if [ ${CPU:2} == 86 ] || [ ${CPU:2} == "86-pc" ]; then
-		if [ ${CPU:0:1} == "i" ]; then
-			CPU="x86"
-		fi
-	fi
+  # i?86 == x86
+  if [ "${CPU:2}" == 86 ] || [ "${CPU:2}" == "86-pc" ]; then
+    [ "${CPU:0:1}" == "i" ] && CPU="x86"
+  fi
 	
-	# initialize the cache system
-	initcachedirs
+  # initialize the cache system
+  initcachedirs
 
-	# while we're here, find 'which' and see if it works
-	dealias which
-	REAL_WHICH=`mm_getenv REAL_WHICH`
-	if [ ${?} -ne 0 ]; then
-		REAL_WHICH=`which which`||REAL_WHICH="/usr/bin/which" # Pray!
-		# following functions require bash 3.x
-		# this works around the case of cygwin/win32 having gnuwin32's which...
-		if [ ${BASH_MAJOR} -gt "2" ]; then
-			if [ "${__bashrc_path}" -nt "${HOME}"/.whichery.sh ]; then
-				(
-				cat <<\WHICHERY
-					if [[ "${REAL_WHICH}" =~ ":" ]]; then
-						# paths do not contain colons, wtf?
-						REAL_WHICH=/usr/bin/which
-					fi
+  # while we're here, find 'which' and see if it works
+  dealias which
+  REAL_WHICH=$(mm_getenv REAL_WHICH) || {
+    REAL_WHICH=$(which which) || REAL_WHICH="/usr/bin/which" # Pray!
+      if [ "${__bashrc_path}" -nt "${HOME}"/.whichery.sh ]; then
+        (
+          cat <<\WHICHERY
+            if [[ "${REAL_WHICH}" =~ ":" ]]; then
+            # paths do not contain colons, wtf?
+            REAL_WHICH=/usr/bin/which
+            fi
 WHICHERY
-				) > "${HOME}"/.whichery.sh
-			fi
-			. "${HOME}"/.whichery.sh
-		fi
-		mm_putenv REAL_WHICH
-	fi
+        ) > "${HOME}"/.whichery.sh
+      fi
+    # shellcheck disable=1090
+    . "${HOME}"/.whichery.sh
+    mm_putenv REAL_WHICH
+  }
 
-	WSTR=`mm_getenv WSTR`
-	if [ ${?} -ne 0 ]; then
-		WSTR=`"${REAL_WHICH}" --help 2>&1 | grep ^no > /dev/null ; echo ${PIPESTATUS[@]}`
-		# 1 0 - which returned an error, grep did not - bad which
-		# 1 1 - which returned an error, grep did too - bad which (?)
-		# 2 1 - which returned an error, grep did too - strange which
-		# 0 1 - which success, grep returned an error - good which
-		# 0 0 - which success, grep success           - EVIL WHICH!
-		mm_putenv WSTR
-	fi
+  WSTR=$(mm_getenv WSTR) || {
+    WSTR=$("${REAL_WHICH}" --help 2>&1 | grep ^no > /dev/null ; echo "${PIPESTATUS[@]}")
+    # 1 0 - which returned an error, grep did not - bad which
+    # 1 1 - which returned an error, grep did too - bad which (?)
+    # 2 1 - which returned an error, grep did too - strange which
+    # 0 1 - which success, grep returned an error - good which
+    # 0 0 - which success, grep success           - EVIL WHICH!
+    mm_putenv WSTR
+  }
 
-	REAL_SU=`mm_getenv REAL_SU`
-	if [ ${?} -ne 0 ]; then
-		REAL_SU=`"${REAL_WHICH}" su`
-		mm_putenv REAL_SU
-	fi
+  REAL_SU=$(mm_getenv REAL_SU) || {
+    REAL_SU=$("${REAL_WHICH}" su)
+    mm_putenv REAL_SU
+  }
 
-	SED=`mm_getenv SED`
-	if [ ${?} -ne 0 ]; then
-		SED=`"${REAL_WHICH}" sed 2> /dev/null`||SED="/bin/sed"
-		mm_putenv SED
-	fi
+  # shellcheck disable=2034
+  SED=$(mm_getenv SED) || {
+    SED=$("${REAL_WHICH}" sed 2> /dev/null) || SED="/bin/sed"
+    mm_putenv SED
+  }
 
-	# if we are in the domain 'saic.com', force HTTP/1.1 (websense!)
-	case ${DOMAIN} in
-	*saic.com)
-		USE_HTTP_1DOT1="yes"
-		;;
-	esac
-
-	# are we a laptop (rather, do we have ACPI or APM batteries?)
-	case ${OPSYS} in
-		linux|android*)
-			# try sysfs first.
-			ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || ls /sys/class/power_supply/CMB* > /dev/null 2>&1 || \
-			  ls /sys/class/power_supply/battery > /dev/null 2>&1
-			if [ $? -eq 0 ]; then
-				# using sysfs to deal with power status
-				PMON_TYPE="lxsysfs"
-				# clear battery list
-				PMON_BATTERIES=""
-				for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present /sys/class/power_supply/battery/present ; do
-					if [ -f $x ] ; then
-						read p < $x ; if [ -n "$p" ] && [ $p == 1 ]; then
-							# we have a battery here
-							PMON_BATTERIES=`basename ${x///present/}`" "$PMON_BATTERIES
-						fi
-					fi
-				done
-			fi
-                        # if we have termux-battery-status *and* jq, use those.
-			# different CPU classes generally have different power methods
-                        chkcmd termux-battery-status && chkcmd jq && PMON_TYPE="termux" && PMON_BATTERIES="termux-api"
-			;;
-		*)
-			# I have no idea.
-			;;
-	esac
+  # are we a laptop (rather, do we have ACPI or APM batteries?)
+  case ${OPSYS} in
+    linux|android*)
+      # try sysfs first.
+      {
+        ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || \
+        ls /sys/class/power_supply/CMB* > /dev/null 2>&1 || \
+        ls /sys/class/power_supply/battery > /dev/null 2>&1 ;
+      } && {
+        # using sysfs to deal with power status
+        PMON_TYPE="lxsysfs"
+        # clear battery list
+        PMON_BATTERIES=""
+        for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present /sys/class/power_supply/battery/present ; do
+          if [ -f "${x}" ] ; then
+            read -r p < "${x}" ; if [ -n "${p}" ] && [ "${p}" == 1 ]; then
+              # we have a battery here
+              PMON_BATTERIES="$(basename "${x///present/}") $PMON_BATTERIES"
+            fi
+          fi
+        done
+      }
+      # if we have termux-battery-status *and* jq, use those.
+      chkcmd termux-battery-status && chkcmd jq && PMON_TYPE="termux" && PMON_BATTERIES="termux-api"
+    ;;
+    *) : ;; # I have no idea.
+  esac
 }
 
 # getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
@@ -886,7 +867,7 @@ function unsetenv {
 # leverage ssh with ControlMaster to push latest .bashrc and ssh key to a host
 function g2 {
 	scp ${HOME}/.bashrc $1:
-	ssh $1 t_mkdir .ssh
+	ssh $1 mkdir -p .ssh
 	scp ${HOME}/.ssh/id_rsa.pub ${1}:.ssh
 	ssh $1
 }
