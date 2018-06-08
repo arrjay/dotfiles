@@ -222,7 +222,12 @@ function pathsetup {
 
   esac
 
-  cke SystemDrive SystemRoot ProgramFiles
+  case "${OPSYS}" in
+    cygwin*|win32)
+      cke SystemDrive SystemRoot ProgramFiles
+      t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
+    ;;
+  esac
 }
 
 function set_manpath {
@@ -1012,163 +1017,133 @@ _EOF_
   unset -f monolith_setfunc
 }
 
-# set screen colors for bright or bold
-function monolith_setcolors {
-	case ${TERM_COLORSET} in
-		bold)
-			;;
-		bright)
-			;;
-	esac
-}
-
 function monolith_aliases {
-	# we actually set PAGER/EDITOR here as well
-	chkcmd less
-	if [ ${?} == 0 ]; then
-		export PAGER=less
-	fi
-	# try to call coreutils & friends
-	v_alias ls gls
-	v_alias cp gcp
-	v_alias mv gmv
-	v_alias rm grm
-	v_alias df gdf
-	v_alias du gdu
-	v_alias id gid
-	v_alias tail gtail
-	v_alias md5sum gmd5sum
-	v_alias vi vim
-	v_alias wc gwc
-	v_alias expr gexpr
-	v_alias chgrp gchgrp
-	v_alias chown gchown
-	v_alias chmod gchmod
-	v_alias find gfind
-	v_alias lynx links
-	v_alias more less
-	v_alias watch cmdwatch
-	v_alias man pinfo
-	v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
-	v_alias mpg321 mpg123	# else mpg123
-	v_alias ftp ncftp
-	v_alias gpg gpg2
+  # we actually set PAGER/EDITOR here as well
+  chkcmd less && export PAGER=less
+
+  # try to call coreutils & friends
+  v_alias ls gls
+  v_alias cp gcp
+  v_alias mv gmv
+  v_alias rm grm
+  v_alias df gdf
+  v_alias du gdu
+  v_alias id gid
+  v_alias tail gtail
+  v_alias md5sum gmd5sum
+  v_alias vi vim
+  v_alias wc gwc
+  v_alias expr gexpr
+  v_alias chgrp gchgrp
+  v_alias chown gchown
+  v_alias chmod gchmod
+  v_alias find gfind
+  v_alias lynx links
+  v_alias more less
+  v_alias watch cmdwatch
+  v_alias man pinfo
+  v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
+  v_alias mpg321 mpg123	# else mpg123
+  v_alias ftp ncftp
+  v_alias gpg gpg2
 	
-	# common custom aliases
-	alias path='echo ${PATH}'
-	alias scx='screen -x'
-	alias l='ls'
-	alias s='sync;sync;sync'
+  # common custom aliases
+  alias path='echo ${PATH}'
+  alias scx='screen -x'
+  alias l='ls'
+  alias s='sync;sync;sync'
 
-	# pretend to be DOS, sometimes
-	alias cls='clear'
-	alias md='t_mkdir'
-	alias rd='rm -rf'
-	alias copy='cp'
-	alias move='mv'
-	alias tracert='traceroute'
-	alias ipconfig='ifconfig'
+  # pretend to be DOS, sometimes
+  alias cls='clear'
+  alias md='t_mkdir'
+  alias rd='rm -rf'
+  alias copy='cp'
+  alias move='mv'
+  alias tracert='traceroute'
 
-	# override system which with our more flexible version...
-	alias which='mwhich'
+  # override system which with our more flexible version...
+  alias which='mwhich'
 
-	# common typo
-	alias Grep='grep'
+  # common typo
+  alias Grep='grep'
 
-	case ${OPSYS} in
-		cygwin*|win32)
-			alias ll='ls -FlAh --color=tty'
-			alias ls='ls --color=tty -h'
-			alias start='cygstart'
-			alias du='du -h'
-			alias df='df -h'
-			alias cdw='cd "$USERPROFILE"'
-			t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
-			builtin alias ping=${SystemRoot}/system32/ping.exe
-			builtin alias traceroute=${SystemRoot}/system32/tracert.exe
-			aspn_rpath=/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl
-			if [ -f ${aspn_rpath}/CurrentVersion ]; then
-				read aspn_hive < ${aspn_rpath}/CurrentVersion
-				read -r ASPN_PATH < ${aspn_rpath}/${aspn_hive}/\@
-				ASPN_PATH=`cygpath ${ASPN_PATH}`bin
-				v_alias perl ${ASPN_PATH}/perl.exe
-			fi
-			unalias ipconfig
-			if [ ${OPSYS} == "win32" ]; then
-				builtin alias clear='echo -ne\\033c'
-				builtin alias ll='ls -Flah'
-				builtin alias ls='ls -h'
-			fi
-			;;
-		linux)
-			alias ll='ls -FlAh --color=tty'
-			alias ls='ls --color=tty -h'
-			alias du='du -h'
-			alias df='df -h'
-			alias mem='free -m'
-			alias free='free -m'
-			;;
-		darwin)
-			ppid=$(ps -o ppid $$)
-			pcomm=$(ps -o comm ${ppid/PPID/})
-			case ${pcomm} in
-				*Term*/Contents/MacOS/*Term* | *login)
-					pgrep -U "${USER}" gpg-agent >& /dev/null
-					if [ ${?} -eq 0 ] ; then
-						if [ -f "${HOME}/.gpg-agent-info" ] ; then
-							. "${HOME}/.gpg-agent-info"
-							export GPG_AGENT_INFO
-							export SSH_AUTH_SOCK
-						fi
-					fi
-					chkcmd mvim
-					if [ ${?} == 0 ] ; then
-						export EDITOR='mvim -f'
-						alias gvim=mvim
-					fi
-				;;
-			esac
-			;;
-		openbsd)
-			export PKG_PATH=ftp://ftp.openbsd.org/pub/OpenBSD/`uname -r`/packages/`machine -a`/
-			alias ll='ls -FlAh'
-			alias du='du -h'
-			alias df='df -h'
-			alias free='vmstat'
-			alias mem='vmstat'
-			;;
-		solaris)
-			alias ln='/usr/bin/ln'
-			;;
-		*)
-			alias ll='ls -FlAh'
-			;;
-	esac
-	case ${EDITOR} in
-		*vim*)
-			;;
-		*)
-			chkcmd vim
-			if [ ${?} == 0 ]; then
-				export EDITOR=vim
-			fi
-			# stomp on the vim alias if we have working graphics
-			chkcmd gvim
-			if [ ${?} == 0 ]; then
-				if [ ${DISPLAY} ]; then
-					xdpyinfo > /dev/null
-					if [ ${?} == 0 ]; then
-						# we have DISPLAY and access to it
-						export EDITOR='gvim -f'
-					fi
-				fi
-			fi
-			;;
-	esac
-	chkcmd pass
-	if [ ${?} == 0 ]; then
-		export PASSWORD_STORE_KEY='0xCFDDCCFE1E0EC4FE! 0xA529582A2A35C510!'
-	fi
+  case ${OPSYS} in
+    cygwin*|win32)
+      alias ll='ls -FlAh --color=tty'
+      alias ls='ls --color=tty -h'
+      alias start='cygstart'
+      alias du='du -h'
+      alias df='df -h'
+      alias cdw='cd "$USERPROFILE"'
+      builtin alias ping="${SystemRoot}/system32/ping.exe"
+      builtin alias traceroute="${SystemRoot}/system32/tracert.exe"
+      aspn_rpath=/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl
+      if [ -f ${aspn_rpath}/CurrentVersion ]; then
+        read -r aspn_hive < "${aspn_rpath}/CurrentVersion"
+        read -r ASPN_PATH < "${aspn_rpath}/${aspn_hive}/@"
+        ASPN_PATH="$(cygpath "${ASPN_PATH}")/bin"
+        v_alias perl "${ASPN_PATH}/perl.exe"
+      fi
+      if [ ${OPSYS} == "win32" ]; then
+        builtin alias clear='echo -ne\\033c'
+        builtin alias ll='ls -Flah'
+        builtin alias ls='ls -h'
+      fi
+    ;;
+    linux)
+      alias ll='ls -FlAh --color=tty'
+      alias ls='ls --color=tty -h'
+      alias du='du -h'
+      alias df='df -h'
+      alias mem='free -m'
+      alias free='free -m'
+    ;;
+    darwin)
+      ppid=$(ps -o ppid $$)
+      pcomm=$(ps -o comm "${ppid/PPID/}")
+      case "${pcomm}" in
+        *Term*/Contents/MacOS/*Term* | *login)
+          pgrep -U "${USER}" gpg-agent >& /dev/null &&{
+            [ -f "${HOME}/.gpg-agent-info" ] && {
+              # shellcheck disable=SC1090
+              . "${HOME}/.gpg-agent-info"
+              export GPG_AGENT_INFO
+              export SSH_AUTH_SOCK
+            }
+          }
+          chkcmd mvim && { export EDITOR='mvim -f' ; alias gvim=mvim ; }
+        ;;
+      esac
+      alias ll='ls -FlAh'
+      alias du='du -h'
+      alias df='df -h'
+    ;;
+    openbsd)
+      PKG_PATH="ftp://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/packages/$(machine -a)/" && export PKG_PATH
+      alias ll='ls -FlAh'
+      alias du='du -h'
+      alias df='df -h'
+      alias free='vmstat'
+      alias mem='vmstat'
+    ;;
+    solaris)
+      alias ln='/usr/bin/ln'
+    ;;
+    *)
+      alias ll='ls -FlAh'
+    ;;
+  esac
+
+  case "${EDITOR}" in
+    *vim*) : ;;
+    *)
+      chkcmd vi && export EDITOR="vi"
+      chkcmd vim && export EDITOR="vim"
+      [ "${DISPLAY}" ] && xdpyinfo > /dev/null && chkcmd gvim && export EDITOR="gvim -f"
+    ;;
+  esac
+
+  export PASSWORD_STORE_KEY='0xCFDDCCFE1E0EC4FE! 0xA529582A2A35C510!'
 }
 
 # hook for extension.sh prompt text
@@ -1244,7 +1219,6 @@ function setprompt {
 # cleanup
 function monolith_cleanup {
 	unset -f monolith_setfunc
-	unset -f monolith_setcolors
 	unset -f monolith_aliases
 	unset -f monolith_cleanup
 }
@@ -1252,7 +1226,6 @@ function monolith_cleanup {
 # Call setup routines
 kickenv
 monolith_setfunc
-monolith_setcolors
 monolith_aliases
 
 if [[ -n ${PS1} ]]; then
