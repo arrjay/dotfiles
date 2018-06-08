@@ -1218,9 +1218,9 @@ function setprompt {
 
 # cleanup
 function monolith_cleanup {
-	unset -f monolith_setfunc
-	unset -f monolith_aliases
-	unset -f monolith_cleanup
+  unset -f monolith_setfunc
+  unset -f monolith_aliases
+  unset -f monolith_cleanup
 }
 
 # Call setup routines
@@ -1229,30 +1229,28 @@ monolith_setfunc
 monolith_aliases
 
 if [[ -n ${PS1} ]]; then
-	# configure history for interactive sessions
-	HISTCONTROL=ignoreboth
-	lyricsfile="${HOME}"/.fortune/song-lyrics
-	if [ -f "${lyricsfile}" ]; then
-		chkcmd strfile
-		if [ ${?} == "0" ]; then
-			function lyric {
-				if [ "${lyricsfile}" -nt "${lyricsfile}".dat ]; then
-					strfile ${lyricsfile} >& /dev/null
-				fi
-				fortune ${lyricsfile}
-			}
-			lyric
-		fi
-	fi
+  # configure history for interactive sessions
+  HISTCONTROL=ignoreboth
+  lyricsfile="${HOME}"/.fortune/song-lyrics
+  if [ -f "${lyricsfile}" ]; then
+    chkcmd strfile && {
+      function lyric {
+        [ "${lyricsfile}" -nt "${lyricsfile}".dat ] && strfile "${lyricsfile}" >& /dev/null
+        fortune "${lyricsfile}"
+      }
+      lyric
+    }
+  fi
 fi
+
 if [ ${OPSYS} != "cygwin" ] && [ ${OPSYS} != "win32" ]; then
-	if [ "${PMON_BATTERIES}" ] ; then
-		setprompt new_pmon
-	else
-		setprompt
-	fi
+  if [ "${PMON_BATTERIES}" ] ; then
+    setprompt new_pmon
+  else
+    setprompt
+  fi
 else
-	setprompt new_nocount
+  setprompt new_nocount
 fi
 
 monolith_cleanup
