@@ -706,98 +706,89 @@ function pscount {
 }
 
 function _properties {
-	echo -n ${JBVERSTRING}
-	echo 'SysID: '${HOST}' '${OPSYS}${LVER}' '${CPU}' ('${TERM}')'
-	echo 'using bash '${BASH_VERSION}
-	if [ ${CONNFROM} ]; then
-		echo 'Connecting From: '${CONNFROM}
-	fi
-	if [ -n "${1}" ] && [ ${1} == "-x" ]; then
-		echo "--"
-		if [ ${OPSYS} == "darwin" ]; then
-			OSXVER=`echo -e 'Tell application "Finder"\nget version\nend tell'|osascript -`
-			if [ $? == "0" ]; then
-				echo "Apple Mac OS X ${OSXVER}"
-			fi
-			NCPU=`sysctl -n hw.ncpu`
-			CPUSPEED=`expr \`sysctl -n hw.cpufrequency\` / 1000000`
-			CPUTYPE=`machine`
-			echo $CPUTYPE|grep -q ppc
-			if [ $? == "0" ]; then
-				CPUARCH="PowerPC"
-			fi
-			CPUTYPE=${CPUTYPE//ppc/}
-			case ${CPUTYPE} in
-				7450)
-					CPUSUB="G4"
-					;;
-			esac
-			echo -n "${NCPU} ${CPUSPEED}MHz ${CPUARCH} ${CPUTYPE} "
-			if [ "${CPUTYPE}" ]; then
-				echo -n "(${CPUSUB}) "
-			fi
-			echo "Processor(s)"
-		fi
-		if [ -f /etc/fedora-release ]; then
-			cat /etc/fedora-release
-		elif [ -f /etc/redhat-release ]; then
-			cat /etc/redhat-release
-		fi
-		if [ ${OPSYS} == "freebsd" ]; then
-			echo -n "FreeBSD "
-			uname -r
-			NCPU=`sysctl -n hw.ncpu`
-			CPUSPEED=`sysctl -n hw.clockrate`
-			CPUTYPE=`sysctl -n hw.model`
-			echo "${NCPU} ${CPUSPEED}MHz ${CPUTYPE} Processor(s)"
-		fi
-		if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == "cygwin" ]; then
-			if [ ! -f "${HOME}"/.sysinfo.vbs ]; then
-				echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset o = w.instancesof(\"win32_operatingsystem\")\r\nfor each i in o\r\nwscript.echo i.caption & \" SP\" & i.servicepackmajorversion\r\nnext" > "${HOME}"/.sysinfo.vbs
-			fi
-			SYSIVBS=`mm_getenv SYSIVBS`
-			if [ $? -ne 0 ]; then
-				if [ $OPSYS == 'cygwin' ]; then
-					SYSIVBS=`cygpath -da "${HOME}"/.sysinfo.vbs`
-				else
-					SYSIVBS=`ls -d "${HOME}"/.sysinfo.vbs`
-				fi
-				mm_putenv SYSIVBS
-			fi
-			cscript //nologo "${SYSIVBS}"
-			if [ ! -f "${HOME}"/.ucount.vbs ]; then
-				echo -ne "set w = getobject(\"winmgmts:\\\\\\.\\\root\\\cimv2\")\r\nset c = w.execquery(\"select * from win32_logonsession where logontype = 2\")\r\nwscript.echo c.count" > "${HOME}"/.ucount.vbs
-			fi
-			UCOUNT=`cscript //nologo "${HOME}"/.ucount.vbs`
-		else
-			UCOUNT=`who|wc -l|sed 's/^ *//g'`
-		fi
-		PC=`pscount + 1`
-		echo "${PC} Processes, ${UCOUNT} users"
-		unset PC
-		unset UCOUNT
-		if [ ${DISPLAY} ]; then
-			echo 'X Display: '${DISPLAY}
-			xdpyinfo | grep -E 'dimensions|depth of root window'
-		fi
-		if [ "${PMON_BATTERIES}" ]; then
-			echo -n "Batteries installed, using "
-			case $PMON_TYPE in
-				lxsysfs)
-					echo -n "Linux /sys FS"
-					;;
-                                termux)
-                                        echo -n "Termux API"
-                                        ;;
-			esac
-			echo " for monitoring"
-			echo " Monitoring ${PMON_BATTERIES}"
-			echo -n " Batteries are "
-			x=`battstat chrg`; echo -n ${x}"/"
-			x=`battstat cap`; echo -n ${x}" ("
-			x=`battstat chgpct`; echo ${x}"%) charged"
-		fi
-	fi
+  echo -n "${JBVERSTRING}"
+  echo "SysID: ${HOST} ${OPSYS}${LVER} ${CPU} (${TERM})"
+  echo "using bash ${BASH_VERSION}"
+  if [ "${CONNFROM}" ]; then
+    echo "Connecting From: ${CONNFROM}"
+  fi
+  if [ -n "${1}" ] && [ "${1}" == "-x" ]; then
+    echo "--"
+    if [ "${OPSYS}" == "darwin" ]; then
+      OSXVER=$(echo -e 'Tell application "Finder"\nget version\nend tell'|osascript -) && echo "Apple Mac OS X ${OSXVER}"
+      NCPU=$(sysctl -n hw.ncpu)
+      # shellcheck disable=SC2003
+      CPUSPEED=$(expr "$(sysctl -n hw.cpufrequency)" / 1000000)
+      CPUTYPE=$(machine)
+      echo "${CPUTYPE}" | grep -q ppc && CPUARCH="PowerPC"
+      CPUTYPE=${CPUTYPE//ppc/}
+      case "${CPUTYPE}" in 7450) CPUSUB="G4" ;; esac
+      echo -n "${NCPU} ${CPUSPEED}MHz ${CPUARCH} ${CPUTYPE} "
+      [ "${CPUTYPE}" ] && echo -n "(${CPUSUB}) "
+      echo "Processor(s)"
+    fi
+
+    if   [ -f /etc/fedora-release ]; then cat /etc/fedora-release
+    elif [ -f /etc/redhat-release ]; then cat /etc/redhat-release
+    fi
+
+    [ ${OPSYS} == "freebsd" ] && {
+      echo -n "FreeBSD "
+      uname -r
+      NCPU=$(sysctl -n hw.ncpu)
+      CPUSPEED=$(sysctl -n hw.clockrate)
+      CPUTYPE=$(sysctl -n hw.model)
+      echo "${NCPU} ${CPUSPEED}MHz ${CPUTYPE} Processor(s)"
+    }
+
+    if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == "cygwin" ]; then
+      [ ! -f "${HOME}"/.sysinfo.vbs ] && {
+        cat << _EOF_ | sed -e 's/$/'"$(printf "\\r")"'/' > "${HOME}/.sysinfo.vbs"
+set w = getobject("winmgmts:\\\\.\\root\\cimv2")
+set o = w.instancesof("win32_operatingsystem")
+for each i in o
+wscript.echo i.caption & " SP" & i.servicepackmajorversion
+next
+_EOF_
+      }
+      SYSIVBS=$(mm_getenv SYSIVBS) || {
+        [ $OPSYS == 'cygwin' ] && SYSIVBS=$(cygpath -da "${HOME}"/.sysinfo.vbs) || SYSIVBS=$(ls -d "${HOME}"/.sysinfo.vbs)
+        mm_putenv SYSIVBS
+      }
+      cscript //nologo "${SYSIVBS}"
+      [ ! -f "${HOME}"/.ucount.vbs ] && {
+        cat << _EOF_ | sed -e 's/$/'"$(printf "\\r")"'/' > "${HOME}/.ucount.vbs"
+set w = getobject("winmgmts:\\\\.\\root\\cimv2")
+set c = w.execquery("select * from win32_logonsession where logontype = 2")
+wscript.echo c.count
+_EOF_
+      }
+      UCOUNT=$(cscript //nologo "${HOME}"/.ucount.vbs)
+    else
+      UCOUNT=$(who|wc -l|sed 's/^ *//g')
+    fi
+    PC=$(pscount + 1)
+    echo "${PC} Processes, ${UCOUNT} users"
+    unset PC
+    unset UCOUNT
+    [ "${DISPLAY}" ] && {
+      echo "X Display: ${DISPLAY}"
+      xdpyinfo | grep -E 'dimensions|depth of root window'
+    }
+    [ "${PMON_BATTERIES}" ] && {
+      echo -n "Batteries installed, using "
+      case "${PMON_TYPE}" in
+        lxsysfs) echo -n "Linux /sys FS" ;;
+        termux)  echo -n "Termux API" ;;
+      esac
+      echo " for monitoring"
+      echo " Monitoring ${PMON_BATTERIES}"
+      echo -n " Batteries are "
+      x=$(battstat chrg);   echo -n "${x}/"
+      x=$(battstat cap);    echo -n "${x} ("
+      x=$(battstat chgpct); echo    "${x}%) charged"
+    }
+  fi
 }
 
 # overloaded commands
