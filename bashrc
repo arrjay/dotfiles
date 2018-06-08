@@ -495,7 +495,7 @@ function gethostinfo {
   dealias which
   REAL_WHICH=$(mm_getenv REAL_WHICH) || {
     REAL_WHICH=$(which which) || REAL_WHICH="/usr/bin/which" # Pray!
-      if [ "${__bashrc_path}" -nt "${HOME}"/.whichery.sh ]; then
+      if { [ "${__bashrc_path}" -nt "${HOME}"/.whichery.sh ] || [ ! -e "${HOME}/.whichery.sh" ] ; } then
         (
           cat <<\WHICHERY
             if [[ "${REAL_WHICH}" =~ ":" ]]; then
@@ -521,7 +521,7 @@ WHICHERY
   }
 
   REAL_SU=$(mm_getenv REAL_SU) || {
-    REAL_SU=$("${REAL_WHICH}" su)
+    REAL_SU=$("${REAL_WHICH}" su 2> /dev/null)
     mm_putenv REAL_SU
   }
 
@@ -983,7 +983,7 @@ _EOF_
       }
 
       function pscount {
-        cscript //nologo "${PSCVBS}"
+        out=$(cscript //nologo "${PSCVBS}") && echo "${out}"
       }
 
       # fake getent - call mkpasswd/mkgroup as appropriate
@@ -1164,16 +1164,16 @@ function setprompt {
       ;;
       old)
         PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-        PS1="${BC_LT_GRA}\\t ${BC_PR}[\\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'$(__git_ps1)$(prompt_ext)'"\\n${BC_RED}<"'$(pscount)'"> ${BC_GRN}(\\W) ${BC_BR}${HD}${RS} "
+        PS1="${BC_LT_GRA}\\t ${BC_PR}[\\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'`__git_ps1``prompt_ext`'"\\n${BC_RED}<"'$(pscount)'"> ${BC_GRN}(\\W) ${BC_BR}${HD}${RS} "
       ;;
       timely)
         PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
         case "${TERM_COLORSET}" in
           bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_CY}(\\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'$(pscount)'" ${RS}${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+            PS1="${BC_BR}#${RS} ${BC_CY}(\\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
           ;;
           *)
-            PS1="# (\\t) ?"'${?}'" !\\! \\u@${HOST} $(pscount) {\\W}$(__git_ps1)$(prompt_ext) ${HD}\\n" # mono
+            PS1="# (\\t) ?"'${?}'" !\\! \\u@${HOST} $(pscount) {\\W}`__git_ps1``prompt_ext` ${HD}\\n" # mono
           ;;
         esac
       ;;
@@ -1182,10 +1182,10 @@ function setprompt {
         PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
         case ${TERM_COLORSET} in
           bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
           ;;
           *)
-            PS1="# ?"'${?}'" !\\! \\u@${HOST} {\\W}"'$(__git_ps1)$(prompt_ext)'"${HD}\\n" # mono
+            PS1="# ?"'${?}'" !\\! \\u@${HOST} {\\W}"'`__git_ps1``prompt_ext`'"${HD}\\n" # mono
           ;;
         esac
       ;;
@@ -1194,10 +1194,10 @@ function setprompt {
         PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
         case ${TERM_COLORSET} in
           bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'$(pscount)'" ${RS}("'$(battstat chgpct)'"%"'$(battstat stat)'") ${RS}${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
           ;;
           *)
-            PS1="# ?"'${?}'" !\\! \\u@${HOST} $(pscount) ($(battstat chgpct)%$(battstat stat)) {\\W}"'$(__git_ps1)$(prompt_ext)'"${HD}\\n" # mono
+            PS1="# ?"'${?}'" !\\! \\u@${HOST} $(pscount) (`battstat chgpct`%`battstat stat`) {\\W}"'`__git_ps1``prompt_ext`'"${HD}\\n" # mono
           ;;
         esac
       ;;
@@ -1205,10 +1205,10 @@ function setprompt {
         PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
         case ${TERM_COLORSET} in
           bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'$(pscount)'" ${RS}${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
           ;;
           *)
-            PS1="# ?"'${?}'" !\\! ${USER}@${HOST} $(pscount) {\\W}"'$(__git_ps1)$(prompt_ext)'"${HD}\\n" # mono
+            PS1="# ?"'${?}'" !\\! ${USER}@${HOST} $(pscount) {\\W}"'`__git_ps1``prompt_ext`'"${HD}\\n" # mono
           ;;
         esac
       ;;
