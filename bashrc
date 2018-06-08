@@ -938,78 +938,78 @@ function _ed {
 
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
-	case $OPSYS in
-		openbsd|darwin)
-			# redifine linux-specific functions
-			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 6`
-			}
-			;;
-                linux|android*)
-                        function pscount {
-                                local __psc __psf
-                                __psf=( /proc/[0-9]* )
-                                __psc=$(( ${#__psf[@]} - 1 ))
-                                echo "${__psc}"
-                        }
-                        ;;
-		cygwin|win32)
-			# create a .pscount.vbs script if needed
-			if [ ! -f "${HOME}"/.pscount.vbs ]; then
-				echo -ne "c = 0\r\nset w = GetObject(\"winmgmts:{impersonationlevel=impersonate}!\\\\\\.\\\root\\\cimv2\")\r\nset l = w.ExecQuery (\"Select * from Win32_Process\")\r\nfor each objProcess in l\r\nc = c + 1\r\nnext\r\nc = c - 3\r\nwscript.stdout.write c\r\n" > "${HOME}"/.pscount.vbs
-			fi
+  case "${OPSYS}" in
+    openbsd|darwin)
+      # redefine linux-specific functions
+      function pscount {
+        echo -n "$(("$(ps ax|wc -l)" - 5))"
+      }
+    ;;
+    linux|android*)
+      function pscount {
+        local __psc __psf
+        __psf=( /proc/[0-9]* )
+        __psc=$(( ${#__psf[@]} - 1 ))
+        echo "${__psc}"
+      }
+    ;;
+    cygwin|win32)
+      # create a .pscount.vbs script if needed
+      [ ! -f "${HOME}/.pscount.vbs" ] && {
+        cat << _EOF_ | sed -e 's/$/'"$(printf "\\r")"'/' > "${HOME}/.pscount.vbs"
+c = 0
+set w = GetObject("winmgmts:{impersonationlevel=impersonate}!\\\\.\\root\\cimv2")
+set l = w.ExecQuery ("Select * from Win32_Process")
+for each objProcess in l
+c = c + 1
+next
+c = c - 3
+wscript.stdout.write c
+_EOF_
+      }
+      # MSYS doesn't seem to have cygpath
+      PSCVBS=$(mm_getenv PSCVBS) || {
+        if [ "${OPSYS}" == "cygwin" ]; then
+          PSCVBS=$(cygpath -da "${HOME}/.pscount.vbs")
+        else
+          PSCVBS=$(ls -d "${HOME}/.pscount.vbs")
+        fi
+        mm_putenv PSCVBS
+      }
 
-			# MSYS doesn't seem to have cygpath
-			PSCVBS=`mm_getenv PSCVBS`
-			if [ ${?} -ne 0 ]; then
-				if [ $OPSYS == "cygwin" ]; then
-					PSCVBS=`cygpath -da "${HOME}"/.pscount.vbs`
-				else
-					PSCVBS=`ls -d "${HOME}/.pscount.vbs"`
-				fi
-				mm_putenv PSCVBS
-			fi
+      function pscount {
+        cscript //nologo "${PSCVBS}"
+      }
 
-			function pscount {
-				cscript //nologo "${PSCVBS}"
-			}
-			# fake getent - call mkpasswd/mkgroup as appropriate
-			function getent {
-				case ${1} in
-					passwd)
-						mkpasswd.exe -du ${2}
-						;;
-					group)
-						mkgroup.exe -du ${2}
-						;;
-					*)
-						echo 'Wha?'
-						;;
-				esac
-			}
-			alias ifconfig=ipconfig
-			;;
-		solaris)
-			function pscount {
-				echo -n `expr \`ps ax|wc -l\` - 5`
-			}
-			;;
-		freebsd)
-			function pscount {
-				# try to exclude kernel threads
-				echo -n `expr \`ps ax|grep -v '[0-9] \['|wc -l\` - 7`
-			}
-			;;
-		irix)
-			function pscount {
-				echo -n `expr \`ps -ef|wc -l\` - 6`
-			}
-			;;
-		*)
-			# do nothing...
-			;;
-	esac
-	unset -f monolith_setfunc
+      # fake getent - call mkpasswd/mkgroup as appropriate
+      function getent {
+        case "${1}" in
+          passwd) mkpasswd.exe -du "${2}" ;;
+          group)  mkgroup.exe  -du "${2}" ;;
+          *)      echo 'Wha?'             ;;
+        esac
+      }
+    ;;
+    solaris)
+      function pscount {
+        echo -n $(("$(ps ax|wc -l)" - 5))
+      }
+    ;;
+    freebsd)
+      function pscount {
+        # try to exclude kernel threads
+        # shellcheck disable=SC2009
+        echo -n $(("$(ps ax|grep -cv '[0-9] \[')" - 7))
+      }
+    ;;
+    irix)
+      function pscount {
+        echo -n $(("$(ps -ef|wc -l)" - 6))
+      }
+    ;;
+    *) : ;; # do nothing...
+  esac
+  unset -f monolith_setfunc
 }
 
 # set screen colors for bright or bold
