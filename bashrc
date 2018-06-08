@@ -809,171 +809,126 @@ function mwhich {
 
 # (m)su - su with term color change for extra attention
 function msu {
-	setcscheme ${CSCHEME_SU}
-	${REAL_SU} $@
-	echo ' '
-	setcscheme ${CSCHEME_DEFAULT}
+  setcscheme "${CSCHEME_SU}"
+  "${REAL_SU}" "${@}"
+  echo ' '
+  setcscheme "${CSCHEME_DEFAULT}"
 }
 
 ## environment manipulation
 # dealias - undefine alias if it exists
 function dealias {
-	unalias $1 >& /dev/null
+  unalias "${1}" >& /dev/null
 }
 
 # setenv - sets an *exported* environment variable
 function setenv {
-	oifs=$IFS
-	IFS=' '
-	name=$1
-	shift
-	export $name="$*"
-	IFS=$oifs
-	unset oifs
+  oifs=$IFS
+  IFS=' '
+  name="${1}"
+  shift
+  export "$name=$*"
+  IFS=$oifs
+  unset oifs
 }
 
 # unsetenv - unsets exported environment variables
 function unsetenv {
-	if export|grep 'declare -x'|grep -q $1
-		then unset $1
-	fi
-}
-
-# leverage ssh with ControlMaster to push latest .bashrc and ssh key to a host
-function g2 {
-	scp ${HOME}/.bashrc $1:
-	ssh $1 mkdir -p .ssh
-	scp ${HOME}/.ssh/id_rsa.pub ${1}:.ssh
-	ssh $1
-}
-
-# httpsnarf # quick and dirty http(s) fetch [https requires openssl]
-function httpsnarf {
-	HTTP_PURI=`echo ${1}|sed s@https://@@`
-	HTTP_HOST=`echo ${HTTP_PURI}|awk -F/ '{ print $1 }'`
-	HTTP_PATH=`echo ${HTTP_PURI}|sed s@${HTTP_HOST}@@`
-	if [ "x${HTTP_PATH}" = "x" ]; then
-		HTTP_PATH="/"
-	fi
-	case ${USE_HTTP_1DOT1} in
-		yes)
-			HTTP_REQ="GET ${HTTP_PATH} HTTP/1.1\r\nHost: ${HTTP_HOST}\r\nUser-Agent: JBashRc (${JBVER}; ${OPSYS}${LVER} ${CPU}; ${COLUMNS}x${LINES})\r\nAccept-Encoding: *;q=0\r\nConnection: close\r\n\n"
-			;;
-		*)
-			HTTP_REQ="GET ${HTTP_PATH}\r\n\n"
-			;;
-	esac
-
-	if [[  ( `expr match ${1} https` = 5 ) ]]; then
-		chkcmd openssl
-		if [ ${?} == 0 ]; then
-			echo -ne ${HTTP_REQ}|openssl s_client -connect ${HTTP_HOST}:443 -quiet 2> /dev/null
-		else
-			echo "I don't have openssl here, sorry."
-		fi
-	else
-		exec 5<>/dev/tcp/${HTTP_HOST}/80
-		echo -ne ${HTTP_REQ}>&5
-		cat <&5
-	fi
+  if export|grep 'declare -x'|grep -q "${1}"
+    then unset "${1}"
+  fi
 }
 
 # battstatt - pull battery status generic-ish
 function battstat {
-	case $1 in
-		cap)
-			PMON_CAP=0
-			# get total capacity
-			case $PMON_TYPE in
-				lxsysfs)
-					_SYSFSPATH="/sys/class/power_supply"
-					for x in $PMON_BATTERIES; do
-						# if we're reporting energy, use that first
-						# FIXME: what happens when one battery reports in energy, the other in charge? (never seen!)
-						if [ -f $_SYSFSPATH/${x}/energy_full ]; then
-							read p < $_SYSFSPATH/${x}/energy_full
-						elif [ -f $_SYSFSPATH/${x}/charge_full ]; then
-							read p < $_SYSFSPATH/${x}/charge_full
-						fi
-						PMON_CAP=$(($p + $PMON_CAP))
-					done
-					;;
-                                termux)
-                                        # termux only returns percentage
-                                        PMON_CAP=100
-                                        ;;
-			esac
-			echo $PMON_CAP
-			;;
-		chrg)
-			PMON_CHARGE=0
-			case $PMON_TYPE in
-				lxsysfs)
-					_SYSFSPATH="/sys/class/power_supply"
-					for x in $PMON_BATTERIES; do
-						if [ -f $_SYSFSPATH/${x}/energy_now ]; then
-							read p < $_SYSFSPATH/${x}/energy_now
-						elif [ -f $_SYSFSPATH/${x}/charge_now ] ; then
-							read p < $_SYSFSPATH/${x}/charge_now
-						fi
-						PMON_CHARGE=$(($p + $PMON_CHARGE))
-					done
-					;;
-                                termux)
-                                        PMON_CHARGE=$(jq .percentage < "$HOME/.termux-battery-status")
-                                        ;;
-			esac
-			echo $PMON_CHARGE
-			;;
-		chgpct)
-			_candidate=''
-			case $PMON_TYPE in
-				lxsysfs)
-					_SYSFSPATH="/sys/class/power_supply"
-					for x in $PMON_BATTERIES; do
-						if [ -f $_SYSFSPATH/${x}/capacity ]; then
-							read _candidate < $_SYSFSPATH/${x}/capacity
-					fi
-					done
-					;;
-			esac
-			if [ -z "${_candidate}" ]; then
-				echo $((`battstat chrg`00 / `battstat cap`))
-			else
-				echo ${_candidate}
-			fi
-			;;
-		stat)
-			# discahrge (v), idle (-), or charging (^)?
-			# batteries at idle is the default state
-			PMON_STAT="-"
-			case $PMON_TYPE in
-				lxsysfs)
-					for x in $PMON_BATTERIES; do
-						read p < /sys/class/power_supply/${x}/status
-						if [ "$p" == "Charging" ]; then
-							PMON_STAT="^"
-						fi
-						if [ "$p" == "Discharging" ]; then
-							PMON_STAT="v"
-						fi
-					done
-					;;
-                                termux)
-                                        __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status")
-                                        __status=$(jq -r .status < "$HOME/.termux-battery-status")
-                                        [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
-                                        [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
-                                        ;;
-			esac
-			echo $PMON_STAT
-			;;
-		*)
-			echo "I don't know how to $1"
-			echo "$0 (cap|chrg|chgpct|stat)"
-			return 2;
-			;;
-	esac
+  case "${1}" in
+    cap)
+      PMON_CAP=0
+      # get total capacity
+      case "${PMON_TYPE}" in
+        lxsysfs)
+          _SYSFSPATH="/sys/class/power_supply"
+          for x in $PMON_BATTERIES; do
+            # if we're reporting energy, use that first
+            # FIXME: what happens when one battery reports in energy, the other in charge? (never seen!)
+            if [ -f "$_SYSFSPATH/${x}/energy_full" ]; then
+              read -r p < $_SYSFSPATH/${x}/energy_full
+            elif [ -f "$_SYSFSPATH/${x}/charge_full" ]; then
+              read -r p < $_SYSFSPATH/${x}/charge_full
+            fi
+            PMON_CAP=$((p + PMON_CAP))
+          done
+        ;;
+        termux)
+          # termux only returns percentage
+          PMON_CAP=100
+        ;;
+      esac
+      echo "${PMON_CAP}"
+    ;;
+    chrg)
+      PMON_CHARGE=0
+      case $PMON_TYPE in
+        lxsysfs)
+          _SYSFSPATH="/sys/class/power_supply"
+          for x in $PMON_BATTERIES; do
+            if [ -f "$_SYSFSPATH/${x}/energy_now" ]; then
+              read -r p < $_SYSFSPATH/${x}/energy_now
+            elif [ -f $_SYSFSPATH/${x}/charge_now ] ; then
+              read -r p < $_SYSFSPATH/${x}/charge_now
+            fi
+            PMON_CHARGE=$((p + PMON_CHARGE))
+          done
+        ;;
+        termux) PMON_CHARGE=$(jq .percentage < "$HOME/.termux-battery-status") ;;
+      esac
+      echo "${PMON_CHARGE}"
+    ;;
+    chgpct)
+      _candidate=''
+      case "${PMON_TYPE}" in
+        lxsysfs)
+          _SYSFSPATH="/sys/class/power_supply"
+          for x in $PMON_BATTERIES; do
+            [ -f $_SYSFSPATH/${x}/capacity ] && read -r _candidate < $_SYSFSPATH/${x}/capacity
+          done
+        ;;
+      esac
+      if [ -z "${_candidate}" ]; then
+        echo $(($(battstat chrg)00 / $(battstat cap)))
+      else
+        echo "${_candidate}"
+      fi
+    ;;
+    stat)
+      # discahrge (v), idle (-), or charging (^)?
+      # batteries at idle is the default state
+      PMON_STAT="-"
+      case "${PMON_TYPE}" in
+        lxsysfs)
+          for x in ${PMON_BATTERIES}; do
+            read -r p < "/sys/class/power_supply/${x}/status"
+            case "${p}" in
+              Charging)    PMON_STAT="^" ;;
+              Discharging) PMON_STAT="v" ;;
+            esac
+          done
+        ;;
+        termux)
+          __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status")
+          __status=$(jq -r .status < "$HOME/.termux-battery-status")
+          [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
+          [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
+        ;;
+      esac
+      echo "${PMON_STAT}"
+    ;;
+    *)
+      echo "I don't know how to $1"
+      echo "$0 (cap|chrg|chgpct|stat)"
+      return 2;
+    ;;
+  esac
 }
 
 # kill ssh mux processes
