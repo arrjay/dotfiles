@@ -1153,6 +1153,8 @@ function prompt_ext {
 
 # export the prompt
 function setprompt {
+  # shellcheck disable=SC2006
+  # disable all backtick checks here because PS1 evaluation is "different"
   if [[ -n "${PS1}" ]]; then
     case "$1" in
       simple)
