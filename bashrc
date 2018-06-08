@@ -1148,72 +1148,72 @@ function monolith_aliases {
 
 # hook for extension.sh prompt text
 function prompt_ext {
-	echo -n ' '
+  echo -n ' '
 }
 
 # export the prompt
 function setprompt {
-	if [[ -n $PS1 ]]; then
-	case "$1" in
-	simple)
-		PS1=${INVNAME}"-"${BASH_MAJOR}"."${BASH_MINOR}${HD}" "
-		;;
-	classic)
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		setprompt simple
-		;;
-	old)
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		PS1="${BC_LT_GRA}\t ${BC_PR}[\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'`__git_ps1``prompt_ext`'"\n${BC_RED}<"'`pscount`'"> ${BC_GRN}(\W) ${BC_BR}${HD}${RS} "
-		;;
-	timely)
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		case ${TERM_COLORSET} in
-			bold)
-				PS1="${BC_BR}#${RS} ${BC_CY}(\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
-				;;
-			*)
-				PS1="# (\t) ?"'${?}'" !\! \u@${HOST} `pscount` {\W}`__git_ps1``prompt_ext` ${HD}\n" # mono
-				;;
-		esac
-		;;
-	new_nocount)
-		# like new, but hides the process count
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		case ${TERM_COLORSET} in
-			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
-				;;
-			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} {\W}"'`__git_ps1``prompt_ext`'"${HD}\n" # mono
-				;;
-		esac
-		;;
-	new_pmon)
-		# new prompt with battery minder
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
-		case ${TERM_COLORSET} in
-			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
-				;;
-			*)
-				PS1="# ?"'${?}'" !\! \u@${HOST} `pscount` (`battstat chgpct`%`battstat stat`) {\W}"'`__git_ps1``prompt_ext`'"${HD}\n" # mono
-				;;
-		esac
-		;;
-	new|*)
-		PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
-		case ${TERM_COLORSET} in
-			bold|bright)
-				PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\n"
-				;;
-			*)
-				PS1="# ?"'${?}'" !\! ${USER}@${HOST} `pscount` {\W}"'`__git_ps1``prompt_ext`'"${HD}\n" # mono
-				;;
-		esac
-		;;
-	esac
-	fi
+  if [[ -n "${PS1}" ]]; then
+    case "$1" in
+      simple)
+        PS1="${INVNAME}-${BASH_MAJOR}.${BASH_MINOR}${HD} "
+      ;;
+      classic)
+        PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+        setprompt simple
+      ;;
+      old)
+        PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+        PS1="${BC_LT_GRA}\\t ${BC_PR}[\\u@${HOST}] ${BC_BL}{${CURTTY}}${RS}"'$(__git_ps1)$(prompt_ext)'"\\n${BC_RED}<"'$(pscount)'"> ${BC_GRN}(\\W) ${BC_BR}${HD}${RS} "
+      ;;
+      timely)
+        PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+        case "${TERM_COLORSET}" in
+          bold|bright)
+            PS1="${BC_BR}#${RS} ${BC_CY}(\\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'$(pscount)'" ${RS}${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+          ;;
+          *)
+            PS1="# (\\t) ?"'${?}'" !\\! \\u@${HOST} $(pscount) {\\W}$(__git_ps1)$(prompt_ext) ${HD}\\n" # mono
+          ;;
+        esac
+      ;;
+      new_nocount)
+        # like new, but hides the process count
+        PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+        case ${TERM_COLORSET} in
+          bold|bright)
+            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+          ;;
+          *)
+            PS1="# ?"'${?}'" !\\! \\u@${HOST} {\\W}"'$(__git_ps1)$(prompt_ext)'"${HD}\\n" # mono
+          ;;
+        esac
+      ;;
+      new_pmon)
+        # new prompt with battery minder
+        PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
+        case ${TERM_COLORSET} in
+          bold|bright)
+            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'$(pscount)'" ${RS}("'$(battstat chgpct)'"%"'$(battstat stat)'") ${RS}${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+          ;;
+          *)
+            PS1="# ?"'${?}'" !\\! \\u@${HOST} $(pscount) ($(battstat chgpct)%$(battstat stat)) {\\W}"'$(__git_ps1)$(prompt_ext)'"${HD}\\n" # mono
+          ;;
+        esac
+      ;;
+      new|*)
+        PROMPT_COMMAND="writetitle ${USER}@${HOST}:\`pwd\`"
+        case ${TERM_COLORSET} in
+          bold|bright)
+            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'$(pscount)'" ${RS}${BC_PR}{\\W}${RS}"'$(__git_ps1)$(prompt_ext)'"${BC_BR}${HD}${RS}\\n"
+          ;;
+          *)
+            PS1="# ?"'${?}'" !\\! ${USER}@${HOST} $(pscount) {\\W}"'$(__git_ps1)$(prompt_ext)'"${HD}\\n" # mono
+          ;;
+        esac
+      ;;
+    esac
+  fi
 }
 
 # cleanup
