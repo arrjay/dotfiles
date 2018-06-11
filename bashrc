@@ -1071,24 +1071,36 @@ function monolith_aliases {
   chkcmd docker && {
     __docker_sh () {
       # run bash in a docker container, overriding entrypoint. optionally, mount some volumes, too.
-      local opt volume image OPTARG OPTIND xauthority dt env
-      volume=() ; env=() ; xauthority="" ; image=""
+      local opt volume image OPTARG OPTIND xauthority dt env xsockdir
+      volume=() ; env=() ; xauthority="" ; image="" ; xsockdir=""
       while getopts "v:xi:" opt "${@}" ; do case "${opt}" in
           i) image="${OPTARG}" ;;
           v) volume+=('-v' "${OPTARG}") ;;
           x)
              xauthority=$(__docker_xauth) || { echo "unable to manipulate X security settings" 1>&2 ; return 1 ; }
+             chkcmd socat || { echo "socat needed for X11 socket handling" 1>& 2 ; return 1 ; }
+             xsockdir=$(mktemp -d) || { echo "unable to create container transient X socket dir" 1>&2 ; return 1 ; }
+             chcon -t sandbox_file_t "${xsockdir}"
              dt=${DISPLAY/:/} ; dt=${dt%.*}
-             case "${DISPLAY}" in :*) [ -e "/tmp/.X11-unix/X${dt}" ] && volume+=('-v' "/tmp/.X11-unix/X${dt}:/tmp/.X11-unix/X0:z") ;; esac
+             case "${DISPLAY}" in
+               # local X
+               :*) [ -e "/tmp/.X11-unix/X${dt}" ] && {
+                 # this works via the socat-x.te file also in the dotfiles repo :/ install if needed doing this:
+                 # checkmodule -M -m -o socat-x.mod socat-x.te && semodule_package -o socat-x.pp -m socat-x.mod
+                 # sudo semodule -i socat-x.pp
+                 ( env LD_LIBRARY_PATH='' runcon -t sandbox_x_t socat "UNIX-LISTEN:${xsockdir}/X0,fork" "UNIX:/tmp/.X11-unix/X${dt}" & )
+                 volume+=('-v' "${xsockdir}/X0:/tmp/.X11-unix/X0:Z") ; } ;;
+             esac
              volume+=('-v' "${xauthority}:/.Xauthority:Z")
              env+=('--env' 'XAUTHORITY=/.Xauthority')
              env+=('--env' 'DISPLAY=:0')
           ;;
-          *) { echo "${BASH_FUNTION[0]} [-v][-x]" ; } 1>&2 ; return 2 ;;
+          *) { echo "${BASH_FUNCTION[0]} [-v][-x]" ; } 1>&2 ; return 2 ;;
       esac ; done
       shift $((OPTIND-1))
       command docker run --rm=true -it "${env[@]}" "${volume[@]}" --entrypoint bash "${image}" -i
       [ -e "${xauthority}" ] && rm "${xauthority}"
+      [ -e "${xsockdir}" ] && { fuser -k "${xsockdir}/X0" 2>/dev/null 1>&2 ; rm -rf "${xsockdir}" ; }
     }
 
     __docker_xauth () {
