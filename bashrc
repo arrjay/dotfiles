@@ -1067,6 +1067,71 @@ function monolith_aliases {
   # common typo
   alias Grep='grep'
 
+  # if I _have_ docker, set it up here
+  chkcmd docker && {
+    __docker_sh () {
+      # run bash in a docker container, overriding entrypoint. optionally, mount some volumes, too.
+      local opt volume image OPTARG OPTIND xauthority dt env
+      volume=()
+      env=()
+      xauthority=""
+      while getopts "v:xi:" opt "${@}" ; do
+        case "${opt}" in
+          i) image="${OPTARG}" ;;
+          v) volume+=('-v' "${OPTARG}") ;;
+          x)
+             xauthority=$(__docker_xauth) || { echo "unable to manipulate X security settings" 1>&2 ; return 1 ; }
+             dt=${DISPLAY/:/} ; dt=${dt%.*}
+             case "${DISPLAY}" in :*) [ -e "/tmp/.X11-unix/X${dt}" ] && volume+=('-v' "/tmp/.X11-unix/X${dt}:/tmp/.X11-unix/X0:z") ;; esac
+             volume+=('-v' "${xauthority}:/.Xauthority:Z")
+             env+=('--env' 'XAUTHORITY=/.Xauthority')
+             env+=('--env' 'DISPLAY=:0')
+          ;;
+          *)
+           { echo "${BASH_FUNTION[0]} [-v][-x]"
+           } 1>&2 ; return 2
+          ;;
+        esac
+      done
+      shift $((OPTIND-1))
+      #shellcheck disable=SC2086
+      command docker run --rm=true -it "${env[@]}" "${volume[@]}" --entrypoint bash "${image}" -i
+      [ -e "${xauthority}" ] && rm "${xauthority}"
+    }
+
+    __docker_xauth () {
+      # clone our X11 magic cookie and return a file that has a wildcard copy.
+      local xauthority
+      xauthority=$(mktemp) && {
+        echo "ffff 0000 $(xauth nlist "${DISPLAY}" | cut -d\  -f4-)" | xauth -f "${xauthority}" nmerge -
+        echo "${xauthority}"
+      } || return 1
+    }
+
+    docker () {
+      local wd ; wd=$(pwd)
+        case "${1}" in
+          i|images)
+            command docker images "${@:2}" ;;
+          sh)
+            __docker_sh -i "${2}" ;;
+          xsh)
+            __docker_sh -i "${2}" -x ;;
+          sandbox|sbox|scratch)
+            case "${wd}" in
+              /|"${HOME}")
+                 echo "refusing to bind mount ${wd} try some where else" 1>&2 ; return 1 ;;
+              *) echo "NOTE: running with selinux flags this will change a fslabel!" ;;
+            esac
+            __docker_sh -i "${2}" -v "$(pwd):/mnt:ro,Z" ;;
+          cmd)
+            command docker run --rm=true -it "${2}" "${@:3}" ;;
+          *)
+            command docker "${@}" ;;
+        esac
+    }
+  }
+
   case ${OPSYS} in
     cygwin*|win32)
       alias ll='ls -FlAh --color=tty'
