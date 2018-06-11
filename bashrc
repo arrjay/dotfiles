@@ -1072,11 +1072,8 @@ function monolith_aliases {
     __docker_sh () {
       # run bash in a docker container, overriding entrypoint. optionally, mount some volumes, too.
       local opt volume image OPTARG OPTIND xauthority dt env
-      volume=()
-      env=()
-      xauthority=""
-      while getopts "v:xi:" opt "${@}" ; do
-        case "${opt}" in
+      volume=() ; env=() ; xauthority="" ; image=""
+      while getopts "v:xi:" opt "${@}" ; do case "${opt}" in
           i) image="${OPTARG}" ;;
           v) volume+=('-v' "${OPTARG}") ;;
           x)
@@ -1087,14 +1084,9 @@ function monolith_aliases {
              env+=('--env' 'XAUTHORITY=/.Xauthority')
              env+=('--env' 'DISPLAY=:0')
           ;;
-          *)
-           { echo "${BASH_FUNTION[0]} [-v][-x]"
-           } 1>&2 ; return 2
-          ;;
-        esac
-      done
+          *) { echo "${BASH_FUNTION[0]} [-v][-x]" ; } 1>&2 ; return 2 ;;
+      esac ; done
       shift $((OPTIND-1))
-      #shellcheck disable=SC2086
       command docker run --rm=true -it "${env[@]}" "${volume[@]}" --entrypoint bash "${image}" -i
       [ -e "${xauthority}" ] && rm "${xauthority}"
     }
@@ -1111,7 +1103,7 @@ function monolith_aliases {
     docker () {
       local wd ; wd=$(pwd)
         case "${1}" in
-          i|images)
+          i|iamges)
             command docker images "${@:2}" ;;
           sh)
             __docker_sh -i "${2}" ;;
