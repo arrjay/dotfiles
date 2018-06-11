@@ -1123,7 +1123,7 @@ function monolith_aliases {
             __docker_sh -i "${2}" -x ;;
           sandbox|sbox|scratch)
             case "${wd}" in
-              /|"${HOME}")
+              /|/usr|/usr/*|/bin|/sbin|/root|/var/*|/var|/dev|/dev/*|/sys|/sys/*|/etc|/etc/*|/home|"${HOME}"|/boot|/boot/*|/lib*|/proc|/proc/*|/run|/run/*|/tmp*)
                  echo "refusing to bind mount ${wd} try some where else" 1>&2 ; return 1 ;;
               *) echo "NOTE: running with selinux flags this will change a fslabel!" ;;
             esac
