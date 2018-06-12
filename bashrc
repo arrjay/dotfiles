@@ -1107,7 +1107,7 @@ function monolith_aliases {
       # clone our X11 magic cookie and return a file that has a wildcard copy.
       local xauthority
       xauthority=$(mktemp) && {
-        echo "ffff 0000 $(xauth nlist "${DISPLAY}" | cut -d\  -f4-)" | xauth -f "${xauthority}" nmerge -
+        echo "ffff 0000 0001 30 $(xauth nlist "${DISPLAY}" | cut -d\  -f6-)" | xauth -f "${xauthority}" nmerge -
         echo "${xauthority}"
       } || return 1
     }
