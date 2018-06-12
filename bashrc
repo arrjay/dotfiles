@@ -1130,6 +1130,10 @@ function monolith_aliases {
             __docker_sh -i "${2}" -v "$(pwd):/mnt:ro,Z" ;;
           cmd)
             command docker run --rm=true -it "${2}" "${@:3}" ;;
+          find)
+            command docker images -a | awk 'BEGIN { OFS=":" } ; NR != 1 && $1 ~ "'"${2}"'" { print $1, $2 ; }' ;;
+          rmie)
+            command docker rmi $(docker find "${2}") ;;
           *)
             command docker "${@}" ;;
         esac
