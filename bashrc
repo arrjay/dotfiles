@@ -130,20 +130,20 @@ function cke {
 # you need variable, then element
 function genappend {
   local t d
-  t="${!1}"
   d="${2}"
-  cke "${1}"
   genstrip "${1}" "${d}"
+  t="${!1}"
+  cke "${1}"
   [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${t}:${d}"
 }
 
 # genprepend - add directory element to FRONT of path-like list
 function genprepend {
   local t d
-  t="${!1}"
   d="${2}"
+  genstrip "${1}" "${d}"
+  t="${!1}"
   cke "${1}"
-  genstrip "${1}" "${2}"
   [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${d}:${t}"
 }
 
@@ -188,7 +188,7 @@ function pathsetup {
     "/opt/local/bin"
     "/usr/local/bin"
   )
-  for d in "${__path_prepend_list[@]}" ; do genappend PATH "${d}" ; done
+  for d in "${__path_prepend_list[@]}" ; do genprepend PATH "${d}" ; done
 
   case "${OPSYS}" in
     cygwin*)
