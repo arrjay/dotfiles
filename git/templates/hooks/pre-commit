@@ -1,4 +1,5 @@
 #!/bin/sh
+set -x
 # a git hook to set emails in a source-dependent fashion
 
 EMAIL=$(git config user.email)
