@@ -1,2 +1,4 @@
 *.tar
 *.bak
+*.orig
+*.rej
