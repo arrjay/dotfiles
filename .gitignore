@@ -1,3 +1,4 @@
 *.sw?
 docker/facts.d/*.txt
 *.tar
+*.bak
