@@ -481,6 +481,10 @@ function gethostinfo {
     darwin)
       CPU=$(uname -p|tr '[:upper:]' '[:lower:]') ;;
     android*) export USER=rjlocal ;;
+    # what the fuck raspbian
+    gnueabihf)
+      OPSYS=$(uname -s)
+    ;;
   esac
 
   # i?86 == x86
@@ -950,7 +954,7 @@ function monolith_setfunc {
         echo -n "$(("$(ps ax|wc -l)" - 5))"
       }
     ;;
-    linux|android*)
+    linux|Linux|android*)
       function pscount {
         local __psc __psf
         __psf=( /proc/[0-9]* )
