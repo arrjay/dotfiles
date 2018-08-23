@@ -1221,6 +1221,10 @@ function monolith_aliases {
   esac
 }
 
+export PASSWORD_STORE_SIGNING_KEY=B1A086C36A2C52A79015F25C95B6669B9D085FA5
+export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
+export PASSWORD_STORE_ENABLE_EXTENSIONS=true
+
 # hook for extension.sh prompt text
 function prompt_ext {
   echo -n ' '
