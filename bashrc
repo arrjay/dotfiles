@@ -1311,13 +1311,13 @@ monolith_aliases
 
 if [[ -n ${PS1} ]]; then
   # kick up gpg-agent here if we have it.
+  chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2
   case "${OPSYS}" in
     android)
-      chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye > /dev/null
       [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
     ;;
   esac
-  chkcmd gpg-connect-agent && gpg-connect-agent /bye
+  [ "${SSH_CONNECTION:-}" ] || { [ -e "${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ; }
   # configure history for interactive sessions
   HISTCONTROL=ignoreboth
   lyricsfile="${HOME}"/.fortune/song-lyrics
