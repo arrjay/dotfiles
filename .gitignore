@@ -4,3 +4,4 @@ docker/facts.d/*.txt
 *.bak
 *.orig
 *.rej
+*.sw?
