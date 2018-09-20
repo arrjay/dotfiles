@@ -741,7 +741,7 @@ function _properties {
     elif [ -f /etc/redhat-release ]; then cat /etc/redhat-release
     fi
 
-    [ ${OPSYS} == "freebsd" ] && {
+    [ "${OPSYS}" == "freebsd" ] && {
       echo -n "FreeBSD "
       uname -r
       NCPU=$(sysctl -n hw.ncpu)
@@ -750,7 +750,7 @@ function _properties {
       echo "${NCPU} ${CPUSPEED}MHz ${CPUTYPE} Processor(s)"
     }
 
-    if [ ${OPSYS} == "win32" ] || [ ${OPSYS} == "cygwin" ]; then
+    if [ "${OPSYS}" == "win32" ] || [ "${OPSYS}" == "cygwin" ]; then
       [ ! -f "${HOME}"/.sysinfo.vbs ] && {
         cat << _EOF_ | sed -e 's/$/'"$(printf "\\r")"'/' > "${HOME}/.sysinfo.vbs"
 set w = getobject("winmgmts:\\\\.\\root\\cimv2")
@@ -761,7 +761,7 @@ next
 _EOF_
       }
       SYSIVBS=$(mm_getenv SYSIVBS) || {
-        [ $OPSYS == 'cygwin' ] && SYSIVBS=$(cygpath -da "${HOME}"/.sysinfo.vbs) || SYSIVBS=$(ls -d "${HOME}"/.sysinfo.vbs)
+        [ "${OPSYS}" == 'cygwin' ] && SYSIVBS=$(cygpath -da "${HOME}"/.sysinfo.vbs) || SYSIVBS=$(ls -d "${HOME}"/.sysinfo.vbs)
         mm_putenv SYSIVBS
       }
       cscript //nologo "${SYSIVBS}"
@@ -1137,7 +1137,7 @@ function monolith_aliases {
           find)
             command docker images -a | awk 'BEGIN { OFS=":" } ; NR != 1 && $1 ~ "'"${2}"'" { print $1, $2 ; }' ;;
           rmie)
-            command docker rmi $(docker find "${2}") ;;
+            command docker rmi "$(docker find "${2}")" ;;
           *)
             command docker "${@}" ;;
         esac
@@ -1161,7 +1161,7 @@ function monolith_aliases {
         ASPN_PATH="$(cygpath "${ASPN_PATH}")/bin"
         v_alias perl "${ASPN_PATH}/perl.exe"
       fi
-      if [ ${OPSYS} == "win32" ]; then
+      if [ "${OPSYS}" == "win32" ]; then
         builtin alias clear='echo -ne\\033c'
         builtin alias ll='ls -Flah'
         builtin alias ls='ls -h'
@@ -1332,7 +1332,7 @@ if [[ -n ${PS1} ]]; then
   fi
 fi
 
-if [ ${OPSYS} != "cygwin" ] && [ ${OPSYS} != "win32" ]; then
+if [ "${OPSYS}" != "cygwin" ] && [ "${OPSYS}" != "win32" ]; then
   if [ "${PMON_BATTERIES}" ] ; then
     setprompt new_pmon
   else
