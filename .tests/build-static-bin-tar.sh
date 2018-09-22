@@ -40,6 +40,41 @@ extract_l1_tarball () {
   tar xf "${dldir}/${file}" --strip-components=1 -C .
 }
 
+build_bash () {
+  local version patchver i s
+  version="${1}" ; patchver="${2}"
+  ndot_ver="${version/.}"
+
+  [ -f "${builddir}/bash-${version}/bash" ] || {
+    dl_gpg_file "${BASH_MIRROR}/bash-${version}.tar.gz" "bash-${version}.tgz"
+
+    for ((i=1 ; i<=${patchver} ; ++i)) ; do
+      s="$(printf '%03d' $i)"
+      dl_gpg_file "${BASH_MIRROR}/bash-${version}-patches/bash${ndot_ver}-${s}" "bash-${ndot_ver}-patch-${s}"
+    done
+
+    mkdir -p "${builddir}/bash-${version}" ; pushd "${builddir}/bash-${version}"
+      # unpack and patch
+      extract_l1_tarball "bash-${version}.tgz"
+      for ((i=1 ; i<=${patchver} ; ++i)) ; do
+        s="$(printf '%03d' $i)"
+        patch -p0 < "${dldir}/bash-${ndot_ver}-patch-${s}"
+      done
+
+      # build
+      export CC="${devdir}/musl/bin/musl-gcc"
+      export CFLAGS="-static -Os"
+      export LOCAL_CFLAGS="${CFLAGS}"
+      ./configure --without-bash-malloc
+      make
+    popd
+  }
+
+  mkdir -p "${rootdir}/Applications/bash-${version}/bin"
+  cp "${builddir}/bash-${version}/bash" "${rootdir}/Applications/bash-${version}/bin"
+}
+
+
 # musl-libc
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
  dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.20.tar.gz" "musl.tgz"
@@ -92,101 +127,28 @@ mkdir -p "${rootdir}/Applications/bash-2.05b/bin"
 cp "${builddir}/bash-2.05b/bash" "${rootdir}/Applications/bash-2.05b/bin"
 
 # bash - 3.0
-[ -f "${builddir}/bash-3.0/bash" ] || {
- dl_gpg_file "${BASH_MIRROR}/bash-3.0.tar.gz" "bash-3.0.tgz"
-
- for i in {1..22} ; do
-  i="$(printf '%03d' $i)"
-  dl_gpg_file "${BASH_MIRROR}/bash-3.0-patches/bash30-${i}" "bash-30-patch-${i}"
- done
-
- mkdir "${builddir}/bash-3.0" ; pushd "${builddir}/bash-3.0"
-  # unpack and patch
-  extract_l1_tarball "bash-3.0.tgz"
-  for i in {1..22} ; do
-   i="$(printf '%03d' $i)"
-   patch -p0 < "${dldir}/bash-30-patch-${i}"
-  done
-
-  # build
-  export CC="${devdir}/musl/bin/musl-gcc"
-  export CFLAGS="-static -Os"
-  export LOCAL_CFLAGS="${CFLAGS}"
-  ./configure --without-bash-malloc
-  make
- popd
-}
-
-mkdir -p "${rootdir}/Applications/bash-3.0/bin"
-cp "${builddir}/bash-3.0/bash" "${rootdir}/Applications/bash-3.0/bin"
+build_bash 3.0 22
 
 # bash - 3.1
-[ -f "${builddir}/bash-3.1/bash" ] || {
- dl_gpg_file "${BASH_MIRROR}/bash-3.1.tar.gz" "bash-3.1.tgz"
-
- for i in {1..23} ; do
-  i="$(printf '%03d' $i)"
-  dl_gpg_file "${BASH_MIRROR}/bash-3.1-patches/bash31-${i}" "bash-31-patch-${i}"
- done
-
- mkdir "${builddir}/bash-3.1" ; pushd "${builddir}/bash-3.1"
-  # unpack and patch
-  extract_l1_tarball "bash-3.1.tgz"
-  for i in {1..23} ; do
-   i="$(printf '%03d' $i)"
-   patch -p0 < "${dldir}/bash-31-patch-${i}"
-  done
-
-  # build
-  export CC="${devdir}/musl/bin/musl-gcc"
-  export CFLAGS="-static -Os"
-  export LOCAL_CFLAGS="${CFLAGS}"
-  ./configure --without-bash-malloc
-  make
- popd
-}
-
-mkdir -p "${rootdir}/Applications/bash-3.1/bin"
-cp "${builddir}/bash-3.1/bash" "${rootdir}/Applications/bash-3.1/bin"
+build_bash 3.1 23
 
 # bash - 3.2
-[ -f "${builddir}/bash-3.2/bash" ] || {
- dl_gpg_file "${BASH_MIRROR}/bash-3.2.tar.gz" "bash-3.2.tgz"
-
- for i in {1..57} ; do
-  i="$(printf '%03d' $i)"
-  dl_gpg_file "${BASH_MIRROR}/bash-3.2-patches/bash32-${i}" "bash-32-patch-${i}"
- done
-
- mkdir "${builddir}/bash-3.2" ; pushd "${builddir}/bash-3.2"
-  # unpack and patch
-  extract_l1_tarball "bash-3.2.tgz"
-  for i in {1..57} ; do
-   i="$(printf '%03d' $i)"
-   patch -p0 < "${dldir}/bash-32-patch-${i}"
-  done
-
-  # build
-  export CC="${devdir}/musl/bin/musl-gcc"
-  export CFLAGS="-static -Os"
-  export LOCAL_CFLAGS="${CFLAGS}"
-  ./configure --without-bash-malloc
-  make
- popd
-}
-
-mkdir -p "${rootdir}/Applications/bash-3.2/bin"
-cp "${builddir}/bash-3.2/bash" "${rootdir}/Applications/bash-3.2/bin"
+build_bash 3.2 57
 
 # bash - 4.0
+build_bash 4.0 44
 
 # bash - 4.1
+build_bash 4.1 17
 
 # bash - 4.2
+build_bash 4.2 53
 
 # bash - 4.3
+build_bash 4.3 48
 
 # bash - 4.4
+build_bash 4.4 23
 
 # twiddle permissions, make tarball
 pushd "${rootdir}"
