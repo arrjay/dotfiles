@@ -11,6 +11,7 @@ mkdir "${workdir}/"{build,dev,dl,gpg-keyring,root}
 dldir="${DOWNLOAD_DIR:-${workdir}/dl}"
 builddir="${BUILD_DIR:-${workdir}/build}"
 devdir="${DEV_DIR:-${workdir}/dev}"
+rootdir="${ROOT_IMPORT_DIR:-${workdir}/root}"
 
 export GNUPGHOME="${workdir}/gpg-keyring"
 for f in "${topdir}/.keys"/* ; do
@@ -87,8 +88,8 @@ extract_l1_tarball () {
  popd
 }
 
-mkdir -p "${workdir}/Applications/bash-2.05b/bin"
-cp "${builddir}/bash-2.05b/bash" "${workdir}/Applications/bash-2.05b/bin"
+mkdir -p "${rootdir}/Applications/bash-2.05b/bin"
+cp "${builddir}/bash-2.05b/bash" "${rootdir}/Applications/bash-2.05b/bin"
 
 # bash - 3.0
 [ -f "${builddir}/bash-3.0/bash" ] || {
@@ -116,8 +117,8 @@ cp "${builddir}/bash-2.05b/bash" "${workdir}/Applications/bash-2.05b/bin"
  popd
 }
 
-mkdir -p "${workdir}/Applications/bash-3.0/bin"
-cp "${builddir}/bash-3.0/bash" "${workdir}/Applications/bash-3.0/bin"
+mkdir -p "${rootdir}/Applications/bash-3.0/bin"
+cp "${builddir}/bash-3.0/bash" "${rootdir}/Applications/bash-3.0/bin"
 
 # bash - 3.1
 [ -f "${builddir}/bash-3.1/bash" ] || {
@@ -145,8 +146,8 @@ cp "${builddir}/bash-3.0/bash" "${workdir}/Applications/bash-3.0/bin"
  popd
 }
 
-mkdir -p "${workdir}/Applications/bash-3.1/bin"
-cp "${builddir}/bash-3.1/bash" "${workdir}/Applications/bash-3.1/bin"
+mkdir -p "${rootdir}/Applications/bash-3.1/bin"
+cp "${builddir}/bash-3.1/bash" "${rootdir}/Applications/bash-3.1/bin"
 
 # bash - 3.2
 [ -f "${builddir}/bash-3.2/bash" ] || {
@@ -174,8 +175,8 @@ cp "${builddir}/bash-3.1/bash" "${workdir}/Applications/bash-3.1/bin"
  popd
 }
 
-mkdir -p "${workdir}/Applications/bash-3.2/bin"
-cp "${builddir}/bash-3.2/bash" "${workdir}/Applications/bash-3.2/bin"
+mkdir -p "${rootdir}/Applications/bash-3.2/bin"
+cp "${builddir}/bash-3.2/bash" "${rootdir}/Applications/bash-3.2/bin"
 
 # bash - 4.0
 
@@ -186,5 +187,12 @@ cp "${builddir}/bash-3.2/bash" "${workdir}/Applications/bash-3.2/bin"
 # bash - 4.3
 
 # bash - 4.4
+
+# twiddle permissions, make tarball
+pushd "${rootdir}"
+find ./ -type d -exec chmod a+rx {} \;
+find ./Applications/*/bin -type f -exec chmod a+rx {} \;
+tar cf "${topdir}/import.tar" --owner=0 --group=0 .
+popd
 
 rm -rf "${workdir}"
