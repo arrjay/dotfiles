@@ -72,6 +72,7 @@ build_bash () {
 
   mkdir -p "${rootdir}/Applications/bash-${version}/bin"
   cp "${builddir}/bash-${version}/bash" "${rootdir}/Applications/bash-${version}/bin"
+  strip "${rootdir}/Applications/bash-${version}/bin/bash"
 }
 
 
@@ -125,6 +126,7 @@ build_bash () {
 
 mkdir -p "${rootdir}/Applications/bash-2.05b/bin"
 cp "${builddir}/bash-2.05b/bash" "${rootdir}/Applications/bash-2.05b/bin"
+strip "${rootdir}/Applications/bash-2.05b/bin/bash"
 
 # bash - 3.0
 build_bash 3.0 22
