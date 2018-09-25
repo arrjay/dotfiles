@@ -225,7 +225,12 @@ function pathsetup {
   case "${OPSYS}" in
     cygwin*|win32)
       cke SystemDrive SystemRoot ProgramFiles
+      chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)"
       t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
+      genprepend PATH "${ProgramFilesX86}/Gpg4win/bin"
+      genprepend PATH "${ProgramFiles}/Gpg4win/bin"
+      genprepend PATH "${ProgramFilesX86}/GnuPG/bin"
+      genprepend PATH "${ProgramFiles}/GnuPG/bin"
     ;;
   esac
 }
@@ -1311,7 +1316,10 @@ monolith_aliases
 
 if [[ -n ${PS1} ]]; then
   # kick up gpg-agent here if we have it.
-  chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2
+  case "${OPSYS}" in
+    win32) : ;;
+    *)     chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2 ;;
+  esac
   case "${OPSYS}" in
     android)
       [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
