@@ -187,6 +187,11 @@ build_bash 4.4 23
 mkdir -p "${rootdir}/Applications/busybox/bin"
 cp "${builddir}/busybox/busybox" "${rootdir}/Applications/busybox/bin"
 
+# we should be able to just run busybox _now_ and ask it what to link ;)
+while read cmdlet ; do
+  ln -s "/Applications/busybox/bin/busybox" "${rootdir}/Applications/busybox/bin/${cmdlet}"
+done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
+
 # twiddle permissions, make tarball
 pushd "${rootdir}"
 find ./ -type d -exec chmod a+rx {} \;
