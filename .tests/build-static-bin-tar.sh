@@ -88,6 +88,22 @@ build_bash () {
  popd
 }
 
+[ -f "${devdir}/musl/bin/musl-ar" ] || {
+  ln -s "$(which ar)" "${devdir}/musl/bin/musl-ar"
+}
+
+[ -f "${devdir}/musl/bin/musl-strip" ] || {
+  ln -s "$(which strip)" "${devdir}/musl/bin/musl-strip"
+}
+
+mkdir -p "${devdir}/musl/include"
+
+for d in linux asm asm-generic mtd ; do
+  [ -e "${devdir}/musl/include/${d}" ] || {
+    ln -s "/usr/include/${d}" "${devdir}/musl/include/${d}"
+  }
+done
+
 # bash - 2.05b
 [ -f "${builddir}/bash-2.05b/bash" ] || {
  # no gpg sig here...
@@ -151,7 +167,8 @@ build_bash 4.3 48
 build_bash 4.4 23
 
 # busybox
-dl_gpg_file "https://busybox.net/downloads/busybox-1.29.3.tar.bz2" "busybox.tbz"
+[ -f "${builddir}/busybox/busybox" ] || {
+ dl_gpg_file "https://busybox.net/downloads/busybox-1.29.3.tar.bz2" "busybox.tbz"
 
  rm -rf "${builddir}/busybox" ; mkdir "${builddir}/busybox" ; pushd "${builddir}/busybox"
   # unpack and patch
@@ -161,10 +178,14 @@ dl_gpg_file "https://busybox.net/downloads/busybox-1.29.3.tar.bz2" "busybox.tbz"
   export CC="${devdir}/musl/bin/musl-gcc"
   export CFLAGS="-static -Os"
   export LOCAL_CFLAGS="${CFLAGS}"
-  cp "${topdir}/.tests/busybox.config" .
-  make
+  cp "${topdir}/.tests/busybox.config" .config
+  make silentoldconfig
+  PATH="${devdir}/musl/bin:${PATH}" make
  popd
+}
 
+mkdir -p "${rootdir}/Applications/busybox/bin"
+cp "${builddir}/busybox/busybox" "${rootdir}/Applications/busybox/bin"
 
 # twiddle permissions, make tarball
 pushd "${rootdir}"
