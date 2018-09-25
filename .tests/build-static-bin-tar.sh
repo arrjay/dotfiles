@@ -150,6 +150,22 @@ build_bash 4.3 48
 # bash - 4.4
 build_bash 4.4 23
 
+# busybox
+dl_gpg_file "https://busybox.net/downloads/busybox-1.29.3.tar.bz2" "busybox.tbz"
+
+ rm -rf "${builddir}/busybox" ; mkdir "${builddir}/busybox" ; pushd "${builddir}/busybox"
+  # unpack and patch
+  extract_l1_tarball "busybox.tbz"
+
+  # build
+  export CC="${devdir}/musl/bin/musl-gcc"
+  export CFLAGS="-static -Os"
+  export LOCAL_CFLAGS="${CFLAGS}"
+  cp "${topdir}/.tests/busybox.config" .
+  make
+ popd
+
+
 # twiddle permissions, make tarball
 pushd "${rootdir}"
 find ./ -type d -exec chmod a+rx {} \;
