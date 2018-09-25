@@ -622,6 +622,7 @@ function pbinsetup {
     genprepend PATH "${dir}"
   done
 
+  genprepend PATH "${HOME}/.cargo/bin"
   genprepend PATH "${HOME}/.rvm/bin"
   genprepend PATH "${HOME}/bin/${OPSYS}-${CPU}"
   genprepend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
