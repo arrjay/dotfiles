@@ -53,7 +53,7 @@ build_bash () {
       dl_gpg_file "${BASH_MIRROR}/bash-${version}-patches/bash${ndot_ver}-${s}" "bash-${ndot_ver}-patch-${s}"
     done
 
-    mkdir -p "${builddir}/bash-${version}" ; pushd "${builddir}/bash-${version}"
+    rm -rf "${builddir}/bash-${version}" ; mkdir -p "${builddir}/bash-${version}" ; pushd "${builddir}/bash-${version}"
       # unpack and patch
       extract_l1_tarball "bash-${version}.tgz"
       for ((i=1 ; i<=${patchver} ; ++i)) ; do
@@ -79,7 +79,7 @@ build_bash () {
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
  dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.20.tar.gz" "musl.tgz"
 
- mkdir "${builddir}/musl" ; pushd "${builddir}/musl"
+ rm -rf "${builddir}/musl" ; mkdir "${builddir}/musl" ; pushd "${builddir}/musl"
   extract_l1_tarball "musl.tgz"
 
   ./configure --prefix="${devdir}/musl"
@@ -106,7 +106,7 @@ build_bash () {
    dl_gpg_file "${BASH_MIRROR}/bash-2.05b-patches/bash205b-${i}" "bash-2.05b-patch-${i}"
  done
 
- mkdir "${builddir}/bash-2.05b" ; pushd "${builddir}/bash-2.05b"
+ rm -rf "${builddir}/bash-2.05b" ; mkdir "${builddir}/bash-2.05b" ; pushd "${builddir}/bash-2.05b"
   # unpack and patch
   extract_l1_tarball "bash-2.05b.tgz"
   for i in {1..13} ; do
