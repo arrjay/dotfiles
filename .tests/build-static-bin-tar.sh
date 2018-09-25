@@ -192,6 +192,35 @@ while read cmdlet ; do
   ln -s "/Applications/busybox/bin/busybox" "${rootdir}/Applications/busybox/bin/${cmdlet}"
 done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
 
+# rust uutils (coreutils) static build needs rustup...
+[ -f "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" ] || {
+  rustup target add x86_64-unknown-linux-musl
+  rm -rf "${builddir}/uutils"
+  git clone https://github.com/uutils/coreutils "${builddir}/uutils"
+  pushd "${builddir}/uutils"
+    # build the list of features by seeing what sourcedirs exist
+    cd src ; features=(*) ; cd ..
+    features=("${features[@]/uucore}")
+    # the below features require utmpx, which musl doesn't give here.
+    features=("${features[@]/uutils}")
+    features=("${features[@]/pinky}")
+    features=("${features[@]/uptime}")
+    features=("${features[@]/users}")
+    # hack due to the way bash handles array deletions - delete masked match, readd it.
+    features=("${features[@]/whoami}")
+    features=("${features[@]/who}")
+    features+=("whoami")
+    cargo build --release --target=x86_64-unknown-linux-musl --no-default-features --features "${features[*]}"
+  popd
+}
+
+mkdir -p "${rootdir}/Applications/uutils/bin"
+cp "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" "${rootdir}/Applications/uutils/bin/uutils"
+
+while read cmdlet ; do
+  ln -s "/Applications/uutils/bin/uutils" "${rootdir}/Applications/uutils/bin/${cmdlet}"
+done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{k=0}/Currently defined functions:/{k=1;next}{if (k==1) {print}}')
+
 # twiddle permissions, make tarball
 pushd "${rootdir}"
 find ./ -type d -exec chmod a+rx {} \;
