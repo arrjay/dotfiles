@@ -197,27 +197,40 @@ function pathsetup {
         SystemDrive=$(cygpath "${SYSTEMDRIVE}")
         mm_putenv SystemDrive
       }
-
-      ProgramFiles=$(mm_getenv ProgramFiles) || {
-        # shellcheck disable=SC2153
-        ProgramFiles=$(cygpath "${PROGRAMFILES}")
-        mm_putenv ProgramFiles
-      }
-
       SystemRoot=$(mm_getenv SystemRoot) || {
         # shellcheck disable=SC2153
         SystemRoot=$(cygpath "${SYSTEMROOT}")
         mm_putenv SystemRoot
       }
-
-        genappend PATH "${SystemDrive}/bin"
+      ProgramFiles=$(mm_getenv ProgramFiles) || {
+        # shellcheck disable=SC2153
+        ProgramFiles=$(cygpath "${PROGRAMFILES}")
+        mm_putenv ProgramFiles
+      }
+      ProgramFilesX86=$(mm_getenv ProgramFilesX86) || {
+        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
+	mm_putenv ProgramFilesX86
+      }
+      genappend PATH "${SystemDrive}/bin"
       ;;
 
     win32)
-      SystemDrive=${SYSTEMDRIVE}
-      SystemRoot=${SYSTEMROOT}
-      # shellcheck disable=SC2034
-      ProgramFiles=${PROGRAMFILES}
+      SystemDrive=$(mm_getenv SystemDrive) || {
+        { chkcmd cygpath && SystemDrive="$(cygpath "${SYSTEMDRIVE}")" ; } || SystemDrive="${SYSTEMDRIVE}"
+	mm_putenv SystemDrive
+      }
+      SystemRoot=$(mm_getenv SystemRoot) || {
+        { chkcmd cygpath && SystemRoot="$(cygpath "${SYSTEMROOT}")" ; } || SystemRoot="${SYSTEMROOT}"
+	mm_putenv SystemRoot
+      }
+      ProgramFiles=$(mm_getenv ProgramFiles) || {
+        { chkcmd cygpath && ProgramFiles="$(cygpath "${PROGRAMFILES}")" ; } || ProgramFiles="${PROGRAMFILES}"
+	mm_putenv ProgramFiles
+      }
+      ProgramFilesX86=$(mm_getenv ProgramFilesX86) || {
+        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
+	mm_putenv ProgramFilesX86
+      }
       ;;
 
   esac
@@ -226,6 +239,12 @@ function pathsetup {
     cygwin*|win32)
       cke SystemDrive SystemRoot ProgramFiles
       t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
+      genprepend PATH "${ProgramFilesX86}/Gpg4win/bin"
+      genprepend PATH "${ProgramFiles}/Gpg4win/bin"
+      genprepend PATH "${ProgramFilesX86}/GnuPG/bin"
+      genprepend PATH "${ProgramFiles}/GnuPG/bin"
+      [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFilesX86}/EditPlus/editplus.exe" "${@}"; }
+      [ -e "${ProgramFiles}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFiles}/EditPlus/editplus.exe" "${@}"; }
     ;;
   esac
 }
@@ -603,6 +622,7 @@ function pbinsetup {
     genprepend PATH "${dir}"
   done
 
+  genprepend PATH "${HOME}/.cargo/bin"
   genprepend PATH "${HOME}/.rvm/bin"
   genprepend PATH "${HOME}/bin/${OPSYS}-${CPU}"
   genprepend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
@@ -1311,7 +1331,10 @@ monolith_aliases
 
 if [[ -n ${PS1} ]]; then
   # kick up gpg-agent here if we have it.
-  chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2
+  case "${OPSYS}" in
+    win32) : ;;
+    *)     chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2 ;;
+  esac
   case "${OPSYS}" in
     android)
       [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
