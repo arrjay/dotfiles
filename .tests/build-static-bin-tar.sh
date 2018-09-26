@@ -53,7 +53,7 @@ build_bash () {
       dl_gpg_file "${BASH_MIRROR}/bash-${version}-patches/bash${ndot_ver}-${s}" "bash-${ndot_ver}-patch-${s}"
     done
 
-    mkdir -p "${builddir}/bash-${version}" ; pushd "${builddir}/bash-${version}"
+    rm -rf "${builddir}/bash-${version}" ; mkdir -p "${builddir}/bash-${version}" ; pushd "${builddir}/bash-${version}"
       # unpack and patch
       extract_l1_tarball "bash-${version}.tgz"
       for ((i=1 ; i<=${patchver} ; ++i)) ; do
@@ -80,7 +80,7 @@ build_bash () {
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
  dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.20.tar.gz" "musl.tgz"
 
- mkdir "${builddir}/musl" ; pushd "${builddir}/musl"
+ rm -rf "${builddir}/musl" ; mkdir "${builddir}/musl" ; pushd "${builddir}/musl"
   extract_l1_tarball "musl.tgz"
 
   ./configure --prefix="${devdir}/musl"
@@ -88,6 +88,22 @@ build_bash () {
   make install
  popd
 }
+
+[ -f "${devdir}/musl/bin/musl-ar" ] || {
+  ln -s "$(which ar)" "${devdir}/musl/bin/musl-ar"
+}
+
+[ -f "${devdir}/musl/bin/musl-strip" ] || {
+  ln -s "$(which strip)" "${devdir}/musl/bin/musl-strip"
+}
+
+mkdir -p "${devdir}/musl/include"
+
+for d in linux asm asm-generic mtd ; do
+  [ -e "${devdir}/musl/include/${d}" ] || {
+    ln -s "/usr/include/${d}" "${devdir}/musl/include/${d}"
+  }
+done
 
 # bash - 2.05b
 [ -f "${builddir}/bash-2.05b/bash" ] || {
@@ -107,7 +123,7 @@ build_bash () {
    dl_gpg_file "${BASH_MIRROR}/bash-2.05b-patches/bash205b-${i}" "bash-2.05b-patch-${i}"
  done
 
- mkdir "${builddir}/bash-2.05b" ; pushd "${builddir}/bash-2.05b"
+ rm -rf "${builddir}/bash-2.05b" ; mkdir "${builddir}/bash-2.05b" ; pushd "${builddir}/bash-2.05b"
   # unpack and patch
   extract_l1_tarball "bash-2.05b.tgz"
   for i in {1..13} ; do
@@ -151,6 +167,61 @@ build_bash 4.3 48
 
 # bash - 4.4
 build_bash 4.4 23
+
+# busybox
+[ -f "${builddir}/busybox/busybox" ] || {
+ dl_gpg_file "https://busybox.net/downloads/busybox-1.29.3.tar.bz2" "busybox.tbz"
+
+ rm -rf "${builddir}/busybox" ; mkdir "${builddir}/busybox" ; pushd "${builddir}/busybox"
+  # unpack and patch
+  extract_l1_tarball "busybox.tbz"
+
+  # build
+  export CC="${devdir}/musl/bin/musl-gcc"
+  export CFLAGS="-static -Os"
+  export LOCAL_CFLAGS="${CFLAGS}"
+  cp "${topdir}/.tests/busybox.config" .config
+  make silentoldconfig
+  PATH="${devdir}/musl/bin:${PATH}" make
+ popd
+}
+
+mkdir -p "${rootdir}/Applications/busybox/bin"
+cp "${builddir}/busybox/busybox" "${rootdir}/Applications/busybox/bin"
+
+# we should be able to just run busybox _now_ and ask it what to link ;)
+while read cmdlet ; do
+  ln -s "/Applications/busybox/bin/busybox" "${rootdir}/Applications/busybox/bin/${cmdlet}"
+done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
+
+# rust uutils (coreutils) static build needs rustup...
+[ -f "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" ] || {
+  rustup target add x86_64-unknown-linux-musl
+  rm -rf "${builddir}/uutils"
+  git clone https://github.com/uutils/coreutils "${builddir}/uutils"
+  pushd "${builddir}/uutils"
+    # build the list of features by seeing what sourcedirs exist
+    cd src ; features=(*) ; cd ..
+    features=("${features[@]/uucore}")
+    # the below features require utmpx, which musl doesn't give here.
+    features=("${features[@]/uutils}")
+    features=("${features[@]/pinky}")
+    features=("${features[@]/uptime}")
+    features=("${features[@]/users}")
+    # hack due to the way bash handles array deletions - delete masked match, readd it.
+    features=("${features[@]/whoami}")
+    features=("${features[@]/who}")
+    features+=("whoami")
+    cargo build --release --target=x86_64-unknown-linux-musl --no-default-features --features "${features[*]}"
+  popd
+}
+
+mkdir -p "${rootdir}/Applications/uutils/bin"
+cp "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" "${rootdir}/Applications/uutils/bin/uutils"
+
+while read cmdlet ; do
+  ln -s "/Applications/uutils/bin/uutils" "${rootdir}/Applications/uutils/bin/${cmdlet}"
+done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{k=0}/Currently defined functions:/{k=1;next}{if (k==1) {print}}')
 
 # twiddle permissions, make tarball
 pushd "${rootdir}"
