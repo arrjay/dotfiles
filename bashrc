@@ -9,16 +9,20 @@
 # prescribe pills to offset the shakes to offset the pills you know you should take it a day at a time
 #             panic! at the disco - "nails for breakfast, tacks for snacks"
 
+# specifically run these before debugging is even enabled to grab shell state - especially ${_}
+__bash_invocation_parent=${_}
+__bash_invocation=${0}
+__bash_source_path=${BASH_SOURCE[0]}
+__bash_init_argv0=${BASH_ARGV[0]}
+
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
 
-# this is the first non-debug line! we want to know where this script /is/!
-__bashrc_path="${BASH_ARGV[0]}"
-
 # try turning these into absolute paths
+__bashrc_path=$__bash_source_path
 if [ "${__bashrc_path}" ]; then
   __bashrc_dir="${__bashrc_path%/*}"
 
