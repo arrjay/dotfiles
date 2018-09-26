@@ -14,12 +14,155 @@ __bash_invocation_parent=${_}
 __bash_invocation=${0}
 __bash_source_path=${BASH_SOURCE[0]}
 __bash_init_argv0=${BASH_ARGV[0]}
+__bash_host_tuple=${BASH_VERSINFO[5]}
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
+
+# return errors to fd 2
+__error_msg () {
+  echo "${*}" 1>&2
+}
+
+# get the bash version for command definition unwinding
+__bashmaj=${BASH_VERSION/.*/}
+
+# _lc - convert character to lower case
+# hi bash 2.05
+# shellcheck disable=SC2006
+_lc () {
+  local char n ; char="${1}"
+  case "${char}" in
+    [A-Z])
+      n="`printf '%d' \'"${char}"`"
+      n=$((n+32))
+      # the first printf actually takes the second as a format specifier. really.
+      # shellcheck disable=SC2059
+      printf \\"`printf '%o' "${n}"`"
+    ;;
+    *) printf '%s' "${char}" ;;
+  esac
+}
+
+# _tolower - convert string to lower case
+function _tolower {
+  local word ch ; word="${1}"
+  case "${__bashmaj}" in
+    2|3)
+      for((i=0;i<${#word};++i)) ; do
+        ch="${word:$i:1}"
+        _lc "${ch}"
+      done
+      ;;
+    *)
+      # this is _much_ easier in set -x output ;)
+      printf '%s' "%{word,,}" ;;
+  esac
+}
+
+# determine if a given _command_ exists.
+__chkcmd () {
+  local found cmd
+  cmd="${1}"
+  #shellcheck disable=SC2006
+  case `type -tf "${cmd}" 2>&1` in
+    file) return 0 ;;
+    *)    return 1 ;;
+  esac
+}
+
+# we're going to override this in a moment...
+_chkcmd () {
+  __chkcmd "${@}"
+}
+
+# _md - test and create directory if needed - requires mkdir...
+_chkcmd mkdir && _md () {
+  local dir ; dir="${1}"
+  [ "${dir}" ] || { __error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+
+  [ ! -d "${dir}" ] && mkdir -p "${dir}"
+}
+
+# placeholders, simply return 1 as the cache doesn't work yet
+function mm_putenv {
+  return 1
+}
+
+function mm_getenv {
+  return 1
+}
+
+# configure command caching/tokenization dir
+__cache_checked=0	# track if we've already run...
+__cache_active=0
+_get_cachedir () {
+  local _host cachedir
+  # have I been here before?
+  case "${__cache_checked}${__cache_active}" in
+    00|01) : ;; # not initialized yet
+    10) return 1 ;; # not going to work
+    11) echo "${BASH_CACHE_DIRECTORY}" ; return 0 ;; # already done
+  esac
+  # do I have a homedir that is a valid directory?
+  [ -d "${HOME}" ] || { __cache_checked=1 ; return 1 ; }
+  # is the home directory / ? (okay, actually, is it one character long?)
+  case "${#HOME}" in 1) { __cache_checked=1 ; return 1 ; } ; esac
+
+  # build a potential cache directory
+  [ -z "${BASH_CACHE_DIRECTORY}" ] && {
+    BASH_CACHE_DIRECTORY="${HOME}/.cmdcache" ; _host=${HOSTNAME:-}
+
+    [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${cachedir}/${_host}"
+    [ -z "${__bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${cachedir}-${__bash_host_tuple}"
+  }
+
+  # actually try creating that directory
+  _chkcmd _md || { __cache_checked=1 ; return 1 ; }
+  _md "${BASH_CACHE_DIRECTORY}" || { __cache_checked=1 ; return 1 ; }
+
+  # check if we can write _in_ the directory
+  touch "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; return 1 ; }
+  rm "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; return 1 ; }
+
+  __cache_checked=1 ; __cache_active=1
+  echo "${BASH_CACHE_DIRECTORY}"
+}
+
+# chkcmd - check if specific _command_ is present, now with memoization
+[ "${__cache_checked}${__cache_active}" == '11' ] && {
+  _chkcmd () {
+    local cmd found ; cmd="${1}"
+    [ -z "${cmd}" ] && { __error_msg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
+
+    if [ -f "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}" ]; then
+      # we already have this check cached
+      read -r found < "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
+      return "${found}"
+    else
+      # actually run __chkcmd and cache the result of that
+      __chkcmd ; found="${?}"
+      printf '%s\n' "${found}" > "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
+      return "${found}"
+    fi
+  }
+
+  # mm_putenv - save environment memo
+  function mm_putenv {
+    local env val ; env="${1}" ; val="${!1}"
+    [ -z "${val}" ] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
+  }
+
+  # mm_getenv - read environment memo if available
+  function mm_getenv {
+    local env val ; env="${1}"
+    [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r val < "${BASH_CACHE_DIRECTORY}/env/${env}" ; echo "${val}" ; return 0 ; }
+    return 1
+  }
+}
 
 # try turning these into absolute paths
 __bashrc_path=$__bash_source_path
@@ -54,7 +197,6 @@ fi
 JBVER="5.0b"
 JBVERSTRING='jBashRc v'${JBVER}'(u)'
 
-BASH_MAJOR=${BASH_VERSION/.*/}
 BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
 BASH_MINOR=${BASH_MINOR%%.*}
 
@@ -73,18 +215,6 @@ function genstrip {
   t="${t%:${n}}"     ; t="${t%:${s}}"
   t="${t#${n}:}"     ; t="${t%${s}:}"
   builtin printf -v "${1}" '%s' "${t}"
-}
-
-# t_mkdir - test and create directory if needed
-function t_mkdir {
-  if [ ! -n "${1}" ]; then
-    echo "${FUNCNAME[$0]}: missing operand" 1>&2
-    return 1
-  fi
-
-  if [ ! -d "${1}" ]; then
-    mkdir -p "${1}"
-  fi
 }
 
 # getconn - get where we are connecting from
@@ -286,101 +416,17 @@ function matchstart {
   grep -q "^${1}" "${2}"
 }
 
-# tolower - convert string to lower case, in pure bash
-function tolower {
-  local output
-  output=${1//A/a}
-  output=${output//B/b}
-  output=${output//C/c}
-  output=${output//D/d}
-  output=${output//E/e}
-  output=${output//F/f}
-  output=${output//G/g}
-  output=${output//H/h}
-  output=${output//I/i}
-  output=${output//J/j}
-  output=${output//K/k}
-  output=${output//L/l}
-  output=${output//M/m}
-  output=${output//N/n}
-  output=${output//O/o}
-  output=${output//P/p}
-  output=${output//Q/q}
-  output=${output//R/r}
-  output=${output//S/s}
-  output=${output//T/t}
-  output=${output//U/u}
-  output=${output//V/v}
-  output=${output//W/w}
-  output=${output//X/x}
-  output=${output//Y/y}
-  output=${output//Z/z}
-  echo "${output}"
-}
-
 # sourcex - source file if found executable
 function sourcex {
   # shellcheck disable=SC1090
   [ -x "${1}" ] && source "${1}"
 }
 
-# mm_getenv - read environment memo if available 
-function mm_getenv {
-  local output
-  if [ -f "${CMDCACHE}/env/${1}" ]; then
-    read -r output < "${CMDCACHE}/env/${1}"
-    echo "${output}"
-  else
-    false
-  fi
-}
-
-function mm_putenv {
-  echo "${!1}" > "${CMDCACHE}/env/${1}"
-}
 
 function zapcmdcache {
   rm -rf "${CMDCACHE}"/chkcmd/*
   rm -rf "${CMDCACHE}"/env/*
   hash -r
-}
-
-# chkcmd - check if specific command is present, wrapper around which being evil on some platforms
-function chkcmd {
-  local found
-  if [ ! -n "${1}" ]; then
-    echo "${FUNCNAME[0]}: check if command exists, indicate via error code" 1>&2
-    return 2
-  fi
-  if [ -f "${CMDCACHE}/chkcmd/${1}" ]; then
-    read -r found < "${CMDCACHE}/chkcmd/${1}"
-    case "${found}" in
-      true) return 0 ;;
-      *)    return 1 ;;
-    esac
-  else
-    case ${WSTR} in
-      "0 1"|"1 1"|"2 1")
-        if "${REAL_WHICH}" "${1}" &> /dev/null ; then
-          echo "true" > "${CMDCACHE}/chkcmd/${1}"
-          return 0
-        else
-          echo "false" > "${CMDCACHE}/chkcmd/${1}"
-          return 1
-        fi
-      ;;
-      *)
-        "${REAL_WHICH}" "${1}" 2>&1 | grep -q ^no
-        if [ ${?} == "1" ]; then
-          echo "true" > "${CMDCACHE}/chkcmd/${1}"
-          return 0
-        else
-          echo "false" > "${CMDCACHE}/chkcmd/${1}"
-          return 1
-        fi
-      ;; 
-    esac
-  fi
 }
 
 # v_alias - overloads command with specified function if command exists
@@ -466,10 +512,6 @@ function gethostinfo {
   #?# TEST: are all unames created equal?
   #!# all trs are *not* created equal
   if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-  FQDN=$(tolower "${HOSTNAME}")
-  HOST=${FQDN%%\.*} # in case uname returns FQDN
-  # shellcheck disable=SC2034
-  DOMAIN=${FQDN##${HOST}.}
   CPU=$(tolower "${HOSTTYPE}")
   CPU=${CPU%%-linux}
   OPSYS=${BASH_VERSINFO[5]##${CPU}-}
