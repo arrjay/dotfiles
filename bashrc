@@ -38,6 +38,85 @@ ___bashmaj=${BASH_VERSION/.*/}
 ___bashmin=${BASH_VERSION#${___bashmin}.}
 ___bashmin=${___bashmin%%.*}
 
+# pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
+# defined here for convenience but called much later ;)
+function ____pathsetup {
+  local list d
+  list=("/etc" "/usr/etc" "/usr/sysadm/privbin"
+    "/usr/games"
+    "/sbin" "/usr/sysadm/bin" "/usr/sbin"
+    "/usr/ccs/bin" "/usr/sfw/bin"
+    "/usr/pkg/sbin" "/usr/tgcware/sbin"
+    "/usr/local/sbin"
+    "/usr/gfx" "/usr/dt/bin" "/usr/openwin/bin" "/usr/bin/X11" "/usr/X11R6/bin"
+    "/bin" "/usr/bin"
+    "/usr/pkg/bin" "/usr/xpg4/bin"
+    "/usr/bsd" "/usr/ucb"
+    "/usr/kerberos/bin"
+    "/usr/nekoware/bin" "/usr/tgcware/bin"
+    "/opt/local/bin" "/usr/local/bin"
+  )
+  for d in "${list[@]}" ; do genprepend PATH "${d}" ; done
+
+  case "${OPSYS}" in
+    cygwin*)
+      mm_setenv SystemDrive || {
+        # shellcheck disable=SC2153
+        SystemDrive=$(cygpath "${SYSTEMDRIVE}")
+        mm_putenv SystemDrive
+      }
+      mm_setenv SystemRoot || {
+        # shellcheck disable=SC2153
+        SystemRoot=$(cygpath "${SYSTEMROOT}")
+        mm_putenv SystemRoot
+      }
+      mm_setenv ProgramFiles || {
+        # shellcheck disable=SC2153
+        ProgramFiles=$(cygpath "${PROGRAMFILES}")
+        mm_putenv ProgramFiles
+      }
+      mm_setenv ProgramFilesX86 || {
+        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
+	mm_putenv ProgramFilesX86
+      }
+      genappend PATH "${SystemDrive}/bin"
+      ;;
+
+    win32)
+      mm_setenv SystemDrive || {
+        { chkcmd cygpath && SystemDrive="$(cygpath "${SYSTEMDRIVE}")" ; } || SystemDrive="${SYSTEMDRIVE}"
+	mm_putenv SystemDrive
+      }
+      mm_setenv SystemRoot || {
+        { chkcmd cygpath && SystemRoot="$(cygpath "${SYSTEMROOT}")" ; } || SystemRoot="${SYSTEMROOT}"
+	mm_putenv SystemRoot
+      }
+      mm_setenv ProgramFiles || {
+        { chkcmd cygpath && ProgramFiles="$(cygpath "${PROGRAMFILES}")" ; } || ProgramFiles="${PROGRAMFILES}"
+	mm_putenv ProgramFiles
+      }
+      mm_setenv ProgramFilesX86 || {
+        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
+	mm_putenv ProgramFilesX86
+      }
+      ;;
+
+  esac
+
+  case "${OPSYS}" in
+    cygwin*|win32)
+      cke SystemDrive SystemRoot ProgramFiles
+      t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
+      genprepend PATH "${ProgramFilesX86}/Gpg4win/bin"
+      genprepend PATH "${ProgramFiles}/Gpg4win/bin"
+      genprepend PATH "${ProgramFilesX86}/GnuPG/bin"
+      genprepend PATH "${ProgramFiles}/GnuPG/bin"
+      [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFilesX86}/EditPlus/editplus.exe" "${@}"; }
+      [ -e "${ProgramFiles}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFiles}/EditPlus/editplus.exe" "${@}"; }
+    ;;
+  esac
+}
+
 # _lc - convert character to lower case
 # hi bash 2.05
 # shellcheck disable=SC2006
@@ -345,6 +424,10 @@ ____init_cachedir && {
 }
 unset -f ____init_cachedir
 
+### actually set up the PATH block here before we go looking for any more external binaries.
+____pathsetup
+unset -f ____pathsetup
+
 # try turning the bashrc ref (if any) into an absolute path
 ____find_bashrc_file () {
   local rcpath linkdest abspath
@@ -379,100 +462,6 @@ ___bash_auxfiles_dirs=()
 [ -d "${BASH_AUX_FILES}" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
 [ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
 [ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
-
-# pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
-function pathsetup {
-  local __path_prepend_list d
-  __path_prepend_list=(
-    "/etc"
-    "/usr/etc"
-    "/usr/sysadm/privbin"
-    "/usr/games"
-    "/sbin"
-    "/usr/sysadm/bin"
-    "/usr/sbin"
-    "/usr/ccs/bin"
-    "/usr/sfw/bin"
-    "/usr/pkg/sbin"
-    "/usr/tgcware/sbin"
-    "/usr/local/sbin"
-    "/usr/gfx"
-    "/usr/dt/bin"
-    "/usr/openwin/bin"
-    "/usr/bin/X11"
-    "/usr/X11R6/bin"
-    "/bin"
-    "/usr/bin"
-    "/usr/pkg/bin"
-    "/usr/xpg4/bin"
-    "/usr/bsd"
-    "/usr/ucb"
-    "/usr/kerberos/bin"
-    "/usr/nekoware/bin"
-    "/usr/tgcware/bin"
-    "/opt/local/bin"
-    "/usr/local/bin"
-  )
-  for d in "${__path_prepend_list[@]}" ; do genprepend PATH "${d}" ; done
-
-  case "${OPSYS}" in
-    cygwin*)
-      mm_setenv SystemDrive || {
-        # shellcheck disable=SC2153
-        SystemDrive=$(cygpath "${SYSTEMDRIVE}")
-        mm_putenv SystemDrive
-      }
-      mm_setenv SystemRoot || {
-        # shellcheck disable=SC2153
-        SystemRoot=$(cygpath "${SYSTEMROOT}")
-        mm_putenv SystemRoot
-      }
-      mm_setenv ProgramFiles || {
-        # shellcheck disable=SC2153
-        ProgramFiles=$(cygpath "${PROGRAMFILES}")
-        mm_putenv ProgramFiles
-      }
-      mm_setenv ProgramFilesX86 || {
-        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
-	mm_putenv ProgramFilesX86
-      }
-      genappend PATH "${SystemDrive}/bin"
-      ;;
-
-    win32)
-      mm_setenv SystemDrive || {
-        { chkcmd cygpath && SystemDrive="$(cygpath "${SYSTEMDRIVE}")" ; } || SystemDrive="${SYSTEMDRIVE}"
-	mm_putenv SystemDrive
-      }
-      mm_setenv SystemRoot || {
-        { chkcmd cygpath && SystemRoot="$(cygpath "${SYSTEMROOT}")" ; } || SystemRoot="${SYSTEMROOT}"
-	mm_putenv SystemRoot
-      }
-      mm_setenv ProgramFiles || {
-        { chkcmd cygpath && ProgramFiles="$(cygpath "${PROGRAMFILES}")" ; } || ProgramFiles="${PROGRAMFILES}"
-	mm_putenv ProgramFiles
-      }
-      mm_setenv ProgramFilesX86 || {
-        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
-	mm_putenv ProgramFilesX86
-      }
-      ;;
-
-  esac
-
-  case "${OPSYS}" in
-    cygwin*|win32)
-      cke SystemDrive SystemRoot ProgramFiles
-      t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
-      genprepend PATH "${ProgramFilesX86}/Gpg4win/bin"
-      genprepend PATH "${ProgramFiles}/Gpg4win/bin"
-      genprepend PATH "${ProgramFilesX86}/GnuPG/bin"
-      genprepend PATH "${ProgramFiles}/GnuPG/bin"
-      [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFilesX86}/EditPlus/editplus.exe" "${@}"; }
-      [ -e "${ProgramFiles}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFiles}/EditPlus/editplus.exe" "${@}"; }
-    ;;
-  esac
-}
 
 function set_manpath {
   local __path_prepend_list d
@@ -766,7 +755,6 @@ function pbinsetup {
 
 # zapenv - kill all environment setup routines, including itself(!)
 function zapenv {
-  unset -f pathsetup
   unset -f getterminfo
   unset -f gethostinfo
   unset -f getuserinfo
@@ -784,7 +772,6 @@ function kickenv {
   # first and formost, prevent others from reading our precious files
   umask 077
   gethostinfo # set REAL_WHICH!!
-  pathsetup
   # shellcheck disable=SC1090
   [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
   hostsetup # to extend path, at least for solaris
