@@ -19,6 +19,10 @@ ___bash_host_tuple=${BASH_VERSINFO[5]}
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
+# version information
+___rcver="5.1b"
+___rcver_str="jBashRc v${JBVER}(c)"
+
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
 
@@ -30,6 +34,8 @@ ___error_msg () {
 
 # get the bash version for command definition unwinding
 ___bashmaj=${BASH_VERSION/.*/}
+___bashmin=${BASH_VERSION#${___bashmin}.}
+___bashmin=${___bashmin%%.*}
 
 # _lc - convert character to lower case
 # hi bash 2.05
@@ -301,7 +307,7 @@ ___init_cachedir && {
       return "${found}"
     else
       # actually run ___chkcmd and cache the result of that
-      ___chkcmd ; found="${?}"
+      ___chkcmd "${cmd}" ; found="${?}"
       printf '%s\n' "${found}" > "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
       return "${found}"
     fi
@@ -336,43 +342,39 @@ ___init_cachedir && {
   }
 }
 
-# try turning these into absolute paths
-___bashrc_path=$___bash_source_path
-if [ "${___bashrc_path}" ]; then
-  ___bashrc_dir="${___bashrc_path%/*}"
+# try turning the bashrc ref (if any) into an absolute path
+function ___find_bashrc_file () {
+  local rcpath linkdest abspath
+  # first, handle ./path/to/thing
+  if [ "${___bash_source_path}" ]; then
+    rcpath="${___bash_source_path%/*}"
+    [ "${rcpath}" == "." ] && rcpath="${PWD}/${___bash_source_path}"
+  fi
 
-  [ "${___bashrc_dir}" == "." ] && ___bashrc_path="${PWD}/${___bashrc_path}"
-fi
+  # is this a link? where is the real file?
+  if [ -h "${___bash_source_path}" ]; then
+    chkcmd readlink && linkdest="$(readlink "${___bash_source_path}")"
+    # we didn't have readlink. huh.
+    [ "${linkdest}" ] || linkdest="$(ls -l "${___bash_source_path}"|awk -F' -> ' '{print $2}')"
+    case "${linkdest}" in
+      /*) abspath="${linkdest}" ;;
+      *)  abspath="${rcpath}/${linkdest}" ;;
+    esac
+  else
+    abspath="${___bash_source_path}"
+  fi
+  printf '%s' "${abspath}"
+}
 
-# is this a link? where is the real file?
-# oh, and THANKS SO MUCH SOLARIS for not having readlink!
-if [[ ${___bashrc_path} && -h "${___bashrc_path}" ]]; then
-  # yeaaaah, but I don't have chkcmd yet.
-  # shellcheck disable=SC2012
-  ___linkdest="$(ls -l "${___bashrc_path}"|awk -F' -> ' '{print $2}')"
-  case "${___linkdest}" in
-    /*) ___bashrc_path="${___linkdest}" ;;
-    *)  ___bashrc_path="${___bashrc_dir}/${___linkdest}" ;;
-  esac
-fi
+# shellcheck disable=SC2006
+___bashrc_dir="`___find_bashrc_file`"
+___bashrc_dir="${___bashrc_dir%/*}"
 
-# Run rcdir again, in an attempt to get more information
-if [ "${___bashrc_path}" ]; then
-  case "${___bashrc_path}" in
-    /*) : ;;
-    *)  ___bashrc_path=${___bashrc_dir}/${___bashrc_path} ;;
-  esac
-  ___bashrc_dir="${___bashrc_path%/*}"
-fi
-
-# version information
-JBVER="5.0b"
-JBVERSTRING='jBashRc v'${JBVER}'(u)'
-
-BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
-BASH_MINOR=${BASH_MINOR%%.*}
-
-BASHFILES="${HOME}/.bash.d"
+# set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
+___bash_auxfiles_dirs=()
+[ -d "${BASH_AUX_FILES}" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
+[ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
+[ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
