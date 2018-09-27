@@ -95,8 +95,9 @@ _chkdef mkdir && _md () {
 
   for dir in "${@}" ; do
     [ -d "${dir}" ] && continue
+    mkdir -p "${dir}" ; rs=$?
     # shellcheck disable=SC2219
-    mkdir -p "${dir}" ; rs=$? ; let ret=ret+rs
+    let ret=ret+rs
   done
   return "${ret}"
 }
@@ -118,7 +119,7 @@ function zapcmdcache {
 __cache_checked=0	# track if we've already run...
 __cache_active=0
 _init_cachedir () {
-  local _host cachedir
+  local _host
   # have I been here before?
   case "${__cache_checked}${__cache_active}" in
     10) return 1 ;; # not going to work
@@ -131,7 +132,9 @@ _init_cachedir () {
 
   # build a potential cache directory
   [ -z "${BASH_CACHE_DIRECTORY}" ] && {
-    BASH_CACHE_DIRECTORY="${HOME}/.cmdcache" ; _host=${HOSTNAME:-}
+    BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
+    # shellcheck disable=SC2006
+    _host=`tolower "${HOSTNAME:-}"`
 
     [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${_host}"
     [ -z "${__bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}-${__bash_host_tuple}"
