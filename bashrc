@@ -20,6 +20,9 @@ ___bash_host_tuple=${BASH_VERSINFO[5]}
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
+# set permissions for any newly created files to just ourselves.
+umask 077
+
 # version information
 ___rcver="5.1b"
 ___rcver_str="jBashRc v${JBVER}(c)"
@@ -58,64 +61,6 @@ function ____pathsetup {
     "/usr/kerberos/bin" \
     "/usr/nekoware/bin" "/usr/tgcware/bin" \
     "/opt/local/bin" "/usr/local/bin"
-
-  case "${OPSYS}" in
-    cygwin*)
-      mm_setenv SystemDrive || {
-        # shellcheck disable=SC2153
-        SystemDrive=$(cygpath "${SYSTEMDRIVE}")
-        mm_putenv SystemDrive
-      }
-      mm_setenv SystemRoot || {
-        # shellcheck disable=SC2153
-        SystemRoot=$(cygpath "${SYSTEMROOT}")
-        mm_putenv SystemRoot
-      }
-      mm_setenv ProgramFiles || {
-        # shellcheck disable=SC2153
-        ProgramFiles=$(cygpath "${PROGRAMFILES}")
-        mm_putenv ProgramFiles
-      }
-      mm_setenv ProgramFilesX86 || {
-        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
-	mm_putenv ProgramFilesX86
-      }
-      genappend PATH "${SystemDrive}/bin"
-      ;;
-
-    win32)
-      mm_setenv SystemDrive || {
-        { chkcmd cygpath && SystemDrive="$(cygpath "${SYSTEMDRIVE}")" ; } || SystemDrive="${SYSTEMDRIVE}"
-	mm_putenv SystemDrive
-      }
-      mm_setenv SystemRoot || {
-        { chkcmd cygpath && SystemRoot="$(cygpath "${SYSTEMROOT}")" ; } || SystemRoot="${SYSTEMROOT}"
-	mm_putenv SystemRoot
-      }
-      mm_setenv ProgramFiles || {
-        { chkcmd cygpath && ProgramFiles="$(cygpath "${PROGRAMFILES}")" ; } || ProgramFiles="${PROGRAMFILES}"
-	mm_putenv ProgramFiles
-      }
-      mm_setenv ProgramFilesX86 || {
-        chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
-	mm_putenv ProgramFilesX86
-      }
-      ;;
-
-  esac
-
-  case "${OPSYS}" in
-    cygwin*|win32)
-      cke SystemDrive SystemRoot ProgramFiles
-      t_mkdir "${CMDCACHE}/chkcmd/${SystemRoot}/system32"
-      genprepend PATH "${ProgramFilesX86}/Gpg4win/bin"
-      genprepend PATH "${ProgramFiles}/Gpg4win/bin"
-      genprepend PATH "${ProgramFilesX86}/GnuPG/bin"
-      genprepend PATH "${ProgramFiles}/GnuPG/bin"
-      [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFilesX86}/EditPlus/editplus.exe" "${@}"; }
-      [ -e "${ProgramFiles}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFiles}/EditPlus/editplus.exe" "${@}"; }
-    ;;
-  esac
 }
 
 # _lc - convert character to lower case
@@ -504,6 +449,7 @@ mm_setenv ___os || {
   ___os="${___os%%-gnu}"			# redhat-linux
   ___os="${___os##*-}"				# linux
   ___os="${___os%%[0-9]*}"			# linux
+  # shellcheck disable=SC2006
   ___os=`tolower "${___os}"`			# linux
   mm_putenv ___os
 }
@@ -525,9 +471,46 @@ chkcmd uname && {
   ___osflat="${___osmaj}${___osmin}"		# 418
 }
 
+# common envvars for windows platforms setup
+#shellcheck disable=SC2006,SC2153
+____wininit () {
+  mm_setenv SystemDrive     || {
+    [ "${SYSTEMDRIVE}" ] && {
+      { chkcmd cygpath && SystemDrive=`cygpath "${SYSTEMDRIVE}"` ; } || SystemDrive="${SYSTEMDRIVE}"
+      mm_putenv SystemDrive
+    }
+  }
+  mm_setenv SystemRoot      || {
+    [ "${SYSTEMROOT}" ] && {
+      { chkcmd cygpath && SystemRoot=`cygpath "${SYSTEMROOT}"` ; } || SystemRoot="${SYSTEMROOT}"
+      mm_putenv SystemRoot
+    }
+  }
+  mm_setenv ProgramFiles    || {
+    [ "${PROGRAMFILES}" ] && {
+      { chkcmd cygpath && ProgramFiles=`cygpath "${PROGRAMFILES}"` ; } || ProgramFiles="${PROGRAMFILES}"
+      mm_putenv ProgramFiles
+    }
+  }
+  mm_setenv ProgramFilesX86 || {
+      { chkcmd cygpath && ProgramFilesX86=`cygpath -F 0x2a` ; } || ProgramFilesX86="${ProgramFiles} (x86)"
+      mm_putenv ProgramFilesX86
+  }
+
+  # note the genappend call as a _fallback_
+  genappend PATH "${SystemDrive}/bin"
+
+  # add the native win32 GPG binaries to the front of the path if found.
+  genprepend PATH "${ProgramFilesX86}/Gpg4win/bin" "${ProgramFiles}/Gpg4win/bin" "${ProgramFilesX86}/GnuPG/bin" "${ProgramFiles}/GnuPG/bin"
+
+  # define a function to allow my preferred editor for windows (editplus) via the shells
+  [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFilesX86}/EditPlus/editplus.exe" "${@}"; }
+  [ -e "${ProgramFiles}/EditPlus/editplus.exe" ]    && editplus () { "${ProgramFiles}/EditPlus/editplus.exe" "${@}"; }
+}
+
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
 case "${___os}" in
-  cygwin*)        ___os=cygwin ;;
+  cygwin*)        ___os=cygwin ; ____wininit ;;
   windows32|msys)
     ___os=win32
     # specifically for win32, throw away the osrel pieces
@@ -536,11 +519,14 @@ case "${___os}" in
     { [ -z "${USER}" ] && [ "${USERNAME}" ] ; }    && USER="${USERNAME}"
     { [ -z "${HOME}" ] && [ "${USERPROFILE}" ] ; } && HOME="${USERPROFILE}"
     export USER HOME
+    ____wininit
   ;;
   sunos*)         [ "${___osmaj}" == 5 ] && ___os=solaris ;;
   gnueabihf)      OPSYS=$(uname -s) ;;
   android*)       [ -z "${USER}" ] && USER="${____default_username}" ; export USER ;;
 esac
+
+unset -f ____wininit
 
 # re-save ___os
 mm_putenv ___os
@@ -735,8 +721,6 @@ function hostsetup {
 
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
-  local dir
-
   # set PERL5LIB here
   if [ -d "${HOME}"/Library/perl5 ]; then
     export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
@@ -798,8 +782,6 @@ function zapenv {
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
-  # first and formost, prevent others from reading our precious files
-  umask 077
   gethostinfo # set REAL_WHICH!!
   # shellcheck disable=SC1090
   [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
