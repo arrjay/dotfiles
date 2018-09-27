@@ -6,9 +6,6 @@
 #!# This was also the driving force behind the entire caching system, which
 #!# cut the startup time for this under cygwin in THIRD.
 
-# prescribe pills to offset the shakes to offset the pills you know you should take it a day at a time
-#             panic! at the disco - "nails for breakfast, tacks for snacks"
-
 # specifically run these before debugging is even enabled to grab shell state - especially ${_}
 __bash_invocation_parent=${_}
 __bash_invocation=${0}
@@ -52,6 +49,7 @@ function _tolower {
   local word ch ; word="${1}"
   case "${__bashmaj}" in
     2|3)
+      # lowercase it one character at a time.
       for((i=0;i<${#word};++i)) ; do
         ch="${word:$i:1}"
         _lc "${ch}"
@@ -74,25 +72,33 @@ __chkcmd () {
   esac
 }
 
-# determine if a given command or function exists.
-__chkdef () {
-  local cmd
-  cmd="${1}"
-  type "${cmd}" 2>&1 | :
-  return "${PIPESTATUS[0]}"
-}
-
 # we're going to override this in a moment...
+# but this will work until the memoizer sets up, or in cases we never load it.
 _chkcmd () {
   __chkcmd "${@}"
 }
 
-# _md - test and create directory if needed - requires mkdir...
-_chkcmd mkdir && _md () {
-  local dir ; dir="${1}"
-  [ "${dir}" ] || { __error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+# determine if a given command, builtin, alias or function exists.
+_chkdef () {
+  local cmd
+  cmd="${1}"
+  # piping to | throws away the output at the cost of having to use PIPESTATUS
+  # however, this _works_ when there is no /dev/null
+  type "${cmd}" 2>&1 | :
+  return "${PIPESTATUS[0]}"
+}
 
-  [ ! -d "${dir}" ] && mkdir -p "${dir}"
+# _md - test and create directory if needed - requires mkdir...
+_chkdef mkdir && _md () {
+  local dir ret rs ; ret=0
+  [ "${1}" ] || { __error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+
+  for dir in "${@}" ; do
+    [ -d "${dir}" ] && continue
+    # shellcheck disable=SC2219
+    mkdir -p "${dir}" ; rs=$? ; let ret=ret+rs
+  done
+  return "${ret}"
 }
 
 # placeholders, simply return 1 as the cache doesn't work yet
@@ -102,6 +108,10 @@ function mm_putenv {
 
 function mm_getenv {
   return 1
+}
+
+function zapcmdcache {
+  hash -r
 }
 
 # configure command caching/tokenization dir
@@ -128,12 +138,14 @@ _init_cachedir () {
   }
 
   # actually try creating that directory
-  __chkdef _md || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-  _md "${BASH_CACHE_DIRECTORY}" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  _chkdef _md || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  _md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # check if we can write _in_ the directory
-  touch "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-  rm "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  : > "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+
+  # unfortunately, rm is _not_ a builtin, so don't make this failure fatal.
+  _chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
 
   __cache_checked=1 ; __cache_active=1
 }
@@ -167,6 +179,11 @@ _init_cachedir && {
     local env val ; env="${1}"
     [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r val < "${BASH_CACHE_DIRECTORY}/env/${env}" ; echo "${val}" ; return 0 ; }
     return 1
+  }
+
+  function zapcmdcache {
+    rm -rf "${BASH_CACHE_DIRECTORY}"/{chkcmd,env}/*
+    hash -r
   }
 }
 
@@ -429,11 +446,6 @@ function sourcex {
 }
 
 
-function zapcmdcache {
-  rm -rf "${CMDCACHE}"/chkcmd/*
-  rm -rf "${CMDCACHE}"/env/*
-  hash -r
-}
 
 # v_alias - overloads command with specified function if command exists
 function v_alias {
