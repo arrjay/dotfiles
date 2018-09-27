@@ -261,13 +261,6 @@ function getconn {
   fi
 }
 
-# initcachedirs - create command cache directories
-function initcachedirs {
-  CMDCACHE="${HOME}/.cmdcache/${FQDN}-${OPSYS}"
-  t_mkdir "${CMDCACHE}/chkcmd"
-  t_mkdir "${CMDCACHE}/env"
-}
-
 #!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
 #!# ALL FUNCTIONS CHECK EXISTENCE OF DIRECTORY BEFORE ADDING!
 function cke {
@@ -575,49 +568,6 @@ function gethostinfo {
     [ "${CPU:0:1}" == "i" ] && CPU="x86"
   fi
 	
-  # initialize the cache system
-  initcachedirs
-
-  # while we're here, find 'which' and see if it works
-  dealias which
-  REAL_WHICH=$(mm_getenv REAL_WHICH) || {
-    REAL_WHICH=$(which which) || REAL_WHICH="/usr/bin/which" # Pray!
-      if { [ "${__bashrc_path}" -nt "${HOME}"/.whichery.sh ] || [ ! -e "${HOME}/.whichery.sh" ] ; } then
-        (
-          cat <<\WHICHERY
-            if [[ "${REAL_WHICH}" =~ ":" ]]; then
-            # paths do not contain colons, wtf?
-            REAL_WHICH=/usr/bin/which
-            fi
-WHICHERY
-        ) > "${HOME}"/.whichery.sh
-      fi
-    # shellcheck disable=1090
-    . "${HOME}"/.whichery.sh
-    mm_putenv REAL_WHICH
-  }
-
-  WSTR=$(mm_getenv WSTR) || {
-    WSTR=$("${REAL_WHICH}" --help 2>&1 | grep ^no > /dev/null ; echo "${PIPESTATUS[@]}")
-    # 1 0 - which returned an error, grep did not - bad which
-    # 1 1 - which returned an error, grep did too - bad which (?)
-    # 2 1 - which returned an error, grep did too - strange which
-    # 0 1 - which success, grep returned an error - good which
-    # 0 0 - which success, grep success           - EVIL WHICH!
-    mm_putenv WSTR
-  }
-
-  REAL_SU=$(mm_getenv REAL_SU) || {
-    REAL_SU=$("${REAL_WHICH}" su 2> /dev/null)
-    mm_putenv REAL_SU
-  }
-
-  # shellcheck disable=2034
-  SED=$(mm_getenv SED) || {
-    SED=$("${REAL_WHICH}" sed 2> /dev/null) || SED="/bin/sed"
-    mm_putenv SED
-  }
-
   # are we a laptop (rather, do we have ACPI or APM batteries?)
   case ${OPSYS} in
     linux|android*)
