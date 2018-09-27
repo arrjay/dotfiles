@@ -41,22 +41,20 @@ ___bashmin=${___bashmin%%.*}
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 # defined here for convenience but called much later ;)
 function ____pathsetup {
-  local list d
-  list=("/etc" "/usr/etc" "/usr/sysadm/privbin"
-    "/usr/games"
-    "/sbin" "/usr/sysadm/bin" "/usr/sbin"
-    "/usr/ccs/bin" "/usr/sfw/bin"
-    "/usr/pkg/sbin" "/usr/tgcware/sbin"
-    "/usr/local/sbin"
-    "/usr/gfx" "/usr/dt/bin" "/usr/openwin/bin" "/usr/bin/X11" "/usr/X11R6/bin"
-    "/bin" "/usr/bin"
-    "/usr/pkg/bin" "/usr/xpg4/bin"
-    "/usr/bsd" "/usr/ucb"
-    "/usr/kerberos/bin"
-    "/usr/nekoware/bin" "/usr/tgcware/bin"
+  genprepend PATH \
+    "/usr/games" \
+    "/etc" "/usr/etc" "/usr/sysadm/privbin" \
+    "/sbin" "/usr/sysadm/bin" "/usr/sbin" \
+    "/usr/ccs/bin" "/usr/sfw/bin" \
+    "/usr/pkg/sbin" "/usr/tgcware/sbin" \
+    "/usr/local/sbin" \
+    "/usr/gfx" "/usr/dt/bin" "/usr/openwin/bin" "/usr/bin/X11" "/usr/X11R6/bin" \
+    "/bin" "/usr/bin" \
+    "/usr/pkg/bin" "/usr/xpg4/bin" \
+    "/usr/bsd" "/usr/ucb" \
+    "/usr/kerberos/bin" \
+    "/usr/nekoware/bin" "/usr/tgcware/bin" \
     "/opt/local/bin" "/usr/local/bin"
-  )
-  for d in "${list[@]}" ; do genprepend PATH "${d}" ; done
 
   case "${OPSYS}" in
     cygwin*)
