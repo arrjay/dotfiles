@@ -22,6 +22,7 @@ ___bash_host_tuple=${BASH_VERSINFO[5]}
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
 
+## function definitions
 # return errors to fd 2
 ___error_msg () {
   echo "${*}" 1>&2
@@ -55,7 +56,7 @@ function tolower {
       # lowercase it one character at a time.
       for((i=0;i<${#word};++i)) ; do
         ch="${word:$i:1}"
-        _lc "${ch}"
+        ___lc "${ch}"
       done
       ;;
     *)
@@ -91,20 +92,6 @@ ___chkdef () {
   return "${PIPESTATUS[0]}"
 }
 
-# _md - test and create directory if needed - requires mkdir...
-___chkdef mkdir && md () {
-  local dir ret rs ; ret=0
-  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
-
-  for dir in "${@}" ; do
-    [ -d "${dir}" ] && continue
-    mkdir -p "${dir}" ; rs=$?
-    # shellcheck disable=SC2219
-    let ret=ret+rs
-  done
-  return "${ret}"
-}
-
 # placeholders, simply return 1 as the cache doesn't work yet
 function mm_putenv {
   return 1
@@ -118,7 +105,7 @@ function zapcmdcache {
   hash -r
 }
 
-# verify cache system is set...
+# verify cache system is set within any function at runtime.
 ___vfy_cachesys () {
   local caller msg ; caller="${1}"
   msg="BASH_CACHE_DIRECTORY is not set"
@@ -164,6 +151,142 @@ ___init_cachedir () {
   ___cache_checked=1 ; ___cache_active=1
 }
 
+# there are two versions of the following functions - a series using printf -v
+# and a series with eval. I'd really rather use the printf ones if we can.
+# the check comes from git's prompt resource. ;)
+__git_printf_supports_v=
+printf -v __git_printf_supports_v -- '%s' yes >/dev/null 2>&1
+
+# this reverts commit 0e0cbc321ea
+# genstrip - remove element from path-type variable
+# you need to specify the variable and the element!
+function genstrip {
+  [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
+  eval "${1}"=\""${!1//':'"${2}":/:}"\"
+  eval "${1}"=\""${!1%:"${2}"}"\"
+  eval "${1}"=\""${!1#"${2}":}"\"
+}
+
+[ "${__git_printf_supports_v}" == "yes" ] && {
+  function genstrip {
+    [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
+    local n s t
+    t="${!1}"
+    n="${2%/}"         ; s="${n}/"
+    t="${t//:${n}:/:}" ; t="${t//:${s}:/:}"
+    t="${t%:${n}}"     ; t="${t%:${s}}"
+    t="${t#${n}:}"     ; t="${t%${s}:}"
+    builtin printf -v "${1}" '%s' "${t}"
+  }
+}
+
+# this reverts commit e80ab23b5e
+# check environment variables exist, make if needed
+function cke {
+  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
+  local x
+  for x in "${@}" ; do
+    if [[ -z "${x}" ]]; then
+      eval "${x}"=\'\'
+    fi
+    # always export the thing
+    eval export "${x}"
+  done
+}
+
+[ "${__git_printf_supports_v}" == "yes" ] && {
+  function cke {
+    [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
+    local x
+    for x in "${@}" ; do
+      if [[ -z "${x}" ]]; then
+        builtin printf -v "${x}" ''
+      fi
+      # always export the thing
+      # shellcheck disable=SC2163
+      export "${x}"
+    done
+  }
+}
+
+# genappend - add directory element to path-like element
+# you need variable, then element
+function genappend {
+  [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+  local e d
+  e="${1}" ; shift
+  cke "${e}"
+  for d in "${@}" ; do
+    genstrip "${e}" "${d}"
+    [ -d "${d}" ] && eval "${e}"=\""${!e}":"${d}"\"
+  done
+}
+
+[ "${__git_printf_supports_v}" == "yes" ] && {
+  function genappend {
+    [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+    local e t d
+    e="${1}" ; shift
+    for d in "${@}" ; do
+      genstrip "${e}" "${d}"
+      t="${!e}"
+      [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${t}:${d}"
+    done
+    cke "${e}"
+  }
+}
+
+# genprepend - add directory elements to FRONT of path-like list (NOTE: takes arguments as loop - later args are in the front!)
+function genprepend {
+  [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+  local e d
+  e="${1}" ; shift
+  cke "${e}"
+  for d in "${@}" ; do
+    genstrip "${e}" "${d}"
+    [ -d "${d}" ] && eval "${e}"=\""${d}":"${!e}"\"
+  done
+}
+
+[ "${__git_printf_supports_v}" == "yes" ] && {
+  function genprepend {
+    [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+    local e t d
+    e="${1}" ; shift
+    for d in "${@}" ; do
+      genstrip "${e}" "${d}"
+      t="${!e}"
+      [ -d "${d}" ] && builtin printf -v "${e}" '%s' "${d}:${t}"
+    done
+    cke "${e}"
+  }
+}
+
+# we keep pathappend and pathprepend, even though not used, for interactive purposes :)
+function pathappend {
+  genappend PATH "${@}"
+}
+function pathprepend {
+  genprepend PATH "${@}"
+}
+
+## runtime - potential definitions
+# _md - test and create directory if needed - requires mkdir...
+# this is actually only the third thing run (the first was the path hack, then printf -v processing)
+___chkdef mkdir && md () {
+  local dir ret rs ; ret=0
+  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+
+  for dir in "${@}" ; do
+    [ -d "${dir}" ] && continue
+    mkdir -p "${dir}" ; rs=$?
+    # shellcheck disable=SC2219
+    let ret=ret+rs
+  done
+  return "${ret}"
+}
+
+# after defining md (or not), roll along with the rest of the cache system. this redefines stubs we had up above with versions that cache.
 # chkcmd - check if specific _command_ is present, now with memoization
 ___init_cachedir && {
   chkcmd () {
@@ -250,86 +373,6 @@ BASH_MINOR=${BASH_VERSION#${BASH_MAJOR}.}
 BASH_MINOR=${BASH_MINOR%%.*}
 
 BASHFILES="${HOME}/.bash.d"
-
-## path(-like) functions
-#?# TEST: do these work for directories with spaces?
-
-# genstrip - remove element from path-type variable
-# you need to specify the variable and the element!
-function genstrip {
-  local n s t
-  t="${!1}"
-  n="${2%/}"         ; s="${n}/"
-  t="${t//:${n}:/:}" ; t="${t//:${s}:/:}"
-  t="${t%:${n}}"     ; t="${t%:${s}}"
-  t="${t#${n}:}"     ; t="${t%${s}:}"
-  builtin printf -v "${1}" '%s' "${t}"
-}
-
-# getconn - get where we are connecting from
-function getconn {
-  if [ -n "${SSH_CONNECTION}" ]; then
-    CURTTY=${SSH_TTY}
-    CONNFROM=${SSH_CLIENT/ *}
-  else
-    CURTTY=$(tty)
-    [ "${OPSYS}" != "win32" ] && CURTTY=${CURTTY:5}
-    CONNFROM=$(who|awk '$0 ~ "'"${CURTTY}"'" { print $5 }')
-    CONNFROM=${CONNFROM//(/}
-    CONNFROM=${CONNFROM//)/}
-  fi
-  if [ ! -n "${CONNFROM}" ]; then
-    echo "no remote connection found" 1>&2
-    unset CONNFROM
-    return 1
-  else
-    echo "${CONNFROM}"
-  fi
-}
-
-#!# ALL FUNCTIONS USE STRIPPATH TO REMOVE DUPLICATES
-#!# ALL FUNCTIONS CHECK EXISTENCE OF DIRECTORY BEFORE ADDING!
-function cke {
-  local x
-  for x in "${@}" ; do
-    # check if environment variable exists, make if needed
-    if [[ -z "${x}" ]]; then
-      printf -v "${x}" ""
-    fi
-    # always export the thing
-    # shellcheck disable=SC2163
-    export "${x}"
-  done
-}
-
-# genappend - add directory element to path-like element
-# you need variable, then element
-function genappend {
-  local t d
-  d="${2}"
-  genstrip "${1}" "${d}"
-  t="${!1}"
-  cke "${1}"
-  [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${t}:${d}"
-}
-
-# genprepend - add directory element to FRONT of path-like list
-function genprepend {
-  local t d
-  d="${2}"
-  genstrip "${1}" "${d}"
-  t="${!1}"
-  cke "${1}"
-  [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${d}:${t}"
-}
-
-# we keep pathappend and pathprepend, even though not used, for interactive purposes :)
-function pathappend {
-  genappend PATH "${1}"
-}
-function pathprepend {
-  genprepend PATH "${1}"
-}
 
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 function pathsetup {
