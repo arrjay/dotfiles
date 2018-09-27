@@ -1155,7 +1155,6 @@ function monolith_aliases {
 
   # pretend to be DOS, sometimes
   alias cls='clear'
-  alias md='t_mkdir'
   alias rd='rm -rf'
   alias copy='cp'
   alias move='mv'
