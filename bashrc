@@ -106,7 +106,7 @@ function mm_putenv {
   return 1
 }
 
-function mm_getenv {
+function mm_setenv {
   return 1
 }
 
@@ -174,10 +174,13 @@ _init_cachedir && {
     [ -z "${val}" ] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
   }
 
-  # mm_getenv - read environment memo if available
-  function mm_getenv {
-    local env val ; env="${1}"
-    [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r val < "${BASH_CACHE_DIRECTORY}/env/${env}" ; echo "${val}" ; return 0 ; }
+  # mm_setenv - read environment memo if available (NOTE: this will _replace_ the envvar)
+  function mm_setenv {
+    local env ; env="${1}"
+    [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r "${env}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
+    # export that as well
+    # shellcheck disable=SC2163
+    export "${env}"
     return 1
   }
 
@@ -342,22 +345,22 @@ function pathsetup {
 
   case "${OPSYS}" in
     cygwin*)
-      SystemDrive=$(mm_getenv SystemDrive) || {
+      mm_setenv SystemDrive || {
         # shellcheck disable=SC2153
         SystemDrive=$(cygpath "${SYSTEMDRIVE}")
         mm_putenv SystemDrive
       }
-      SystemRoot=$(mm_getenv SystemRoot) || {
+      mm_setenv SystemRoot || {
         # shellcheck disable=SC2153
         SystemRoot=$(cygpath "${SYSTEMROOT}")
         mm_putenv SystemRoot
       }
-      ProgramFiles=$(mm_getenv ProgramFiles) || {
+      mm_setenv ProgramFiles || {
         # shellcheck disable=SC2153
         ProgramFiles=$(cygpath "${PROGRAMFILES}")
         mm_putenv ProgramFiles
       }
-      ProgramFilesX86=$(mm_getenv ProgramFilesX86) || {
+      mm_setenv ProgramFilesX86 || {
         chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
 	mm_putenv ProgramFilesX86
       }
@@ -365,19 +368,19 @@ function pathsetup {
       ;;
 
     win32)
-      SystemDrive=$(mm_getenv SystemDrive) || {
+      mm_setenv SystemDrive || {
         { chkcmd cygpath && SystemDrive="$(cygpath "${SYSTEMDRIVE}")" ; } || SystemDrive="${SYSTEMDRIVE}"
 	mm_putenv SystemDrive
       }
-      SystemRoot=$(mm_getenv SystemRoot) || {
+      mm_setenv SystemRoot || {
         { chkcmd cygpath && SystemRoot="$(cygpath "${SYSTEMROOT}")" ; } || SystemRoot="${SYSTEMROOT}"
 	mm_putenv SystemRoot
       }
-      ProgramFiles=$(mm_getenv ProgramFiles) || {
+      mm_setenv ProgramFiles || {
         { chkcmd cygpath && ProgramFiles="$(cygpath "${PROGRAMFILES}")" ; } || ProgramFiles="${PROGRAMFILES}"
 	mm_putenv ProgramFiles
       }
-      ProgramFilesX86=$(mm_getenv ProgramFilesX86) || {
+      mm_setenv ProgramFilesX86 || {
         chkcmd cygpath && ProgramFilesX86="$(cygpath -F 0x2a)" || ProgramFilesX86="${ProgramFiles} (x86)"
 	mm_putenv ProgramFilesX86
       }
