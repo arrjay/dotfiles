@@ -6,12 +6,15 @@
 #!# This was also the driving force behind the entire caching system, which
 #!# cut the startup time for this under cygwin in THIRD.
 
+# the triple underscores are because a lot of vendor shell extensions use double underscore and we don't want to stomp on that.
+# on the other hand, stuff you might want to run is not prefixed at all. YOLO.
+
 # specifically run these before debugging is even enabled to grab shell state - especially ${_}
-__bash_invocation_parent=${_}
-__bash_invocation=${0}
-__bash_source_path=${BASH_SOURCE[0]}
-__bash_init_argv0=${BASH_ARGV[0]}
-__bash_host_tuple=${BASH_VERSINFO[5]}
+___bash_invocation_parent=${_}
+___bash_invocation=${0}
+___bash_source_path=${BASH_SOURCE[0]}
+___bash_init_argv0=${BASH_ARGV[0]}
+___bash_host_tuple=${BASH_VERSINFO[5]}
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
@@ -20,17 +23,17 @@ __bash_host_tuple=${BASH_VERSINFO[5]}
 PATH=/usr/bin:$PATH
 
 # return errors to fd 2
-__error_msg () {
+___error_msg () {
   echo "${*}" 1>&2
 }
 
 # get the bash version for command definition unwinding
-__bashmaj=${BASH_VERSION/.*/}
+___bashmaj=${BASH_VERSION/.*/}
 
 # _lc - convert character to lower case
 # hi bash 2.05
 # shellcheck disable=SC2006
-_lc () {
+___lc () {
   local char n ; char="${1}"
   case "${char}" in
     [A-Z])
@@ -44,10 +47,10 @@ _lc () {
   esac
 }
 
-# _tolower - convert string to lower case
-function _tolower {
+# tolower - convert string to lower case
+function tolower {
   local word ch ; word="${1}"
-  case "${__bashmaj}" in
+  case "${___bashmaj}" in
     2|3)
       # lowercase it one character at a time.
       for((i=0;i<${#word};++i)) ; do
@@ -62,7 +65,7 @@ function _tolower {
 }
 
 # determine if a given _command_ exists.
-__chkcmd () {
+___chkcmd () {
   local cmd
   cmd="${1}"
   #shellcheck disable=SC2006
@@ -74,12 +77,12 @@ __chkcmd () {
 
 # we're going to override this in a moment...
 # but this will work until the memoizer sets up, or in cases we never load it.
-_chkcmd () {
-  __chkcmd "${@}"
+chkcmd () {
+  ___chkcmd "${@}"
 }
 
 # determine if a given command, builtin, alias or function exists.
-_chkdef () {
+___chkdef () {
   local cmd
   cmd="${1}"
   # piping to | throws away the output at the cost of having to use PIPESTATUS
@@ -89,9 +92,9 @@ _chkdef () {
 }
 
 # _md - test and create directory if needed - requires mkdir...
-_chkdef mkdir && _md () {
+___chkdef mkdir && md () {
   local dir ret rs ; ret=0
-  [ "${1}" ] || { __error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
 
   for dir in "${@}" ; do
     [ -d "${dir}" ] && continue
@@ -115,57 +118,67 @@ function zapcmdcache {
   hash -r
 }
 
+# verify cache system is set...
+___vfy_cachesys () {
+  local caller msg ; caller="${1}"
+  msg="BASH_CACHE_DIRECTORY is not set"
+  [ "${caller}" ] && msg="${caller}: ${msg}"
+  [ "${BASH_CACHE_DIRECTORY}" ] || { ___error_msg "${msg}" ; return 3 ; }
+}
+
 # configure command caching/tokenization dir
-__cache_checked=0	# track if we've already run...
-__cache_active=0
-_init_cachedir () {
+___cache_checked=0	# track if we've already run...
+___cache_active=0
+___init_cachedir () {
   local _host
   # have I been here before?
-  case "${__cache_checked}${__cache_active}" in
+  case "${___cache_checked}${___cache_active}" in
     10) return 1 ;; # not going to work
     11) return 0 ;; # already done
   esac
-  # do I have a homedir that is a valid directory?
-  [ -d "${HOME}" ] || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-  # is the home directory / ? (okay, actually, is it one character long?)
-  case "${#HOME}" in 1) { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; esac
 
   # build a potential cache directory
   [ -z "${BASH_CACHE_DIRECTORY}" ] && {
+    # do I have a homedir that is a valid directory?
+    [ -d "${HOME}" ] || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+    # is the home directory / ? (okay, actually, is it one character long?)
+    [ "${#HOME}" == '1' ] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+
     BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
     # shellcheck disable=SC2006
     _host=`tolower "${HOSTNAME:-}"`
-
-    [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${_host}"
-    [ -z "${__bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}-${__bash_host_tuple}"
+    [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${_host}-"
+    [ -z "${___bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
   }
 
   # actually try creating that directory
-  _chkdef _md || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-  _md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  ___chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # check if we can write _in_ the directory
-  : > "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  : > "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
-  # unfortunately, rm is _not_ a builtin, so don't make this failure fatal.
-  _chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
+  # unfortunately, rm is _not_ a builtin, so carefully walk around it.
+  ___chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
 
-  __cache_checked=1 ; __cache_active=1
+  ___cache_checked=1 ; ___cache_active=1
 }
 
 # chkcmd - check if specific _command_ is present, now with memoization
-_init_cachedir && {
-  _chkcmd () {
+___init_cachedir && {
+  chkcmd () {
     local cmd found ; cmd="${1}"
-    [ -z "${cmd}" ] && { __error_msg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
+    [ -z "${cmd}" ] && { ___error_msg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
+
+    ___vfy_cachesys chkcmd || return $?
 
     if [ -f "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}" ]; then
       # we already have this check cached
       read -r found < "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
       return "${found}"
     else
-      # actually run __chkcmd and cache the result of that
-      __chkcmd ; found="${?}"
+      # actually run ___chkcmd and cache the result of that
+      ___chkcmd ; found="${?}"
       printf '%s\n' "${found}" > "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
       return "${found}"
     fi
@@ -174,12 +187,18 @@ _init_cachedir && {
   # mm_putenv - save environment memo
   function mm_putenv {
     local env val ; env="${1}" ; val="${!1}"
+    [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: save environment variable to memoization system" ; return 2 ; }
+
+    ___vfy_cachesys mm_putenv || return $?
     [ -z "${val}" ] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
   }
 
   # mm_setenv - read environment memo if available (NOTE: this will _replace_ the envvar)
   function mm_setenv {
     local env ; env="${1}"
+    [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: restore environment variable from memoization system" ; return 2 ; }
+
+    ___vfy_cachesys mm_setenv || return $?
     [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r "${env}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
     # export that as well
     # shellcheck disable=SC2163
@@ -188,38 +207,39 @@ _init_cachedir && {
   }
 
   function zapcmdcache {
+    ___vfy_cachesys zapcmdcache || return $?
     rm -rf "${BASH_CACHE_DIRECTORY}"/{chkcmd,env}/*
     hash -r
   }
 }
 
 # try turning these into absolute paths
-__bashrc_path=$__bash_source_path
-if [ "${__bashrc_path}" ]; then
-  __bashrc_dir="${__bashrc_path%/*}"
+___bashrc_path=$___bash_source_path
+if [ "${___bashrc_path}" ]; then
+  ___bashrc_dir="${___bashrc_path%/*}"
 
-  [ "${__bashrc_dir}" == "." ] && __bashrc_path="${PWD}/${__bashrc_path}"
+  [ "${___bashrc_dir}" == "." ] && ___bashrc_path="${PWD}/${___bashrc_path}"
 fi
 
 # is this a link? where is the real file?
 # oh, and THANKS SO MUCH SOLARIS for not having readlink!
-if [[ ${__bashrc_path} && -h "${__bashrc_path}" ]]; then
+if [[ ${___bashrc_path} && -h "${___bashrc_path}" ]]; then
   # yeaaaah, but I don't have chkcmd yet.
   # shellcheck disable=SC2012
-  ___linkdest="$(ls -l "${__bashrc_path}"|awk -F' -> ' '{print $2}')"
+  ___linkdest="$(ls -l "${___bashrc_path}"|awk -F' -> ' '{print $2}')"
   case "${___linkdest}" in
-    /*) __bashrc_path="${___linkdest}" ;;
-    *)  __bashrc_path="${__bashrc_dir}/${___linkdest}" ;;
+    /*) ___bashrc_path="${___linkdest}" ;;
+    *)  ___bashrc_path="${___bashrc_dir}/${___linkdest}" ;;
   esac
 fi
 
 # Run rcdir again, in an attempt to get more information
-if [ "${__bashrc_path}" ]; then
-  case "${__bashrc_path}" in
+if [ "${___bashrc_path}" ]; then
+  case "${___bashrc_path}" in
     /*) : ;;
-    *)  __bashrc_path=${__bashrc_dir}/${__bashrc_path} ;;
+    *)  ___bashrc_path=${___bashrc_dir}/${___bashrc_path} ;;
   esac
-  __bashrc_dir="${__bashrc_path%/*}"
+  ___bashrc_dir="${___bashrc_path%/*}"
 fi
 
 # version information
@@ -529,7 +549,7 @@ function gethostinfo {
   #?# TEST: are all unames created equal?
   #!# all trs are *not* created equal
   if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-  CPU=$(_tolower "${HOSTTYPE}")
+  CPU=$(tolower "${HOSTTYPE}")
   CPU=${CPU%%-linux}
   OPSYS=${BASH_VERSINFO[5]##${CPU}-}
   OPSYS=${OPSYS%%-gnu}
@@ -717,7 +737,7 @@ function kickenv {
   gethostinfo # set REAL_WHICH!!
   pathsetup
   # shellcheck disable=SC1090
-  [[ -f "${__bashrc_dir}/vendor/git-prompt.sh" ]] && source "${__bashrc_dir}/vendor/git-prompt.sh"
+  [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
   hostsetup # to extend path, at least for solaris
   getuserinfo
   getterminfo
