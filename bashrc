@@ -38,6 +38,9 @@ ___bashmaj=${BASH_VERSION/.*/}
 ___bashmin=${BASH_VERSION#${___bashmin}.}
 ___bashmin=${___bashmin%%.*}
 
+# I like having USER set. If you don't have USER set, I will set it to this.
+____default_username="rjlocal"
+
 # pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
 # defined here for convenience but called much later ;)
 function ____pathsetup {
@@ -166,13 +169,21 @@ chkcmd () {
   ___chkcmd "${@}"
 }
 
+# throw away output, even if we don't have /dev/null working
+# yes, the name _is_ dos-inspired
+nul () {
+  [ ! -c /dev/null ] && { IFS= read -rs ; return 0 ; }
+  {
+    exec 2>&1 1> /dev/null < /dev/null
+  }
+}
+
 # determine if a given command, builtin, alias or function exists.
 ___chkdef () {
   local cmd
   cmd="${1}"
-  # piping to | throws away the output at the cost of having to use PIPESTATUS
-  # however, this _works_ when there is no /dev/null
-  type "${cmd}" 2>&1 | :
+  # piping to | nul throws away the output at the cost of having to use PIPESTATUS
+  builtin type "${cmd}" 2>&1 | nul
   return "${PIPESTATUS[0]}"
 }
 
@@ -237,9 +248,8 @@ ____init_cachedir () {
 
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
-# the check comes from git's prompt resource. ;)
-__git_printf_supports_v=
-printf -v __git_printf_supports_v -- '%s' yes >/dev/null 2>&1
+# shellcheck disable=SC2006
+___printf_supports_v=`printf -v test -- '%s' yes ; printf '%s' "${test}"`
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
@@ -251,7 +261,7 @@ genstrip () {
   eval "${1}"=\""${!1#"${2}":}"\"
 }
 
-[ "${__git_printf_supports_v}" == "yes" ] && {
+[ "${___printf_supports_v}" == "yes" ] && {
   genstrip () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
     local n s t
@@ -278,7 +288,7 @@ cke () {
   done
 }
 
-[ "${__git_printf_supports_v}" == "yes" ] && {
+[ "${___printf_supports_v}" == "yes" ] && {
   cke () {
     [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
     local x
@@ -306,7 +316,7 @@ genappend () {
   done
 }
 
-[ "${__git_printf_supports_v}" == "yes" ] && {
+[ "${___printf_supports_v}" == "yes" ] && {
   genappend () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
@@ -332,7 +342,7 @@ genprepend () {
   done
 }
 
-[ "${__git_printf_supports_v}" == "yes" ] && {
+[ "${___printf_supports_v}" == "yes" ] && {
   genprepend () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
@@ -461,6 +471,79 @@ ___bash_auxfiles_dirs=()
 [ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
 [ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
 
+# configure user/host pieces			# Fedora 28
+# try `uname -p` first
+# shellcheck disable=SC2006
+mm_setenv ___cpu || {
+  chkcmd uname && {
+    # okay. check if uname supports -p next.
+    uname -p 2>&1 | nul
+    [ "${PIPESTATUS[0]}" == 0 ] && {
+      ___cpu="`uname -p`"			# x86_64
+      ___cpu="`tolower "${___cpu}"`"		# x86_64
+    }
+  }
+  # next, try from bash HOSTTYPE
+  [ -z "${___cpu}" ] && {
+    ___cpu="`tolower "${HOSTTYPE}"`"		# x86_64
+    ___cpu="${___cpu%%-linux}"			# x86_64
+  }
+
+  # i?86 == x86
+  if [ "${___cpu:2}" == 86 ] || [ "${___cpu:2}" == "86-pc" ]; then
+    [ "${___cpu:0:1}" == "i" ] && ___cpu="x86"
+  fi
+
+  mm_putenv ___cpu
+}
+
+# derive operating system name from bash MACHTYPE
+						# x86_64-redhat-linux-gnu
+mm_setenv ___os || {
+  ___os="${MACHTYPE##"${___cpu}-"}"		# redhat-linux-gnu
+  ___os="${___os%%-gnu}"			# redhat-linux
+  ___os="${___os##*-}"				# linux
+  ___os="${___os%%[0-9]*}"			# linux
+  mm_putenv ___os
+}
+
+# if we _have_ a uname command, use that to fill in the release pieces.
+# uname -r is POSIX spec'd so just run with it.
+# also, this is _not_ cached, linux likes updates ;)
+chkcmd uname && {
+  # shellcheck disable=SC2006
+  ___osrel="`uname -r`"
+  [ "${___osrel}" ] || unset osrel
+}
+
+[ ! -z "${___osrel:-}" ] && {			# 4.18.5-200.fc28.x86_64
+  ___osmaj="${___osrel%%\.*}"			# 4
+  ___osmin="${___osrel##"${___osmaj}."}"	# 18.5-200.fc28.x86_64
+  ___osmin="${___osmin%%-*}"			# 18.5
+  ___osmin="${___osmin%%\.*}"			# 18
+  ___osflat="${___osmaj}${___osmin}"		# 418
+}
+
+# hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
+case "${___os}" in
+  cygwin*)        ___os=cygwin ;;
+  windows32|msys)
+    ___os=win32
+    # specifically for win32, throw away the osrel pieces
+    unset ___osrel ___osmaj ___osmin ___osflat
+    # also set USER and HOME if they're not currently
+    { [ -z "${USER}" ] && [ "${USERNAME}" ] ; }    && USER="${USERNAME}"
+    { [ -z "${HOME}" ] && [ "${USERPROFILE}" ] ; } && HOME="${USERPROFILE}"
+    export USER HOME
+  ;;
+  sunos*)         [ "${___osmaj}" == 5 ] && ___os=solaris ;;
+  gnueabihf)      OPSYS=$(uname -s) ;;
+  android*)       [ -z "${USER}" ] && USER="${____default_username}" ; export USER ;;
+esac
+
+# re-save ___os
+mm_putenv ___os
+
 function set_manpath {
   local __path_prepend_list d
   __path_prepend_list=(
@@ -582,54 +665,7 @@ function getterminfo {
 # gethostinfo - initialize host variables for function use
 function gethostinfo {
   local x p
-  #?# TEST: are all unames created equal?
-  #!# all trs are *not* created equal
-  if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-  CPU=$(tolower "${HOSTTYPE}")
-  CPU=${CPU%%-linux}
-  OPSYS=${BASH_VERSINFO[5]##${CPU}-}
-  OPSYS=${OPSYS%%-gnu}
-  OPSYS=${OPSYS##*-}
-  OPSYS=${OPSYS%%[0-9]*}
-  AVER=$(uname -r)
-  MVER=${AVER%%\.*}
-  LVER=${AVER##${MVER}.}	# remainder of AVER...
-  LVER=${LVER%%-*}	# don't care about -RELEASE, -STABLE
-  LVER=${LVER%%\.*}	# don't care about sub-minor versions
-  LVER=${MVER}${LVER}
-	
-  case $OPSYS in
-    # hack around cygwin including the Windows ver
-    cygwin*) OPSYS=cygwin ;;
-    # shorten 'windows32' set USER, HOME
-    windows32|msys)
-      OPSYS=win32
-      unset LVER	# version of MSYS?
-      unset MVER
-      # you cannot call chkcmd yet
-      [ -z "$USER" ] && USER=$USERNAME
-      [ -z "$HOME" ] && HOME=$USERPROFILE
-      ;;
-    # the first of MANY hacks around solaris
-    sunos)
-      CPU=$(uname -p|tr '[:upper:]' '[:lower:]')
-      [ "${MVER}" == 5 ] && OPSYS="solaris"
-      ;;
-    # OS X is actually similar here
-    darwin)
-      CPU=$(uname -p|tr '[:upper:]' '[:lower:]') ;;
-    android*) export USER=rjlocal ;;
-    # what the fuck raspbian
-    gnueabihf)
-      OPSYS=$(uname -s)
-    ;;
-  esac
 
-  # i?86 == x86
-  if [ "${CPU:2}" == 86 ] || [ "${CPU:2}" == "86-pc" ]; then
-    [ "${CPU:0:1}" == "i" ] && CPU="x86"
-  fi
-	
   # are we a laptop (rather, do we have ACPI or APM batteries?)
   case ${OPSYS} in
     linux|android*)
