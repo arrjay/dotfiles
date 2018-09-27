@@ -537,6 +537,45 @@ genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/
                 "${HOME}/bin/${___os}-${___cpu}" "${HOME}/bin/${___os}${___osmaj}-${___cpu}" "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
                 "${HOME}/bin/noarch" "${HOME}/bin/${___host}"
 
+# envvars for auxiliary programs should go about here.
+## perl
+if [ -d "${HOME}"/Library/perl5 ]; then
+  export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
+  export PERL_MM_OPT="INSTALL_BASE=${HOME}/Library/perl5"
+  export PERL_LOCAL_LIB_ROOT="${HOME}/Library/perl5"
+  genappend PERL5LIB "${HOME}/Library/perl5"
+  if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
+    genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
+    if [ -d "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
+      genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
+    fi
+  fi
+fi
+
+# configure GOPATH/GOROOT here
+if [ -f "${HOME}/Library/go-dist/bin/go" ] ; then
+  # go distribution in go-dist, gopath in go, gox is happy, go away.
+  export GOROOT="${HOME}/Library/go-dist"
+fi
+if [ -d "${HOME}/Library/go" ]; then
+  if [ -f "${HOME}/Library/go/bin/go" ] ; then
+    # found a go _compiler_ so this is a complete install.
+    if [ ! -z "${GOROOT}" ] ; then
+      if [[ -n ${PS1} ]]; then
+        # warn of stupid times ahead.
+        echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
+      fi
+    fi
+    export GOROOT="${HOME}/Library/go"
+  else
+    if [ ! -z "${GOPATH}" ] ; then
+      genprepend GOPATH "${HOME}/Library/go"
+    else
+      export GOPATH="${HOME}/Library/go"
+    fi
+  fi
+fi
+
 function set_manpath {
   local __path_prepend_list d
   __path_prepend_list=(
@@ -721,43 +760,7 @@ function hostsetup {
 
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
-  # set PERL5LIB here
-  if [ -d "${HOME}"/Library/perl5 ]; then
-    export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
-    export PERL_MM_OPT="INSTALL_BASE=${HOME}/Library/perl5"
-    export PERL_LOCAL_LIB_ROOT="${HOME}/Library/perl5"
-    genappend PERL5LIB "${HOME}/Library/perl5"
-    if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
-      genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
-      if [ -d "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
-        genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
-      fi
-    fi
-  fi
 
-  # configure GOPATH/GOROOT here
-  if [ -f "${HOME}"/Library/go-dist/bin/go ] ; then
-    # go distribution in go-dist, gopath in go, gox is happy, go away.
-    export GOROOT="${HOME}/Library/go-dist"
-  fi
-  if [ -d "${HOME}"/Library/go ]; then
-    if [ -f "${HOME}"/Library/go/bin/go ] ; then
-      # found a go _compiler_ so this is a complete install.
-      if [ ! -z "${GOROOT}" ] ; then
-        if [[ -n ${PS1} ]]; then
-          # warn of stupid times ahead.
-          echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
-        fi
-      fi
-      export GOROOT="${HOME}/Library/go"
-    else
-      if [ ! -z "${GOPATH}" ] ; then
-        genprepend GOPATH "${HOME}/Library/go"
-      else
-        export GOPATH="${HOME}/Library/go"
-      fi
-    fi
-  fi
 
   # add our personal ~/Library subdirectories
   for dir in "${HOME}"/Library/*/lib ; do
