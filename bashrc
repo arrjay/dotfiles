@@ -8,6 +8,7 @@
 
 # the triple underscores are because a lot of vendor shell extensions use double underscore and we don't want to stomp on that.
 # on the other hand, stuff you might want to run is not prefixed at all. YOLO.
+# the *quadruple* underscores are functions only used while initializing the environment and should be unset later.
 
 # specifically run these before debugging is even enabled to grab shell state - especially ${_}
 ___bash_invocation_parent=${_}
@@ -55,7 +56,7 @@ ___lc () {
 }
 
 # tolower - convert string to lower case
-function tolower {
+tolower () {
   local word ch ; word="${1}"
   case "${___bashmaj}" in
     2|3)
@@ -99,15 +100,15 @@ ___chkdef () {
 }
 
 # placeholders, simply return 1 as the cache doesn't work yet
-function mm_putenv {
+mm_putenv () {
   return 1
 }
 
-function mm_setenv {
+mm_setenv () {
   return 1
 }
 
-function zapcmdcache {
+zapcmdcache () {
   hash -r
 }
 
@@ -166,7 +167,7 @@ printf -v __git_printf_supports_v -- '%s' yes >/dev/null 2>&1
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
 # you need to specify the variable and the element!
-function genstrip {
+genstrip () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
   eval "${1}"=\""${!1//':'"${2}":/:}"\"
   eval "${1}"=\""${!1%:"${2}"}"\"
@@ -174,7 +175,7 @@ function genstrip {
 }
 
 [ "${__git_printf_supports_v}" == "yes" ] && {
-  function genstrip {
+  genstrip () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
     local n s t
     t="${!1}"
@@ -188,7 +189,7 @@ function genstrip {
 
 # this reverts commit e80ab23b5e
 # check environment variables exist, make if needed
-function cke {
+cke () {
   [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
   local x
   for x in "${@}" ; do
@@ -201,7 +202,7 @@ function cke {
 }
 
 [ "${__git_printf_supports_v}" == "yes" ] && {
-  function cke {
+  cke () {
     [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
     local x
     for x in "${@}" ; do
@@ -217,7 +218,7 @@ function cke {
 
 # genappend - add directory element to path-like element
 # you need variable, then element
-function genappend {
+genappend () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
   local e d
   e="${1}" ; shift
@@ -229,7 +230,7 @@ function genappend {
 }
 
 [ "${__git_printf_supports_v}" == "yes" ] && {
-  function genappend {
+  genappend () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
     e="${1}" ; shift
@@ -243,7 +244,7 @@ function genappend {
 }
 
 # genprepend - add directory elements to FRONT of path-like list (NOTE: takes arguments as loop - later args are in the front!)
-function genprepend {
+genprepend () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
   local e d
   e="${1}" ; shift
@@ -255,7 +256,7 @@ function genprepend {
 }
 
 [ "${__git_printf_supports_v}" == "yes" ] && {
-  function genprepend {
+  genprepend () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
     e="${1}" ; shift
@@ -269,10 +270,11 @@ function genprepend {
 }
 
 # we keep pathappend and pathprepend, even though not used, for interactive purposes :)
-function pathappend {
+pathappend () {
   genappend PATH "${@}"
 }
-function pathprepend {
+
+pathprepend () {
   genprepend PATH "${@}"
 }
 
@@ -314,7 +316,7 @@ ___init_cachedir && {
   }
 
   # mm_putenv - save environment memo
-  function mm_putenv {
+  mm_putenv () {
     local env val ; env="${1}" ; val="${!1}"
     [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: save environment variable to memoization system" ; return 2 ; }
 
@@ -323,7 +325,7 @@ ___init_cachedir && {
   }
 
   # mm_setenv - read environment memo if available (NOTE: this will _replace_ the envvar)
-  function mm_setenv {
+  mm_setenv () {
     local env ; env="${1}"
     [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: restore environment variable from memoization system" ; return 2 ; }
 
@@ -335,7 +337,7 @@ ___init_cachedir && {
     return 1
   }
 
-  function zapcmdcache {
+  zapcmdcache () {
     ___vfy_cachesys zapcmdcache || return $?
     rm -rf "${BASH_CACHE_DIRECTORY}"/{chkcmd,env}/*
     hash -r
@@ -343,7 +345,7 @@ ___init_cachedir && {
 }
 
 # try turning the bashrc ref (if any) into an absolute path
-function ___find_bashrc_file () {
+____find_bashrc_file () {
   local rcpath linkdest abspath
   # first, handle ./path/to/thing
   if [ "${___bash_source_path}" ]; then
@@ -367,8 +369,8 @@ function ___find_bashrc_file () {
 }
 
 # shellcheck disable=SC2006
-___bashrc_dir="`___find_bashrc_file`"
-___bashrc_dir="${___bashrc_dir%/*}"
+____bashrc_dir="`___find_bashrc_file`"
+____bashrc_dir="${___bashrc_dir%/*}"
 
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()
