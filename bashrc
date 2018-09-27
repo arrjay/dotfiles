@@ -123,7 +123,7 @@ ___vfy_cachesys () {
 # configure command caching/tokenization dir
 ___cache_checked=0	# track if we've already run...
 ___cache_active=0
-___init_cachedir () {
+____init_cachedir () {
   local _host
   # have I been here before?
   case "${___cache_checked}${___cache_active}" in
@@ -296,7 +296,7 @@ ___chkdef mkdir && md () {
 
 # after defining md (or not), roll along with the rest of the cache system. this redefines stubs we had up above with versions that cache.
 # chkcmd - check if specific _command_ is present, now with memoization
-___init_cachedir && {
+____init_cachedir && {
   chkcmd () {
     local cmd found ; cmd="${1}"
     [ -z "${cmd}" ] && { ___error_msg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
@@ -343,6 +343,7 @@ ___init_cachedir && {
     hash -r
   }
 }
+unset -f ____init_cachedir
 
 # try turning the bashrc ref (if any) into an absolute path
 ____find_bashrc_file () {
@@ -369,8 +370,9 @@ ____find_bashrc_file () {
 }
 
 # shellcheck disable=SC2006
-____bashrc_dir="`___find_bashrc_file`"
-____bashrc_dir="${___bashrc_dir%/*}"
+___bashrc_dir="`____find_bashrc_file`"
+unset -f ____find_bashrc_file
+___bashrc_dir="${___bashrc_dir%/*}"
 
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()
