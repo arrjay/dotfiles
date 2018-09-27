@@ -230,7 +230,7 @@ function genappend {
     for d in "${@}" ; do
       genstrip "${e}" "${d}"
       t="${!e}"
-      [ -d "${d}" ] && builtin printf -v "${1}" '%s' "${t}:${d}"
+      [ -d "${d}" ] && builtin printf -v "${e}" '%s' "${t}:${d}"
     done
     cke "${e}"
   }
