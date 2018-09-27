@@ -59,19 +59,27 @@ function _tolower {
       ;;
     *)
       # this is _much_ easier in set -x output ;)
-      printf '%s' "%{word,,}" ;;
+      printf '%s' "${word,,}" ;;
   esac
 }
 
 # determine if a given _command_ exists.
 __chkcmd () {
-  local found cmd
+  local cmd
   cmd="${1}"
   #shellcheck disable=SC2006
   case `type -tf "${cmd}" 2>&1` in
     file) return 0 ;;
     *)    return 1 ;;
   esac
+}
+
+# determine if a given command or function exists.
+__chkdef () {
+  local cmd
+  cmd="${1}"
+  type "${cmd}" 2>&1 | :
+  return "${PIPESTATUS[0]}"
 }
 
 # we're going to override this in a moment...
@@ -99,41 +107,39 @@ function mm_getenv {
 # configure command caching/tokenization dir
 __cache_checked=0	# track if we've already run...
 __cache_active=0
-_get_cachedir () {
+_init_cachedir () {
   local _host cachedir
   # have I been here before?
   case "${__cache_checked}${__cache_active}" in
-    00|01) : ;; # not initialized yet
     10) return 1 ;; # not going to work
-    11) echo "${BASH_CACHE_DIRECTORY}" ; return 0 ;; # already done
+    11) return 0 ;; # already done
   esac
   # do I have a homedir that is a valid directory?
-  [ -d "${HOME}" ] || { __cache_checked=1 ; return 1 ; }
+  [ -d "${HOME}" ] || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
   # is the home directory / ? (okay, actually, is it one character long?)
-  case "${#HOME}" in 1) { __cache_checked=1 ; return 1 ; } ; esac
+  case "${#HOME}" in 1) { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; esac
 
   # build a potential cache directory
   [ -z "${BASH_CACHE_DIRECTORY}" ] && {
     BASH_CACHE_DIRECTORY="${HOME}/.cmdcache" ; _host=${HOSTNAME:-}
 
-    [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${cachedir}/${_host}"
-    [ -z "${__bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${cachedir}-${__bash_host_tuple}"
+    [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${_host}"
+    [ -z "${__bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}-${__bash_host_tuple}"
   }
 
   # actually try creating that directory
-  _chkcmd _md || { __cache_checked=1 ; return 1 ; }
-  _md "${BASH_CACHE_DIRECTORY}" || { __cache_checked=1 ; return 1 ; }
+  __chkdef _md || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  _md "${BASH_CACHE_DIRECTORY}" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # check if we can write _in_ the directory
-  touch "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; return 1 ; }
-  rm "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; return 1 ; }
+  touch "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  rm "${BASH_CACHE_DIRECTORY}/.lck" || { __cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   __cache_checked=1 ; __cache_active=1
-  echo "${BASH_CACHE_DIRECTORY}"
 }
 
 # chkcmd - check if specific _command_ is present, now with memoization
-[ "${__cache_checked}${__cache_active}" == '11' ] && {
+_init_cachedir && {
   _chkcmd () {
     local cmd found ; cmd="${1}"
     [ -z "${cmd}" ] && { __error_msg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
@@ -512,7 +518,7 @@ function gethostinfo {
   #?# TEST: are all unames created equal?
   #!# all trs are *not* created equal
   if [ -x /usr/bin/tr ]; then alias tr=/usr/bin/tr; fi
-  CPU=$(tolower "${HOSTTYPE}")
+  CPU=$(_tolower "${HOSTTYPE}")
   CPU=${CPU%%-linux}
   OPSYS=${BASH_VERSINFO[5]##${CPU}-}
   OPSYS=${OPSYS%%-gnu}
