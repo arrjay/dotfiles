@@ -504,6 +504,7 @@ mm_setenv ___os || {
   ___os="${___os%%-gnu}"			# redhat-linux
   ___os="${___os##*-}"				# linux
   ___os="${___os%%[0-9]*}"			# linux
+  ___os=`tolower "${___os}"`			# linux
   mm_putenv ___os
 }
 
@@ -543,6 +544,12 @@ esac
 
 # re-save ___os
 mm_putenv ___os
+
+# set up more of the loader environment now
+genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/Applications/"*/bin \
+                "${HOME}/.cargo/bin" "${HOME}/.rvm/bin" \
+                "${HOME}/bin/${___os}-${___cpu}" "${HOME}/bin/${___os}${___osmaj}-${___cpu}" "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
+                "${HOME}/bin/noarch" "${HOME}/bin/${___host}"
 
 function set_manpath {
   local __path_prepend_list d
@@ -729,18 +736,6 @@ function hostsetup {
 # pbinsetup - load personal bin directory for host
 function pbinsetup {
   local dir
-  # add our personal ~/Applications subdirectories
-  for dir in "${HOME}"/Library/Python/*/bin "${HOME}"/Library/*/bin "${HOME}"/Applications/*/bin ; do
-    genprepend PATH "${dir}"
-  done
-
-  genprepend PATH "${HOME}/.cargo/bin"
-  genprepend PATH "${HOME}/.rvm/bin"
-  genprepend PATH "${HOME}/bin/${OPSYS}-${CPU}"
-  genprepend PATH "${HOME}/bin/${OPSYS}${MVER}-${CPU}"
-  genprepend PATH "${HOME}/bin/${OPSYS}${LVER}-${CPU}"
-  genprepend PATH "${HOME}/bin/noarch"
-  genprepend PATH "${HOME}/bin/${HOST}"
 
   # set PERL5LIB here
   if [ -d "${HOME}"/Library/perl5 ]; then
