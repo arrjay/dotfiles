@@ -195,7 +195,7 @@ ____init_cachedir () {
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
 # shellcheck disable=SC2006
-___printf_supports_v=`printf -v test -- '%s' yes ; printf '%s' "${test}"`
+___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${test}"`
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
