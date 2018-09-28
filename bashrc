@@ -595,6 +595,18 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
+# cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
+# source file if executeable and ending in .bash
+sourcex () {
+  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .sh)" ; return 1 ; }
+  local f
+  for f in "${@}" ; do
+    case "${f}" in *.bash) : ;; *) continue ;; esac
+    # shellcheck disable=SC1090
+    [ -x "${f}" ] && source "${f}"
+  done
+}
+
 ## internal functions
 #-# HELPER FUNCTIONS
 #--# Text processing
@@ -602,12 +614,6 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 #?# TEST: spaces?
 function matchstart {
   grep -q "^${1}" "${2}"
-}
-
-# sourcex - source file if found executable
-function sourcex {
-  # shellcheck disable=SC1090
-  [ -x "${1}" ] && source "${1}"
 }
 
 # v_alias - overloads command with specified function if command exists
