@@ -792,22 +792,6 @@ _EOF_
   fi
 }
 
-# overloaded commands
-# (m)which - which with function expansion (when possible)
-function mwhich {
-  if [[ ${WSTR} == "0 1" ]]; then
-    (alias; declare -f) | "${REAL_WHICH}" --tty-only --read-alias --read-functions --show-tilde --show-dot "${@}"
-  else
-    if [ "${BASH_MAJOR}" -gt "2" ]; then
-      declare -f|grep -q "^${1}" && declare -f "${1}"
-    else
-      FUNCTION=$(declare -f|grep "^declare"|grep ' '"${1}"' ') && declare -f "$(echo "${FUNCTION}"|awk '{ print $3 }')"
-    fi
-    alias|grep "alias ${1}="
-      "${REAL_WHICH}" "${1}"
-  fi
-}
-
 # (m)su - su with term color change for extra attention
 function msu {
   setcscheme "${CSCHEME_SU}"
@@ -1047,9 +1031,6 @@ function monolith_aliases {
   alias copy='cp'
   alias move='mv'
   alias tracert='traceroute'
-
-  # override system which with our more flexible version...
-  alias which='mwhich'
 
   # common typo
   alias Grep='grep'
