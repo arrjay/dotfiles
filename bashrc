@@ -664,26 +664,7 @@ function gethostinfo {
 
   # are we a laptop (rather, do we have ACPI or APM batteries?)
   case ${OPSYS} in
-    linux|android*)
-      # try sysfs first.
-      {
-        ls /sys/class/power_supply/BAT* > /dev/null 2>&1 || \
-        ls /sys/class/power_supply/CMB* > /dev/null 2>&1 || \
-        ls /sys/class/power_supply/battery > /dev/null 2>&1 ;
-      } && {
-        # using sysfs to deal with power status
-        PMON_TYPE="lxsysfs"
-        # clear battery list
-        PMON_BATTERIES=""
-        for x in /sys/class/power_supply/BAT*/present /sys/class/power_supply/CMB*/present /sys/class/power_supply/battery/present ; do
-          if [ -f "${x}" ] ; then
-            read -r p < "${x}" ; if [ -n "${p}" ] && [ "${p}" == 1 ]; then
-              # we have a battery here
-              PMON_BATTERIES="$(basename "${x///present/}") $PMON_BATTERIES"
-            fi
-          fi
-        done
-      }
+    android)
       # if we have termux-battery-status *and* jq, use those.
       chkcmd termux-battery-status && chkcmd jq && PMON_TYPE="termux" && PMON_BATTERIES="termux-api"
     ;;
@@ -831,85 +812,27 @@ function unsetenv {
 function battstat {
   case "${1}" in
     cap)
-      PMON_CAP=0
       # get total capacity
-      case "${PMON_TYPE}" in
-        lxsysfs)
-          _SYSFSPATH="/sys/class/power_supply"
-          for x in $PMON_BATTERIES; do
-            # if we're reporting energy, use that first
-            # FIXME: what happens when one battery reports in energy, the other in charge? (never seen!)
-            if [ -f "$_SYSFSPATH/${x}/energy_full" ]; then
-              read -r p < $_SYSFSPATH/${x}/energy_full
-            elif [ -f "$_SYSFSPATH/${x}/charge_full" ]; then
-              read -r p < $_SYSFSPATH/${x}/charge_full
-            fi
-            PMON_CAP=$((p + PMON_CAP))
-          done
-        ;;
-        termux)
+#        termux)
           # termux only returns percentage
           PMON_CAP=100
-        ;;
-      esac
       echo "${PMON_CAP}"
     ;;
     chrg)
-      PMON_CHARGE=0
-      case $PMON_TYPE in
-        lxsysfs)
-          _SYSFSPATH="/sys/class/power_supply"
-          for x in $PMON_BATTERIES; do
-            if [ -f "$_SYSFSPATH/${x}/energy_now" ]; then
-              read -r p < $_SYSFSPATH/${x}/energy_now
-            elif [ -f $_SYSFSPATH/${x}/charge_now ] ; then
-              read -r p < $_SYSFSPATH/${x}/charge_now
-            fi
-            PMON_CHARGE=$((p + PMON_CHARGE))
-          done
-        ;;
-        termux) PMON_CHARGE=$(jq .percentage < "$HOME/.termux-battery-status") ;;
-      esac
+#        termux) PMON_CHARGE=$(jq .percentage < "$HOME/.termux-battery-status") ;;
       echo "${PMON_CHARGE}"
     ;;
     chgpct)
-      _candidate=''
-      case "${PMON_TYPE}" in
-        lxsysfs)
-          _SYSFSPATH="/sys/class/power_supply"
-          for x in $PMON_BATTERIES; do
-            [ -f $_SYSFSPATH/${x}/capacity ] && read -r _candidate < $_SYSFSPATH/${x}/capacity
-          done
-        ;;
-      esac
-      if [ -z "${_candidate}" ]; then
         echo $(($(battstat chrg)00 / $(battstat cap)))
-      else
-        echo "${_candidate}"
-      fi
     ;;
     stat)
       # discahrge (v), idle (-), or charging (^)?
       # batteries at idle is the default state
-      PMON_STAT="-"
-      case "${PMON_TYPE}" in
-        lxsysfs)
-          for x in ${PMON_BATTERIES}; do
-            read -r p < "/sys/class/power_supply/${x}/status"
-            case "${p}" in
-              Charging)    PMON_STAT="^" ;;
-              Discharging) PMON_STAT="v" ;;
-            esac
-          done
-        ;;
-        termux)
+#        termux)
           __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status")
           __status=$(jq -r .status < "$HOME/.termux-battery-status")
           [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
           [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
-        ;;
-      esac
-      echo "${PMON_STAT}"
     ;;
     *)
       echo "I don't know how to $1"
