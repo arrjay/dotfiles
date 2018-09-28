@@ -152,6 +152,10 @@ setprompt () {
       c_ua="${c_ha}"
     ;;
   esac
+  case "${___rootusr}" in
+    yes) hd="${c_hd}\#${rs}"   ;;
+    *)   hd="${c_hd}\$${rs}" ;;
+  esac
   np_start='`_prompt_left`'"${c_np_start}"'#'"${rs} "
   lsta="${c_lsta}?"'${?}'"${rs} "
   chn="${c_chn}!"'\!'"${rs} "
@@ -162,18 +166,14 @@ setprompt () {
   ha="${c_ha}${HOSTNAME}]${rs}"
   pc="${c_pc}"'`pscount`'"${rs} "
   pca="${c_pca}<"'`pscount`'">${rs} "
-  wd="${c_wd}{"'\'"W}${rs} "
-  wda="${c_wda}{"'\'"W}${rs} "
+  wd="${c_wd}{"'\'"W}${rs}"
+  wda="${c_wda}{"'\'"W}${rs}"
   clk="${c_clk}("'\t'")${rs} "
   np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
-  case "${___rootusr}" in
-    yes) hd="${c_hd}\#${rs}"   ;;
-    *)   hd="${c_hd}\$${rs}" ;;
-  esac
   case "${name}" in
     simple)      unset PROMPT_COMMAND ;;
     classic)     : ;;
-    old)         PS1="`_prompt_left`${clk}${ua}${at}${ha} "'`__git_ps1``_prompt_right`'"\\n${pca}${wda}${hd} " ;;
+    old)         PS1="`_prompt_left`${clk}${ua}${at}${ha}"'`__git_ps1``_prompt_right`'"\\n${pca}${wda} ${hd} " ;;
     timely)      PS1="${np_start}${clk}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
     new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h} ${wd}${np_end}" ;;
     new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
