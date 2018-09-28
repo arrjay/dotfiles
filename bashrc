@@ -643,12 +643,6 @@ unset -f ____hostsetup
 ## internal functions
 #-# HELPER FUNCTIONS
 #--# Text processing
-# matchstart - match word at beginning of a line (anywhere in a file) [used by getterminfo]
-#?# TEST: spaces?
-function matchstart {
-  grep -q "^${1}" "${2}"
-}
-
 # v_alias - overloads command with specified function if command exists
 function v_alias {
   if [ ! -n "${1}" ]; then
@@ -656,59 +650,6 @@ function v_alias {
     return $?
   fi
   chkcmd "${2}" && builtin alias "${1}=${2}"
-}
-
-#-# SETUP FUNCTIONS
-
-# getterminfo - initialize term variables for function use
-# we set color caps EVERY time in case of environment being handed to us via ssh/screen/?
-function getterminfo {
-  case ${TERM} in
-    ## bright (vs. bold), titleable terms
-    cygwin*)
-      TERM_CAN_TITLE=1 ; TERM_COLORSET="bright" ;TERM_CAN_SETCOLOR=0 ;;
-    ## bold, titleable terms (with background colorset cmds!)
-    xterm*|rxvt*)
-      TERM_CAN_TITLE=1 ; TERM_COLORSET="bold" ; TERM_CAN_SETCOLOR=1 ;;
-    ## bold, titlable terms (w/o background color caps)
-    # putty - not available in everyone's termcaps... we work around that.
-    putty*)
-      TERM_CAN_TITLE=1 ; TERM_COLORSET="bold" ; TERM_CAN_SETCOLOR=0
-      [[ ! ( $(matchstart "${TERM}" /etc/termcap) = 0 ) ]] && export TERM=xterm ;;
-    ## bright, not titleable
-    linux*|ansi*)
-      TERM_CAN_TITLE=0 ; TERM_COLORSET="bright" ; TERM_CAN_SETCOLOR=0 ;;
-      # okay, a lie for linux, but it sets codes very differently than Xterm.
-    ## bold, not titleable (have not seen...)
-
-    ## SCREEN
-    # ah yes, screen... just assume we're running it as an xterm
-    # it drops color codes the incoming terminal doesn't understand :)
-    # also, work around missing termcap entry. or the 'screen.linux' shit
-    screen*)
-      TERM_CAN_TITLE=1 ; TERM_COLORSET="bold" ; TERM_CAN_SETCOLOR=1
-      if [ -f /etc/termcap ]; then
-        if [[ ! ( $(matchstart "${TERM}" /etc/termcap) = 0 ) ]]; then
-          if [[ ! ( $(matchstart screen /etc/termcap) = 0 ) ]]; then
-            export TERM=xterm # be an xterm!
-          else
-            export TERM=screen
-          fi
-        fi
-        elif [ -d /usr/share/terminfo/s ]; then
-          if [ ! -f "/usr/share/terminfo/s/${TERM}" ]; then
-            if [ -f /usr/share/terminfo/s/screen ]; then
-              export TERM=screen
-            else
-              export TERM=xterm
-            fi
-          fi
-        fi
-      ;;
-      ## failsafe for when we have no idea
-      *)
-        TERM_CAN_TITLE=0 ; TERM_COLORSET="none" ; TERM_CAN_SETCOLOR=0 ;;
-  esac
 }
 
 # gethostinfo - initialize host variables for function use
@@ -746,7 +687,6 @@ function gethostinfo {
 
 
 function zapenv {
-  unset -f getterminfo
   unset -f gethostinfo
   unset -f kickenv
   unset -f matchstart
@@ -758,30 +698,12 @@ function kickenv {
   gethostinfo # set REAL_WHICH!!
   # shellcheck disable=SC1090
   [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
-  getterminfo
   # shellcheck disable=SC1090
   [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
   zapenv
 }
 
 #-# TERMINAL FUNCTIONS
-# writetitle - update xterm titlebar
-function writetitle {
-  # shellcheck disable=SC2145
-  [ ${TERM_CAN_TITLE} == 1 ] && echo -ne "\\e]0;${@}\\a"
-}
-
-# setcolors - set xterm/rxvt background/foreground/highlight colors
-# arguments (fgcolor bgcolor) <- arguments as colorstrings (termspecific)
-function setcolors {
-  # shellcheck disable=SC2145
-  [ ${TERM_CAN_SETCOLOR} == 1 ] && {
-    echo -ne "\\e]10;${1}\\a" # foreground
-    echo -ne "\\e]17;${1}\\a" # highlight
-    echo -ne "\\e]11;${2}\\a" # background
-  }
-}
-
 
 # display functions
 # pscount - return count of processes on this system (stub, returns -1. should be replaced by opsys-specific call.)
@@ -1314,15 +1236,15 @@ function setprompt {
         PS1="${INVNAME}-${BASH_MAJOR}.${BASH_MINOR}${HD} "
       ;;
       classic)
-        PROMPT_COMMAND="writetitle ${USER}@${HOSTNAME}:\`pwd\`"
+        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
         setprompt simple
       ;;
       old)
-        PROMPT_COMMAND="writetitle ${USER}@${HOSTNAME}:\`pwd\`"
+        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
         PS1="${BC_LT_GRA}\\t ${BC_PR}[\\u@${HOSTNAME}] ${BC_BL}{${CURTTY}}${RS}"'`__git_ps1``prompt_ext`'"\\n${BC_RED}<"'$(pscount)'"> ${BC_GRN}(\\W) ${BC_BR}${HD}${RS} "
       ;;
       timely)
-        PROMPT_COMMAND="writetitle ${USER}@${HOSTNAME}:\`pwd\`"
+        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
         case "${TERM_COLORSET}" in
           bold|bright)
             PS1="${BC_BR}#${RS} ${BC_CY}(\\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
@@ -1334,7 +1256,7 @@ function setprompt {
       ;;
       new_nocount)
         # like new, but hides the process count
-        PROMPT_COMMAND="writetitle ${USER}@${HOSTNAME}:\`pwd\`"
+        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
         case ${TERM_COLORSET} in
           bold|bright)
             PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOSTNAME}${RS} ${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
@@ -1346,7 +1268,7 @@ function setprompt {
       ;;
       new_pmon)
         # new prompt with battery minder
-        PROMPT_COMMAND="writetitle ${USER}@${HOSTNAME}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
+        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
         case ${TERM_COLORSET} in
           bold|bright)
             PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOSTNAME}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
@@ -1357,7 +1279,7 @@ function setprompt {
         esac
       ;;
       new|*)
-        PROMPT_COMMAND="writetitle ${USER}@${HOSTNAME}:\`pwd\`"
+        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
         case ${TERM_COLORSET} in
           bold|bright)
             PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOSTNAME}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"

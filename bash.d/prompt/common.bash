@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 ___term_cset="${TERM_COLORSET:-}"
+___term_titlecap="no"
+___term_setcolor="no"
 
 # helper function to make ansi colors
 # colorsets are: std, bold, ul, bg, hi, bhi, hibg
@@ -69,3 +71,40 @@ _ac () {
   esac
   [ "${str}" ] && printf %b "${str}"
 }
+
+# write a title to xterm or rxvt compate titlebars
+_wt () {
+  [ "${___term_titlecap}" == "yes" ] && echo -ne '\e]0;'"${*}"'\a'
+}
+
+# set full fg/bg colors - this takes xparsecolor(3) format - rgb:hh/hh/hh is encouraged.
+# channels are: fg bg cu hi
+_sc () {
+  local channel color
+  channel="${1}" ; color="${2}"
+  { [ "${channel}" ] && [ "${color}" ] ; } || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: channel[fg,bg,cu,hi], color[xparsecolor])" ; return 1 ; }
+  [ "${___term_setcolor}" == "yes" ] || return 0
+  case "${channel}" in
+    fg) str='\e]10' ;;
+    bg) str='\e]11' ;;
+    cu) str='\e]12' ;;
+    hi) str='\e]17' ;;
+    *) ___error_msg "${FUNCNAME[0]}: channel ${channel} invalid - pick [fg,bg,cu,hi]" ; return 1 ; ;;
+  esac
+  str="${str}${color}"'\a'
+  printf %b "${str}"
+}
+
+# configure terminal capabilities from what we have
+____termsetup () {
+  case "${TERM}" in
+    cygwin*)      ___term_titlecap='yes' ; ___term_setcolor='no'  ; ___term_cset="${TERM_COLORSET:-bright}" ;;
+    xterm*|rxvt*) ___term_titlecap='yes' ; ___term_setcolor='yes' ; ___term_cset="${TERM_COLORSET:-bold}"   ;;
+    putty*)       ___term_titlecap='yes' ; ___term_setcolor='yes' ; ___term_cset="${TERM_COLORSET:-bold}"   ;;
+    linux*|ansi*) ___term_titlecap='no'  ; ___term_setcolor='no'  ; ___term_cset="${TERM_COLORSET:-bright}" ;;
+    screen*)      ___term_titlecap='yes' ; ___term_setcolor='yes' ; ___term_cset="${TERM_COLORSET:-bold}"   ;;
+  esac
+}
+
+[[ -n "${PS1}" ]] && ____termsetup
+unset -f ____termsetup
