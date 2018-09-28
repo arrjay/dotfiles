@@ -165,6 +165,7 @@ setprompt () {
   wd="${c_wd}{"'\'"W}${rs} "
   wda="${c_wda}{"'\'"W}${rs} "
   clk="${c_clk}("'\t'")${rs} "
+  np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
   case "${___rootusr}" in
     yes) hd="${c_hd}\#${rs}"   ;;
     *)   hd="${c_hd}\$${rs}" ;;
@@ -173,10 +174,10 @@ setprompt () {
     simple)      unset PROMPT_COMMAND ;;
     classic)     : ;;
     old)         PS1="`_prompt_left`${clk}${ua}${at}${ha} "'`__git_ps1``_prompt_right`'"\\n${pca}${wda}${hd} " ;;
-    timely)      PS1="${np_start}`_ac cy`(\\t)`_ac rs` ${lsta}${chn}${u}${at}${h} ${pc}${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
-    new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h} ${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
-    new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
-    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} `_ac grn std`"'`_battstat prompt`'"`_ac rs` ${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    timely)      PS1="${np_start}${clk}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
+    new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h} ${wd}${np_end}" ;;
+    new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
+    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} `_ac grn std`"'`_battstat prompt`'"`_ac rs` ${wd}${np_end}" ;;
   esac
 }
 setprompt new_nocount
