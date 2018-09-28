@@ -112,14 +112,16 @@ ____termsetup () {
 unset -f ____termsetup
 
 # placeholder functions for the prompt
+# if you redefine these, you need to pass along the previous rc
+___pre_prompt_rc=0
 _prompt_right () {
   printf '%s' ' '
+  return "${___pre_prompt_rc}"
 }
 
 _prompt_left () {
-  # if you redefine this, you need to pass along the previous rc
-  rc="${?}"
-  return "${rc}"
+  rc="${?}" ; ___pre_prompt_rc="${rc}"
+  return "${___pre_prompt_rc}"
 }
 
 # shellcheck disable=SC2154,SC2006
@@ -129,8 +131,8 @@ setprompt () {
   # prompt command is mostly the same...
   PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\${PWD}"
   PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
-  local hd np_start lsta chn u at h pc
-  local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc
+  local hd np_start lsta chn u at h pc wd clk pca wda ha ua
+  local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc c_wd c_clk c_pca c_wda c_ha c_ua
   rs=`_ac rs`
   case "${prompt_scheme}" in
     basic|*)
@@ -142,15 +144,27 @@ setprompt () {
       c_at=`_ac grn std`
       c_h="${c_u}"
       c_pc=`_ac grn std`
+      c_wd=`_ac pur std`
+      c_clk=`_ac cy`
+      c_pca=`_ac red std`
+      c_wda=`_ac grn`
+      c_ha=`_ac pur std`
+      c_ua="${c_ha}"
     ;;
   esac
   np_start='`_prompt_left`'"${c_np_start}"'#'"${rs} "
   lsta="${c_lsta}?"'${?}'"${rs} "
   chn="${c_chn}!"'\!'"${rs} "
   u="${c_u}"'\'"u${rs}"
+  ua="${c_ua}["'\'"u${rs}"
   at="${c_at}@${rs}"
-  h="${c_h}${HOSTNAME}${rs} "
+  h="${c_h}${HOSTNAME}${rs}"
+  ha="${c_ha}${HOSTNAME}]${rs}"
   pc="${c_pc}"'`pscount`'"${rs} "
+  pca="${c_pca}<"'`pscount`'">${rs} "
+  wd="${c_wd}{"'\'"W}${rs} "
+  wda="${c_wda}{"'\'"W}${rs} "
+  clk="${c_clk}("'\t'")${rs} "
   case "${___rootusr}" in
     yes) hd="${c_hd}\#${rs}"   ;;
     *)   hd="${c_hd}\$${rs}" ;;
@@ -158,11 +172,11 @@ setprompt () {
   case "${name}" in
     simple)      unset PROMPT_COMMAND ;;
     classic)     : ;;
-    old)         PS1="`_ac wh std`\\t `_ac pur std`[\\u@${HOSTNAME}] `_ac blu`{${CURTTY}}`_ac rs`"'`__git_ps1``_prompt_right`'"\\n`_ac red std`<"'`pscount`'"> `_ac grn`(\\W) ${hd} " ;;
-    timely)      PS1="${np_start}`_ac cy`(\\t)`_ac rs` ${lsta}${chn}${u}${at}${h}${pc}`_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
-    new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h}`_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
-    new)         PS1="${np_start}${lsta}${chn}${u}${at}${h}${pc}`_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
-    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h}`_ac grn std`"'`_battstat prompt`'"`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    old)         PS1="`_prompt_left`${clk}${ua}${at}${ha} "'`__git_ps1``_prompt_right`'"\\n${pca}${wda}${hd} " ;;
+    timely)      PS1="${np_start}`_ac cy`(\\t)`_ac rs` ${lsta}${chn}${u}${at}${h} ${pc}${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h} ${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} `_ac grn std`"'`_battstat prompt`'"`_ac rs` ${wd}"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
   esac
 }
 setprompt new_nocount
