@@ -604,8 +604,8 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()
 [ -d "${BASH_AUX_FILES}" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
-[ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
 [ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
+[ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
 
 # source file if executeable and ending in .bash
 sourcex () {
