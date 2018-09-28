@@ -9,6 +9,8 @@ ___term_setcolor="no"
 _ac () {
   local color str set ; color="${1}" ; set="${2:-${___term_cset}}"
   [ -z "${color}" ] && { ___error_msg "${FUNCNAME[0]}: missing operand (needs: color: [rs,blk,red,grn.yel,blu,pur,cy,wh])" ; return 1; }
+  # reset colorset to nothing if term cset is totally empty
+  [ -z "${___term_cset}" ] && set=''
   case "${set}_${color}" in
     std_blk)  str='\e[0;30m'  ;;
     std_red)  str='\e[0;31m'  ;;
@@ -108,3 +110,36 @@ ____termsetup () {
 
 [[ -n "${PS1}" ]] && ____termsetup
 unset -f ____termsetup
+
+# placeholder functions for the prompt
+_prompt_right () {
+  printf '%s' ' '
+}
+
+_prompt_left () {
+  :
+}
+
+# shellcheck disable=SC2154,SC2006
+setprompt () {
+  local name ; name="${1:-}"
+  [ -n "${PS1}" ] || return 0
+  # prompt command is mostly the same...
+  PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\${PWD}"
+  PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
+  local hd
+  case "${___rootusr}" in
+    yes) hd='#'   ;;
+    *)   hd='$' ;;
+  esac
+  case "${name}" in
+    simple)      unset PROMPT_COMMAND ;;
+    classic)     : ;;
+    old)         PS1="`_ac wh std`\\t `_ac pur std`[\\u@${HOSTNAME}] `_ac blu`{${CURTTY}}`_ac rs`"'`__git_ps1``_prompt_right`'"\\n`_ac red std`<"'`pscount`'"> `_ac grn`(\\W) `_ac yel`${hd}`_ac rs` " ;;
+    timely)      PS1="`_ac yel std`#`_ac rs` `_ac cy`(\\t)`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac grn std`"'`pscount`'" `_ac rs``_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
+    new_nocount) PS1="`_ac yel std`#`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
+    new)         PS1="`_ac yel std`#`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac grn std`"'`pscount`'"`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
+    new_pmon)    PS1="`_ac yel std`#`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac grn std`"'`_battstat prompt`'"`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
+  esac
+}
+setprompt new_nocount

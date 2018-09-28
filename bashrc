@@ -633,6 +633,7 @@ ____hostsetup () {
             "${d}/extensions/bash${___bashmaj}.bash" \
             "${d}/prompt/common.bash" \
             "${d}/prompt/bash${___bashmaj}.bash" \
+            "${d}/prompt/${___os}.bash" \
             "${d}/host/${___host}.bash"
   done
 }
@@ -704,12 +705,6 @@ function kickenv {
 }
 
 #-# TERMINAL FUNCTIONS
-
-# display functions
-# pscount - return count of processes on this system (stub, returns -1. should be replaced by opsys-specific call.)
-function pscount {
-  echo -n "-255"
-}
 
 function _properties {
   echo -n "${JBVERSTRING}"
@@ -1213,78 +1208,6 @@ export PASSWORD_STORE_SIGNING_KEY=B1A086C36A2C52A79015F25C95B6669B9D085FA5
 export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
-# hook for extension.sh prompt text
-function prompt_ext {
-  echo -n ' '
-}
-
-# export the prompt
-function setprompt {
-  # shellcheck disable=SC2006
-  # disable all backtick checks here because PS1 evaluation is "different"
-  if [[ -n "${PS1}" ]]; then
-    case "$1" in
-      simple)
-        PS1="${INVNAME}-${BASH_MAJOR}.${BASH_MINOR}${HD} "
-      ;;
-      classic)
-        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
-        setprompt simple
-      ;;
-      old)
-        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
-        PS1="${BC_LT_GRA}\\t ${BC_PR}[\\u@${HOSTNAME}] ${BC_BL}{${CURTTY}}${RS}"'`__git_ps1``prompt_ext`'"\\n${BC_RED}<"'$(pscount)'"> ${BC_GRN}(\\W) ${BC_BR}${HD}${RS} "
-      ;;
-      timely)
-        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
-        case "${TERM_COLORSET}" in
-          bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_CY}(\\t)${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_GRN}@${RS}${BC_LT_GRA}${HOST}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
-          ;;
-          *)
-            PS1="# (\\t) ?"'${?}'" !\\! \\u@${HOSTNAME} $(pscount) {\\W}`__git_ps1``prompt_ext` ${HD}\\n" # mono
-          ;;
-        esac
-      ;;
-      new_nocount)
-        # like new, but hides the process count
-        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
-        case ${TERM_COLORSET} in
-          bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOSTNAME}${RS} ${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
-          ;;
-          *)
-            PS1="# ?"'${?}'" !\\! \\u@${HOSTNAME} {\\W}"'`__git_ps1``prompt_ext`'"${HD}\\n" # mono
-          ;;
-        esac
-      ;;
-      new_pmon)
-        # new prompt with battery minder
-        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`;case $PMON_TYPE in termux) (flock -w 2 -xn $HOME/.termux-battery-status-lock bash -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & ) ;; esac"
-        case ${TERM_COLORSET} in
-          bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}\\u${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOSTNAME}${RS} ${BC_GRN}"'`pscount`'" ${RS}("'`battstat chgpct`'"%"'`battstat stat`'") ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
-          ;;
-          *)
-            PS1="# ?"'${?}'" !\\! \\u@${HOSTNAME} $(pscount) (`battstat chgpct`%`battstat stat`) {\\W}"'`__git_ps1``prompt_ext`'"${HD}\\n" # mono
-          ;;
-        esac
-      ;;
-      new|*)
-        PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\`pwd\`"
-        case ${TERM_COLORSET} in
-          bold|bright)
-            PS1="${BC_BR}#${RS} ${BC_PR}?"'${?}'"${RS} ${BC_GRN}!\\!${RS} ${BC_LT_GRA}${USER}${RS}${BC_CY}@${RS}${BC_LT_GRA}${HOSTNAME}${RS} ${BC_GRN}"'`pscount`'" ${RS}${BC_PR}{\\W}${RS}"'`__git_ps1``prompt_ext`'"${BC_BR}${HD}${RS}\\n"
-          ;;
-          *)
-            PS1="# ?"'${?}'" !\\! ${USER}@${HOSTNAME} $(pscount) {\\W}"'`__git_ps1``prompt_ext`'"${HD}\\n" # mono
-          ;;
-        esac
-      ;;
-    esac
-  fi
-}
-
 # cleanup
 function monolith_cleanup {
   unset -f monolith_setfunc
@@ -1321,16 +1244,6 @@ if [[ -n ${PS1} ]]; then
       lyric
     }
   fi
-fi
-
-if [ "${OPSYS}" != "cygwin" ] && [ "${OPSYS}" != "win32" ]; then
-  if [ "${PMON_BATTERIES}" ] ; then
-    setprompt new_pmon
-  else
-    setprompt
-  fi
-else
-  setprompt new_nocount
 fi
 
 monolith_cleanup
