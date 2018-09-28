@@ -117,29 +117,52 @@ _prompt_right () {
 }
 
 _prompt_left () {
-  :
+  # if you redefine this, you need to pass along the previous rc
+  rc="${?}"
+  return "${rc}"
 }
 
 # shellcheck disable=SC2154,SC2006
 setprompt () {
-  local name ; name="${1:-}"
+  local name prompt_scheme ; name="${1:-}" ; prompt_scheme="${2:-basic}"
   [ -n "${PS1}" ] || return 0
   # prompt command is mostly the same...
   PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\${PWD}"
   PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
-  local hd
+  local hd np_start lsta chn u at h pc
+  local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc
+  rs=`_ac rs`
+  case "${prompt_scheme}" in
+    basic|*)
+      c_hd=`_ac yel`
+      c_np_start=`_ac yel std`
+      c_lsta=`_ac pur std`
+      c_chn=`_ac grn std`
+      c_u=`_ac wht std`
+      c_at=`_ac grn std`
+      c_h="${c_u}"
+      c_pc=`_ac grn std`
+    ;;
+  esac
+  np_start='`_prompt_left`'"${c_np_start}"'#'"${rs} "
+  lsta="${c_lsta}?"'${?}'"${rs} "
+  chn="${c_chn}!"'\!'"${rs} "
+  u="${c_u}"'\'"u${rs}"
+  at="${c_at}@${rs}"
+  h="${c_h}${HOSTNAME}${rs} "
+  pc="${c_pc}"'`pscount`'"${rs} "
   case "${___rootusr}" in
-    yes) hd='#'   ;;
-    *)   hd='$' ;;
+    yes) hd="${c_hd}\#${rs}"   ;;
+    *)   hd="${c_hd}\$${rs}" ;;
   esac
   case "${name}" in
     simple)      unset PROMPT_COMMAND ;;
     classic)     : ;;
-    old)         PS1="`_ac wh std`\\t `_ac pur std`[\\u@${HOSTNAME}] `_ac blu`{${CURTTY}}`_ac rs`"'`__git_ps1``_prompt_right`'"\\n`_ac red std`<"'`pscount`'"> `_ac grn`(\\W) `_ac yel`${hd}`_ac rs` " ;;
-    timely)      PS1="`_ac yel std`#`_ac rs` `_ac cy`(\\t)`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac grn std`"'`pscount`'" `_ac rs``_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
-    new_nocount) PS1="`_ac yel std`#`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
-    new)         PS1="`_ac yel std`#`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac grn std`"'`pscount`'"`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
-    new_pmon)    PS1="`_ac yel std`#`_ac rs` `_ac pur std`?"'${?}'"`_ac rs` `_ac grn std`!\\!`_ac rs` `_ac wh std`\\u`_ac rs``_ac grn std`@`_ac rs``_ac wh std`${HOSTNAME}`_ac rs` `_ac grn std`"'`_battstat prompt`'"`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"`_ac yel`${hd}`_ac rs`\\n" ;;
+    old)         PS1="`_ac wh std`\\t `_ac pur std`[\\u@${HOSTNAME}] `_ac blu`{${CURTTY}}`_ac rs`"'`__git_ps1``_prompt_right`'"\\n`_ac red std`<"'`pscount`'"> `_ac grn`(\\W) ${hd} " ;;
+    timely)      PS1="${np_start}`_ac cy`(\\t)`_ac rs` ${lsta}${chn}${u}${at}${h}${pc}`_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h}`_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    new)         PS1="${np_start}${lsta}${chn}${u}${at}${h}${pc}`_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
+    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h}`_ac grn std`"'`_battstat prompt`'"`_ac rs` `_ac pur std`{\\W}`_ac rs`"'`__git_ps1``_prompt_right`'"${hd}\\n" ;;
   esac
 }
 setprompt new_nocount
