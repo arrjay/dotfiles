@@ -30,6 +30,11 @@ ___rcver_str="jBashRc v${JBVER}(c)"
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
 
+# always configure pass keys/opts/signing req ;)
+export PASSWORD_STORE_SIGNING_KEY=B1A086C36A2C52A79015F25C95B6669B9D085FA5
+export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
+export PASSWORD_STORE_ENABLE_EXTENSIONS=true
+
 ## function definitions
 # return errors to fd 2
 ___error_msg () {
@@ -114,13 +119,10 @@ chkcmd () {
   ___chkcmd "${@}"
 }
 
-# throw away output, even if we don't have /dev/null working
+# throw away input, even if we don't have /dev/null working
 # yes, the name _is_ dos-inspired
 nul () {
-  [ ! -c /dev/null ] && { IFS= read -rs ; return 0 ; }
-  {
-    exec 2>&1 1> /dev/null < /dev/null
-  }
+  IFS= read -rs ; return 0 ;
 }
 
 # determine if a given command, builtin, alias or function exists.
@@ -600,6 +602,9 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
+# if we have the git prompt support script in vendor/, load it now
+[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ] && source "${___bashrc_dir}/vendor/git-prompt.sh"
+
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()
@@ -641,7 +646,6 @@ ____hostsetup () {
 ____hostsetup
 unset -f ____hostsetup
 
-# zapenv - kill all environment setup routines, including itself(!)
 ## internal functions
 #-# HELPER FUNCTIONS
 #--# Text processing
@@ -691,7 +695,6 @@ function gethostinfo {
 function zapenv {
   unset -f gethostinfo
   unset -f kickenv
-  unset -f matchstart
   unset -f zapenv
 }
 
@@ -699,7 +702,6 @@ function zapenv {
 function kickenv {
   gethostinfo # set REAL_WHICH!!
   # shellcheck disable=SC1090
-  [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
   # shellcheck disable=SC1090
   [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
   zapenv
@@ -1185,11 +1187,6 @@ function monolith_aliases {
     ;;
   esac
 }
-
-export PASSWORD_STORE_SIGNING_KEY=B1A086C36A2C52A79015F25C95B6669B9D085FA5
-export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
-export PASSWORD_STORE_ENABLE_EXTENSIONS=true
-
 # cleanup
 function monolith_cleanup {
   unset -f monolith_setfunc

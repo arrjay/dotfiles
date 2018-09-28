@@ -169,7 +169,8 @@ setprompt () {
   wd="${c_wd}{"'\'"W}${rs}"
   wda="${c_wda}{"'\'"W}${rs}"
   clk="${c_clk}("'\t'")${rs} "
-  np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
+  np_end='`_prompt_right`'"${hd}"'\n'
+  ___chkdef __git_ps1 && np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
   case "${name}" in
     simple)      unset PROMPT_COMMAND ;;
     classic)     : ;;
