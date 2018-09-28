@@ -629,6 +629,7 @@ ____hostsetup () {
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osflat}.bash" \
             "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
+            "${d}/extensions.bash" \
             "${d}/extensions/common.bash" \
             "${d}/extensions/bash${___bashmaj}.bash" \
             "${d}/prompt/common.bash" \
