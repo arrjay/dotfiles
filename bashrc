@@ -153,10 +153,6 @@ ___vfy_cachesys () {
   [ "${BASH_CACHE_DIRECTORY}" ] || { ___error_msg "${msg}" ; return 3 ; }
 }
 
-# we need the hostname to set up the memoizer, may as well create it all here.
-# shellcheck disable=SC2006
-___host=`tolower "${HOSTNAME:-}"`
-
 # configure command caching/tokenization dir
 ___cache_checked=0	# track if we've already run...
 ___cache_active=0
@@ -175,7 +171,7 @@ ____init_cachedir () {
     [ "${#HOME}" == '1' ] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
     BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
-    [ -z "${___host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${___host}-"
+    [ -z "${HOSTNAME}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
     [ -z "${___bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
   }
 
@@ -412,6 +408,11 @@ unset -f ____find_bashrc_file
 ___bashrc_dir="${___bashrc_dir%/*}"
 
 # configure user/host pieces			# Fedora 28
+# shellcheck disable=SC2006
+mm_setenv ___host || {
+  ___host=`tolower "${HOSTNAME:-}"`
+}
+
 # try `uname -p` first
 # shellcheck disable=SC2006
 mm_setenv ___cpu || {
@@ -658,21 +659,6 @@ function v_alias {
 }
 
 #-# SETUP FUNCTIONS
-# colordefs - defines for XTerm/Console colors
-# shellcheck disable=SC2034
-function colordefs {
-  RS='\[\e[0m\]' # I think this is xterm specific?
-  # BC - bold colorset
-  BC_LT_GRA='\[\e[0;37m\]'
-  BC_BO_LT_GRA='\[\e[1;37m\]'
-  #BC_DM_GRA='\[\e[2;37m\]' # 2-series not supported by xterm?
-  BC_CY='\[\e[0;36m\]'
-  BC_GRN='\[\e[0;32m\]'
-  BC_BL='\[\e[0;34m\]'
-  BC_PR='\[\e[0;35m\]'
-  BC_BR='\[\e[0;33m\]'
-  BC_RED='\[\e[0;31m\]'
-}
 
 # getterminfo - initialize term variables for function use
 # we set color caps EVERY time in case of environment being handed to us via ssh/screen/?
@@ -763,7 +749,6 @@ function zapenv {
   unset -f getterminfo
   unset -f gethostinfo
   unset -f kickenv
-  unset -f colordef
   unset -f matchstart
   unset -f zapenv
 }
@@ -774,7 +759,6 @@ function kickenv {
   # shellcheck disable=SC1090
   [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
   getterminfo
-  colordefs
   # shellcheck disable=SC1090
   [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
   zapenv
