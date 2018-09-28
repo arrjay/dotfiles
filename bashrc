@@ -153,11 +153,14 @@ ___vfy_cachesys () {
   [ "${BASH_CACHE_DIRECTORY}" ] || { ___error_msg "${msg}" ; return 3 ; }
 }
 
+# we need the hostname to set up the memoizer, may as well create it all here.
+# shellcheck disable=SC2006
+___host=`tolower "${HOSTNAME:-}"`
+
 # configure command caching/tokenization dir
 ___cache_checked=0	# track if we've already run...
 ___cache_active=0
 ____init_cachedir () {
-  local _host
   # have I been here before?
   case "${___cache_checked}${___cache_active}" in
     10) return 1 ;; # not going to work
@@ -172,9 +175,7 @@ ____init_cachedir () {
     [ "${#HOME}" == '1' ] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
     BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
-    # shellcheck disable=SC2006
-    _host=`tolower "${HOSTNAME:-}"`
-    [ -z "${_host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${_host}-"
+    [ -z "${___host}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${___host}-"
     [ -z "${___bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
   }
 
@@ -410,12 +411,6 @@ ___bashrc_dir="`____find_bashrc_file`"
 unset -f ____find_bashrc_file
 ___bashrc_dir="${___bashrc_dir%/*}"
 
-# set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
-___bash_auxfiles_dirs=()
-[ -d "${BASH_AUX_FILES}" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
-[ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
-[ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
-
 # configure user/host pieces			# Fedora 28
 # try `uname -p` first
 # shellcheck disable=SC2006
@@ -605,9 +600,15 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
+# set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
+___bash_auxfiles_dirs=()
+[ -d "${BASH_AUX_FILES}" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
+[ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
+[ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
+
 # source file if executeable and ending in .bash
 sourcex () {
-  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .sh)" ; return 1 ; }
+  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
   local f
   for f in "${@}" ; do
     case "${f}" in *.bash) : ;; *) continue ;; esac
@@ -616,6 +617,28 @@ sourcex () {
   done
 }
 
+# walk the bash auxfiles and go to town
+____hostsetup () {
+  local d
+  for d in "${___bash_auxfiles_dirs[@]}" ; do
+    sourcex "${d}/opsys/${___os}.bash" \
+            "${d}/opsys/${___os}_bash${___bashmaj}.bash" \
+            "${d}/opsys/${___os}-${___cpu}.bash" \
+            "${d}/opsys/${___os}${___osmaj}.bash" \
+            "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
+            "${d}/opsys/${___os}${___osflat}.bash" \
+            "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
+            "${d}/prompt/common.bash" \
+            "${d}/prompt/bash${___bashmaj}.bash" \
+            "${d}/extensions/common.bash" \
+            "${d}/extensions/bash${___bashmaj}.bash" \
+            "${d}/host/${___host}.bash"
+  done
+}
+____hostsetup
+unset -f ____hostsetup
+
+# zapenv - kill all environment setup routines, including itself(!)
 ## internal functions
 #-# HELPER FUNCTIONS
 #--# Text processing
@@ -736,24 +759,9 @@ function gethostinfo {
 }
 
 
-# hostsetup - call host/os-specific subscripts
-# call after gethostinfo, BEFORE getuserinfo!
-function hostsetup {
-  sourcex "${BASHFILES}/opsys/${OPSYS}.sh"
-  sourcex "${BASHFILES}/opsys/${OPSYS}-${CPU}.sh"
-  sourcex "${BASHFILES}/opsys/${OPSYS}${MVER}.sh"
-  sourcex "${BASHFILES}/opsys/${OPSYS}${MVER}-${CPU}.sh"
-  sourcex "${BASHFILES}/opsys/${OPSYS}${LVER}.sh"
-  sourcex "${BASHFILES}/opsys/${OPSYS}${LVER}-${CPU}.sh"
-  sourcex "${BASHFILES}/host/${HOST}.sh"
-  sourcex "${BASHFILES}/extensions.sh"
-}
-
-# zapenv - kill all environment setup routines, including itself(!)
 function zapenv {
   unset -f getterminfo
   unset -f gethostinfo
-  unset -f hostsetup
   unset -f kickenv
   unset -f colordef
   unset -f matchstart
@@ -765,7 +773,6 @@ function kickenv {
   gethostinfo # set REAL_WHICH!!
   # shellcheck disable=SC1090
   [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
-  hostsetup # to extend path, at least for solaris
   getterminfo
   colordefs
   # shellcheck disable=SC1090
