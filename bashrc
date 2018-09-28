@@ -537,6 +537,16 @@ genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/
                 "${HOME}/bin/${___os}-${___cpu}" "${HOME}/bin/${___os}${___osmaj}-${___cpu}" "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
                 "${HOME}/bin/noarch" "${HOME}/bin/${___host}"
 
+# configure LD_LIBRARY_PATH unless asked not to
+[ "${NO_LDPATH_EXTENSION}" ] || mm_setenv NO_LDPATH_EXTENSION
+[ -z "${NO_LDPATH_EXTENSION}" ] && {
+  # add our personal ~/Library subdirectories
+  for dir in "${HOME}"/Library/*/lib ; do
+    genappend LD_LIBRARY_PATH "${dir}"
+  done
+  cke LD_LIBRARY_PATH
+}
+
 # envvars for auxiliary programs should go about here.
 ## perl
 if [ -d "${HOME}"/Library/perl5 ]; then
@@ -546,12 +556,13 @@ if [ -d "${HOME}"/Library/perl5 ]; then
   genappend PERL5LIB "${HOME}/Library/perl5"
   if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
     genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
-    if [ -d "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi" ]; then
-      genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${CPU}-${OPSYS}-gnu-thread-multi"
+    if [ -d "${HOME}/Library/perl5/lib/perl5/${___cpu}-${___os}-gnu-thread-multi" ]; then
+      genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${___cpu}-${___os}-gnu-thread-multi"
     fi
   fi
 fi
 
+## go
 # configure GOPATH/GOROOT here
 if [ -f "${HOME}/Library/go-dist/bin/go" ] ; then
   # go distribution in go-dist, gopath in go, gox is happy, go away.
@@ -758,24 +769,12 @@ function hostsetup {
   sourcex "${BASHFILES}/extensions.sh"
 }
 
-# pbinsetup - load personal bin directory for host
-function pbinsetup {
-
-
-  # add our personal ~/Library subdirectories
-  for dir in "${HOME}"/Library/*/lib ; do
-    genappend LD_LIBRARY_PATH "${dir}"
-  done
-  cke LD_LIBRARY_PATH
-}
-
 # zapenv - kill all environment setup routines, including itself(!)
 function zapenv {
   unset -f getterminfo
   unset -f gethostinfo
   unset -f getuserinfo
   unset -f hostsetup
-  unset -f pbinsetup
   unset -f kickenv
   unset -f colordef
   unset -f matchstart
@@ -793,7 +792,6 @@ function kickenv {
   getterminfo
   colordefs
   set_manpath
-  pbinsetup
   # shellcheck disable=SC1090
   [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
   zapenv
