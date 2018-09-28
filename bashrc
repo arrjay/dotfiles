@@ -587,29 +587,13 @@ if [ -d "${HOME}/Library/go" ]; then
   fi
 fi
 
-function set_manpath {
-  local __path_prepend_list d
-  __path_prepend_list=(
-    "/usr/X11R6/man"
-    "/usr/openwin/man"
-    "/usr/dt/man"
-    "/usr/share/man"
-    "/usr/man"
-    "/usr/pkg/man"
-    "/usr/local/share/man"
-    "/usr/local/man"
-  )
-  for d in "${__path_prepend_list[@]}" ; do genappend MANPATH "${d}" ; done
+# setup MANPATH
+genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
+    "/usr/share/man" "/usr/man" \
+    "/usr/pkg/man" "/usr/local/share/man" "/usr/local/man" \
+    /opt/*/man
 
-  if [ -d /opt ]; then
-    for d in /opt/*/man ; do
-      genappend MANPATH "${d}"
-    done
-  fi
-  genappend MANPATH "${SystemRoot}/man"
-
-  cke MANPATH
-}
+[ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
 ## internal functions
 #-# HELPER FUNCTIONS
@@ -625,8 +609,6 @@ function sourcex {
   # shellcheck disable=SC1090
   [ -x "${1}" ] && source "${1}"
 }
-
-
 
 # v_alias - overloads command with specified function if command exists
 function v_alias {
