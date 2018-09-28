@@ -629,10 +629,10 @@ ____hostsetup () {
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osflat}.bash" \
             "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
-            "${d}/prompt/common.bash" \
-            "${d}/prompt/bash${___bashmaj}.bash" \
             "${d}/extensions/common.bash" \
             "${d}/extensions/bash${___bashmaj}.bash" \
+            "${d}/prompt/common.bash" \
+            "${d}/prompt/bash${___bashmaj}.bash" \
             "${d}/host/${___host}.bash"
   done
 }
