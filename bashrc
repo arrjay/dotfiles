@@ -522,7 +522,7 @@ case "${___os}" in
     ____wininit
   ;;
   sunos*)         [ "${___osmaj}" == 5 ] && ___os=solaris ;;
-  gnueabihf)      OPSYS=$(uname -s) ;;
+  gnueabihf)      chkcmd uname && ___os=$(uname -s) ;; # uname -s is posix.
   android*)       [ -z "${USER}" ] && USER="${____default_username}" ; export USER ;;
 esac
 
@@ -536,6 +536,15 @@ genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/
                 "${HOME}/.cargo/bin" "${HOME}/.rvm/bin" \
                 "${HOME}/bin/${___os}-${___cpu}" "${HOME}/bin/${___os}${___osmaj}-${___cpu}" "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
                 "${HOME}/bin/noarch" "${HOME}/bin/${___host}"
+
+# determine if we are a superuser or not
+___rootusr=unk
+# shellcheck disable=SC2006
+case ${___os} in
+  win32|cygwin) { chkcmd grep && chkcmd id ; } && { id -G | grep -q 544 && ___rootusr='yes' || ___rootusr='no' ; } ;;
+  solaris)      [ -x /usr/xpg4/bin/id ] && { [ "`/usr/xpg4/bin/id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
+  *)            chkcmd id && { [ "$(id -u)" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
+esac
 
 # configure LD_LIBRARY_PATH unless asked not to
 [ "${NO_LDPATH_EXTENSION}" ] || mm_setenv NO_LDPATH_EXTENSION
@@ -726,23 +735,6 @@ function gethostinfo {
   esac
 }
 
-# getuserinfo - initialize user variables for function use (mostly determine if we are a superuser)
-function getuserinfo {
-  case ${OPSYS} in
-    win32)
-      # set printer here
-      PRINTER="$(cscript //nologo "${SystemRoot}/system32/prnmngr.vbs" -g)"
-      PRINTER="${PRINTER//The default printer is /}"
-      export PRINTER
-    ;;
-    cygwin*)
-      id -G | grep -q 544 && HD='#' || HD='$' ;;
-    solaris)
-      [ "$(/usr/xpg4/bin/id -u)" == "0" ] && HD='#' || HD='$' ;;
-    *)
-      [ "$(id -u)" == "0" ] && HD='#' || HD='$' ;;
-  esac
-}
 
 # hostsetup - call host/os-specific subscripts
 # call after gethostinfo, BEFORE getuserinfo!
@@ -761,12 +753,10 @@ function hostsetup {
 function zapenv {
   unset -f getterminfo
   unset -f gethostinfo
-  unset -f getuserinfo
   unset -f hostsetup
   unset -f kickenv
   unset -f colordef
   unset -f matchstart
-  unset -f set_manpath
   unset -f zapenv
 }
 
@@ -776,10 +766,8 @@ function kickenv {
   # shellcheck disable=SC1090
   [[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]] && source "${___bashrc_dir}/vendor/git-prompt.sh"
   hostsetup # to extend path, at least for solaris
-  getuserinfo
   getterminfo
   colordefs
-  set_manpath
   # shellcheck disable=SC1090
   [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
   zapenv
