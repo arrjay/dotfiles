@@ -951,14 +951,6 @@ function monolith_setfunc {
         echo -n "$(("$(ps ax|wc -l)" - 5))"
       }
     ;;
-    linux|Linux|android*)
-      function pscount {
-        local __psc __psf
-        __psf=( /proc/[0-9]* )
-        __psc=$(( ${#__psf[@]} - 1 ))
-        echo "${__psc}"
-      }
-    ;;
     cygwin|win32)
       # create a .pscount.vbs script if needed
       [ ! -f "${HOME}/.pscount.vbs" ] && {
