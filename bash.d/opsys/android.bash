@@ -4,6 +4,7 @@
 sourcex ./linux.bash
 
 # however, I'm not trying to support bash 2.x here so...that's something?
+# in fact, the coproc here requires bash 4.0 or newer.
 
 # if we have the pieces to run termux-api for battery status, do so.
 chkcmd termux-battery-status && chkcmd jq && chkcmd flock && chkcmd sh && _battstat () {
@@ -12,7 +13,7 @@ chkcmd termux-battery-status && chkcmd jq && chkcmd flock && chkcmd sh && _batts
   # so wrap it in flock, and mv, and cache that shit.
   # we simply ask for an update when we run the command, and carry on.
   # shellcheck disable=SC2086,SC2016
-  (flock -w 2 -xn $HOME/.termux-battery-status-lock sh -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status' & )
+  coproc flock -w 2 -xn $HOME/.termux-battery-status-lock sh -c 'termux-battery-status > $HOME/.termux-battery-status.new && mv $HOME/.termux-battery-status.new $HOME/.termux-battery-status'
   local cmd pct sta plg ind
   cmd="${1}" ; ind='-'
   # preload jq, and we do want this split into three words tyvm
