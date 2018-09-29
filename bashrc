@@ -663,33 +663,6 @@ function v_alias {
   chkcmd "${2}" && builtin alias "${1}=${2}"
 }
 
-# gethostinfo - initialize host variables for function use
-function gethostinfo {
-  local x p
-
-  # are we a laptop (rather, do we have ACPI or APM batteries?)
-  case ${OPSYS} in
-    android)
-      # if we have termux-battery-status *and* jq, use those.
-      chkcmd termux-battery-status && chkcmd jq && PMON_TYPE="termux" && PMON_BATTERIES="termux-api"
-    ;;
-    *) : ;; # I have no idea.
-  esac
-}
-
-
-function zapenv {
-  unset -f gethostinfo
-  unset -f kickenv
-  unset -f zapenv
-}
-
-# kickenv - run all variable initialization, set PATH.
-function kickenv {
-  gethostinfo
-  zapenv
-}
-
 #-# TERMINAL FUNCTIONS
 
 function _properties {
@@ -808,40 +781,6 @@ function unsetenv {
   if export|grep 'declare -x'|grep -q "${1}"
     then unset "${1}"
   fi
-}
-
-# battstatt - pull battery status generic-ish
-function battstat {
-  case "${1}" in
-    cap)
-      # get total capacity
-#        termux)
-          # termux only returns percentage
-          PMON_CAP=100
-      echo "${PMON_CAP}"
-    ;;
-    chrg)
-#        termux) PMON_CHARGE=$(jq .percentage < "$HOME/.termux-battery-status") ;;
-      echo "${PMON_CHARGE}"
-    ;;
-    chgpct)
-        echo $(($(battstat chrg)00 / $(battstat cap)))
-    ;;
-    stat)
-      # discahrge (v), idle (-), or charging (^)?
-      # batteries at idle is the default state
-#        termux)
-          __plugged=$(jq -r .plugged < "$HOME/.termux-battery-status")
-          __status=$(jq -r .status < "$HOME/.termux-battery-status")
-          [ "${__status}" == "NOT_CHARGING" ] && [ "${__plugged}" == "UNPLUGGED" ] && PMON_STAT="v"
-          [ "${__status}" == "CHARGING" ] && PMON_STAT="^"
-    ;;
-    *)
-      echo "I don't know how to $1"
-      echo "$0 (cap|chrg|chgpct|stat)"
-      return 2;
-    ;;
-  esac
 }
 
 # this is a function because pulling up a graphical editor when running 'vi' is *very* surprising
@@ -1047,7 +986,6 @@ function monolith_cleanup {
 }
 
 # Call setup routines
-kickenv
 monolith_setfunc
 monolith_aliases
 
