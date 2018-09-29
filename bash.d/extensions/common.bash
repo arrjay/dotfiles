@@ -12,7 +12,7 @@ ___chkdef pscount || pscount () {
 # test which by capabilities and define a function around it.
 ____init_which () {
   local line which_func_support which_alias_support which_input which_flags
-  which_alias_support=false ; which_func_support=true
+  which_alias_support=false ; which_func_support=false
   which_input="" ; which_flags=""
 
   # check if we have which and if not, just go away
@@ -21,13 +21,12 @@ ____init_which () {
       case "${line}" in
         "FOO ()") which_func_support=true ;;
       esac
-    done < <(printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO)
+    done < <(exec 2>&1 ; printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO)
     while read -r line ; do
       case "${line}" in
         "alias FOO=':'") which_alias_support=true ;;
-        *) echo "${line}" ;;
       esac
-    done < <(printf "alias FOO=':'\\n" | command which --read-alias FOO)
+    done < <(exec 2>&1 ; printf "alias FOO=':'\\n" | command which --read-alias FOO)
   } ; } || return 1
 
   [ "${which_alias_support}" == true ] && {
