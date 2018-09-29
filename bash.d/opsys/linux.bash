@@ -10,6 +10,7 @@ pscount () {
   [ "${psc}" ] && printf '%s' "${psc}"
 }
 
+___sysfs_batt=()
 ____init_battstat () {
   local bfiles f p bpres
   bpres=()
@@ -17,18 +18,18 @@ ____init_battstat () {
           /sys/class/power_supply/CMB*/present
           /sys/class/power_supply/battery/present)
   for f in "${bfiles[@]}" ; do
+    p=0
     [ -f "${f}" ] && read -r p < "${f}"
-    [ "${p:-}" == 1 ] && bpres=("${bpres[@]}" "${f%/present}")
+    [ "${p:-}" == 1 ] && ___sysfs_batt=("${___sysfs_batt[@]}" "${f%/present}")
   done
-  [ "${#bpres[@]}" != 0 ] && {
+  [ "${#___sysfs_batt[@]}" != 0 ] && {
     _battstat () {
-      local batts cmd res b c w
+      local cmd res b c w
       res=0
-      batts=("${bfiles[@]}")
       cmd="${1}"
       case "${cmd}" in
         cap)
-          for b in "${batts[@]}" ; do
+          for b in "${___sysfs_batt[@]}" ; do
             for w in energy_full charge_full ; do
               [ -f "${b}/${w}" ] && read -r c < "${b}/${w}"
               [ -f "${b}/${w}" ] && read -r c < "${b}/${w}"
@@ -39,7 +40,7 @@ ____init_battstat () {
           printf '%s\n' "${res}" ; return 0
         ;;
         chrg)
-          for b in "${batts[@]}" ; do
+          for b in "${___sysfs_batt[@]}" ; do
             for w in energy_now charge_now ; do
               [ -f "${b}/${w}" ] && read -r c < "${b}/${w}"
               [ -f "${b}/${w}" ] && read -r c < "${b}/${w}"
@@ -50,11 +51,12 @@ ____init_battstat () {
           printf '%s\n' "${res}" ; return 0
         ;;
         chgpct)
-          :
+          let res=`_battstat chrg`00/`_battstat cap`
+          printf '%s\n' "${res}" ; return 0
         ;;
         stat)
           res='-'
-          for b in "${batts[@]}" ; do
+          for b in "${___sysfs_batt[@]}" ; do
             read -r c < "${b}/status"
             case "${res}${c}" in
               -Charging)    res='^' ;;
@@ -62,6 +64,9 @@ ____init_battstat () {
             esac
           done
           printf '%s\n' "${res}" ; return 0
+        ;;
+        prompt)
+          printf '%s%%%s' "`_battstat chgpct`" "`_battstat stat`" ; return 0
         ;;
         *)
           ___error_msg "${FUNCNAME[0]}: cap|chrg|chgpct|stat|prompt" ; return 1
