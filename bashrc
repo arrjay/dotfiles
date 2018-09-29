@@ -413,6 +413,8 @@ ___bashrc_dir="${___bashrc_dir%/*}"
 # shellcheck disable=SC2006
 mm_setenv ___host || {
   ___host=`tolower "${HOSTNAME:-}"`
+  ___host="${___host%%.*}"
+  mm_putenv ___host
 }
 
 # try `uname -p` first
