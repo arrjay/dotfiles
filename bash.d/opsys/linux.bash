@@ -66,7 +66,7 @@ ____init_battstat () {
           printf '%s\n' "${res}" ; return 0
         ;;
         prompt)
-          printf '%s%%%s' "`_battstat chgpct`" "`_battstat stat`" ; return 0
+          printf '(%s%%%s) ' "`_battstat chgpct`" "`_battstat stat`" ; return 0
         ;;
         *)
           ___error_msg "${FUNCNAME[0]}: cap|chrg|chgpct|stat|prompt" ; return 1
