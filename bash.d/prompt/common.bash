@@ -124,7 +124,7 @@ _prompt_left () {
   return "${___pre_prompt_rc}"
 }
 
-# shellcheck disable=SC2154,SC2006
+# shellcheck disable=SC2154,SC2006,SC2016
 setprompt () {
   local name prompt_scheme ; name="${1:-}" ; prompt_scheme="${2:-basic}"
   [ -n "${PS1}" ] || return 0
@@ -154,21 +154,21 @@ setprompt () {
     ;;
   esac
   case "${___rootusr}" in
-    yes) hd="${c_hd}\#${rs}"   ;;
+    yes) hd="${c_hd}#${rs}"  ;;
     *)   hd="${c_hd}\$${rs}" ;;
   esac
   np_start='`_prompt_left`'"${c_np_start}"'#'"${rs} "
   lsta="${c_lsta}?"'${?}'"${rs} "
   chn="${c_chn}!"'\!'"${rs} "
-  u="${c_u}"'\'"u${rs}"
-  ua="${c_ua}["'\'"u${rs}"
+  u="${c_u}\\u${rs}"
+  ua="${c_ua}[\\u${rs}"
   at="${c_at}@${rs}"
   h="${c_h}${HOSTNAME}${rs}"
   ha="${c_ha}${HOSTNAME}]${rs}"
   pc="${c_pc}"'`pscount`'"${rs} "
   pca="${c_pca}<"'`pscount`'">${rs} "
-  wd="${c_wd}{"'\'"W}${rs}"
-  wda="${c_wda}{"'\'"W}${rs}"
+  wd="${c_wd}{\\W}${rs}"
+  wda="${c_wda}{\\W}${rs}"
   clk="${c_clk}("'\t'")${rs} "
   pm="${c_pm}("'`_battstat prompt`'")${rs} "
   np_end='`_prompt_right`'"${hd}"'\n'
