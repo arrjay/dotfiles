@@ -140,7 +140,7 @@ setprompt () {
       c_np_start=`_ac yel std`
       c_lsta=`_ac pur std`
       c_chn=`_ac grn std`
-      c_u=`_ac wht std`
+      c_u=`_ac wh std`
       c_at=`_ac grn std`
       c_h="${c_u}"
       c_pc=`_ac grn std`
