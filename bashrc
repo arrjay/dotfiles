@@ -681,7 +681,7 @@ function zapenv {
 
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
-  gethostinfo # set REAL_WHICH!!
+  gethostinfo
   # shellcheck disable=SC1090
   # shellcheck disable=SC1090
   [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
