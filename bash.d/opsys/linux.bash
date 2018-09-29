@@ -12,8 +12,7 @@ pscount () {
 
 ___sysfs_batt=()
 ____init_battstat () {
-  local bfiles f p bpres
-  bpres=()
+  local bfiles f p
   bfiles=(/sys/class/power_supply/BAT*/present
           /sys/class/power_supply/CMB*/present
           /sys/class/power_supply/battery/present)
@@ -23,6 +22,7 @@ ____init_battstat () {
     [ "${p:-}" == 1 ] && ___sysfs_batt=("${___sysfs_batt[@]}" "${f%/present}")
   done
   [ "${#___sysfs_batt[@]}" != 0 ] && {
+    # shellcheck disable=SC2006,SC2219
     _battstat () {
       local cmd res b c w
       res=0
