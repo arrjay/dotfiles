@@ -129,7 +129,7 @@ setprompt () {
   local name prompt_scheme ; name="${1:-}" ; prompt_scheme="${2:-basic}"
   [ -n "${PS1}" ] || return 0
   # prompt command is mostly the same...
-  PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\${PWD}"
+  PROMPT_COMMAND="_wt ${USER}@${___host}:\${PWD}"
   PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
   local hd np_start lsta chn u at h pc wd clk pca wda ha ua pm
   local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc c_wd c_clk c_pca c_wda c_ha c_ua c_pm
@@ -163,8 +163,8 @@ setprompt () {
   u="${c_u}\\u${rs}"
   ua="${c_ua}[\\u${rs}"
   at="${c_at}@${rs}"
-  h="${c_h}${HOSTNAME}${rs}"
-  ha="${c_ha}${HOSTNAME}]${rs}"
+  h="${c_h}${___host}${rs}"
+  ha="${c_ha}${___host}]${rs}"
   pc="${c_pc}"'`pscount`'"${rs} "
   pca="${c_pca}<"'`pscount`'">${rs} "
   wd="${c_wd}{\\W}${rs}"
