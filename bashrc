@@ -569,6 +569,10 @@ if [ -d "${HOME}"/Library/perl5 ]; then
   fi
 fi
 
+# ruby/rvm
+# shellcheck disable=SC1090
+[[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
+
 ## go
 # configure GOPATH/GOROOT here
 if [ -f "${HOME}/Library/go-dist/bin/go" ] ; then
@@ -629,6 +633,7 @@ ____hostsetup () {
   for d in "${___bash_auxfiles_dirs[@]}" ; do
     sourcex "${d}/opsys/${___os}.bash" \
             "${d}/opsys/${___os}_bash${___bashmaj}.bash" \
+            "${d}/opsys/${___os}_bash${___bashmaj}{___bashmin}.bash" \
             "${d}/opsys/${___os}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osmaj}.bash" \
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
@@ -682,9 +687,6 @@ function zapenv {
 # kickenv - run all variable initialization, set PATH.
 function kickenv {
   gethostinfo
-  # shellcheck disable=SC1090
-  # shellcheck disable=SC1090
-  [[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
   zapenv
 }
 
@@ -960,79 +962,6 @@ function monolith_aliases {
 
   # common typo
   alias Grep='grep'
-
-  # if I _have_ docker, set it up here
-  chkcmd docker && {
-    __docker_sh () {
-      # run bash in a docker container, overriding entrypoint. optionally, mount some volumes, too.
-      local opt volume image OPTARG OPTIND xauthority dt env xsockdir
-      volume=() ; env=() ; xauthority="" ; image="" ; xsockdir=""
-      while getopts "v:xi:" opt "${@}" ; do case "${opt}" in
-          i) image="${OPTARG}" ;;
-          v) volume+=('-v' "${OPTARG}") ;;
-          x)
-             xauthority=$(__docker_xauth) || { echo "unable to manipulate X security settings" 1>&2 ; return 1 ; }
-             chkcmd socat || { echo "socat needed for X11 socket handling" 1>& 2 ; return 1 ; }
-             xsockdir=$(mktemp -d) || { echo "unable to create container transient X socket dir" 1>&2 ; return 1 ; }
-             chcon -t sandbox_file_t "${xsockdir}"
-             dt=${DISPLAY/:/} ; dt=${dt%.*}
-             case "${DISPLAY}" in
-               # local X
-               :*) [ -e "/tmp/.X11-unix/X${dt}" ] && {
-                 # this works via the socat-x.te file also in the dotfiles repo :/ install if needed doing this:
-                 # checkmodule -M -m -o socat-x.mod socat-x.te && semodule_package -o socat-x.pp -m socat-x.mod
-                 # sudo semodule -i socat-x.pp
-                 ( env LD_LIBRARY_PATH='' runcon -t sandbox_x_t socat "UNIX-LISTEN:${xsockdir}/X0,fork" "UNIX:/tmp/.X11-unix/X${dt}" & )
-                 volume+=('-v' "${xsockdir}/X0:/tmp/.X11-unix/X0:Z") ; } ;;
-             esac
-             volume+=('-v' "${xauthority}:/.Xauthority:Z")
-             env+=('--env' 'XAUTHORITY=/.Xauthority')
-             env+=('--env' 'DISPLAY=:0')
-          ;;
-          *) { echo "${BASH_FUNCTION[0]} [-v][-x]" ; } 1>&2 ; return 2 ;;
-      esac ; done
-      shift $((OPTIND-1))
-      command docker run --rm=true -it "${env[@]}" "${volume[@]}" --entrypoint bash "${image}" -i
-      [ -e "${xauthority}" ] && rm "${xauthority}"
-      [ -e "${xsockdir}" ] && { fuser -k "${xsockdir}/X0" 2>/dev/null 1>&2 ; rm -rf "${xsockdir}" ; }
-    }
-
-    __docker_xauth () {
-      # clone our X11 magic cookie and return a file that has a wildcard copy.
-      local xauthority
-      xauthority=$(mktemp) && {
-        echo "ffff 0000 0001 30 $(xauth nlist "${DISPLAY}" | cut -d\  -f6-)" | xauth -f "${xauthority}" nmerge -
-        echo "${xauthority}"
-      } || return 1
-    }
-
-    docker () {
-      local wd ; wd=$(pwd)
-        case "${1}" in
-          i|iamges)
-            command docker images "${@:2}" ;;
-          sh)
-            __docker_sh -i "${2}" ;;
-          xsh)
-            __docker_sh -i "${2}" -x ;;
-          sandbox|sbox|scratch)
-            case "${wd}" in
-              /|/usr|/usr/*|/bin|/sbin|/root|/var/*|/var|/dev|/dev/*|/sys|/sys/*|/etc|/etc/*|/home|"${HOME}"|/boot|/boot/*|/lib*|/proc|/proc/*|/run|/run/*|/tmp*)
-                 echo "refusing to bind mount ${wd} try some where else" 1>&2 ; return 1 ;;
-              *) echo "NOTE: running with selinux flags this will change a fslabel!" ;;
-            esac
-            __docker_sh -i "${2}" -v "$(pwd):/mnt:ro,Z" ;;
-          cmd)
-            command docker run --rm=true -it "${2}" "${@:3}" ;;
-          find)
-            command docker images -a | awk 'BEGIN { OFS=":" } ; NR != 1 && $1 ~ "'"${2}"'" { print $1, $2 ; }' ;;
-          rmie)
-            command docker rmi "$(docker find "${2}")" ;;
-          *)
-            command docker "${@}" ;;
-        esac
-    }
-  }
 
   case ${OPSYS} in
     cygwin*|win32)
