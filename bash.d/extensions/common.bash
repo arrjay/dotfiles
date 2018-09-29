@@ -37,7 +37,7 @@ ____init_which () {
   }
 
   # use eval here to escape local context (by embedding it)
-  eval "which () { command which ${which_flags[*]} \"\${@}\" < <(${which_input}) ; }"
+  [ "${which_input}" ] && eval "which () { command which ${which_flags[*]} \"\${@}\" < <(${which_input}) ; }"
 }
 ____init_which
 unset -f ____init_which
