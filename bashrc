@@ -511,7 +511,7 @@ ____wininit () {
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
 case "${___os}" in
   cygwin*)        ___os=cygwin ; ____wininit ;;
-  windows32|msys)
+  windows32|msys|win32)
     ___os=win32
     # specifically for win32, throw away the osrel pieces
     unset ___osrel ___osmaj ___osmin ___osflat
