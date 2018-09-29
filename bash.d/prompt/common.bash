@@ -131,8 +131,8 @@ setprompt () {
   # prompt command is mostly the same...
   PROMPT_COMMAND="_wt ${USER}@${HOSTNAME}:\${PWD}"
   PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
-  local hd np_start lsta chn u at h pc wd clk pca wda ha ua
-  local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc c_wd c_clk c_pca c_wda c_ha c_ua
+  local hd np_start lsta chn u at h pc wd clk pca wda ha ua pm
+  local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc c_wd c_clk c_pca c_wda c_ha c_ua c_pm
   rs=`_ac rs`
   case "${prompt_scheme}" in
     basic|*)
@@ -150,6 +150,7 @@ setprompt () {
       c_wda=`_ac grn`
       c_ha=`_ac pur std`
       c_ua="${c_ha}"
+      c_pm="${c_pc}"
     ;;
   esac
   case "${___rootusr}" in
@@ -169,6 +170,7 @@ setprompt () {
   wd="${c_wd}{"'\'"W}${rs}"
   wda="${c_wda}{"'\'"W}${rs}"
   clk="${c_clk}("'\t'")${rs} "
+  pm="${c_pm}("'`_battstat prompt`'")${rs} "
   np_end='`_prompt_right`'"${hd}"'\n'
   ___chkdef __git_ps1 && np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
   case "${name}" in
@@ -178,7 +180,7 @@ setprompt () {
     timely)      PS1="${np_start}${clk}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
     new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h} ${wd}${np_end}" ;;
     new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
-    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} `_ac grn std`"'`_battstat prompt`'"`_ac rs` ${wd}${np_end}" ;;
+    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pm}${wd}${np_end}" ;;
   esac
 }
-setprompt new_nocount
+setprompt new_pmon
