@@ -16,14 +16,15 @@ chkcmd cygpath && {
 mm_setenv ___EditPlus_cygpath || {
   [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && ___EditPlus_cygpath="${ProgramFilesX86}/EditPlus/editplus.exe"
   [ -e "${ProgramFiles}/EditPlus/editplus.exe" ]    && ___EditPlus_cygpath="${ProgramFiles}/EditPlus/editplus.exe"
-  [ "${___EditPlus_cygpath}" ] && {
-    editplus () { local toedit ; toedit=("$(_cpath2ms "${@}")") ; "${___EditPlus_cygpath}" "${toedit}" ; }
-  }
   mm_putenv ___EditPlus_cygpath
 }
 
-mm_setenv ___EditPlus_dospath || {
-  ___chkdef _cpath2ms && { ___EditPlus_dospath="$(_cpath2ms "${___EditPlus_cygpath}")" ; mm_putenv ___EditPlus_dospath ; }
+[ "${___EditPlus_cygpath}" ] && {
+  editplus () { local toedit ; [ "${1}" ] && toedit=("$(_cpath2ms "${@}")") ; [ "${toedit}" ] && { "${___EditPlus_cygpath}" "${toedit}" ; return $? ; } ; "${___EditPlus_cygpath}" ; }
+
+  mm_setenv ___EditPlus_dospath || {
+    ___chkdef _cpath2ms && { ___EditPlus_dospath="$(_cpath2ms "${___EditPlus_cygpath}")" ; mm_putenv ___EditPlus_dospath ; }
+  }
 }
 
 [ "${___EditPlus_dospath}" ] && { export EDITOR="${___EditPlus_dospath}" ; }
