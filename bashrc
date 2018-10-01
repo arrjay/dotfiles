@@ -18,7 +18,7 @@ ___bash_init_argv0=${BASH_ARGV[0]}
 ___bash_host_tuple=${BASH_VERSINFO[5]}
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
-#set -x
+set -x
 
 # set permissions for any newly created files to just ourselves.
 umask 077
@@ -192,8 +192,12 @@ ____init_cachedir () {
 
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
+# oh god this is ugly, obtain set -x status and manipulate it so we always get a reliable answer.
+____set_x=''
+case "${-}" in *x*) ____set_x=x ; set +x ;; esac
 # shellcheck disable=SC2006
 ___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${test}"`
+[ "${____set_x}" ] && set -x
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
