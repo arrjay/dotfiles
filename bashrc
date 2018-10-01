@@ -507,9 +507,6 @@ ____wininit () {
   # add the native win32 GPG binaries to the front of the path if found.
   genprepend PATH "${ProgramFilesX86}/Gpg4win/bin" "${ProgramFiles}/Gpg4win/bin" "${ProgramFilesX86}/GnuPG/bin" "${ProgramFiles}/GnuPG/bin"
 
-  # define a function to allow my preferred editor for windows (editplus) via the shells
-  [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && editplus () { "${ProgramFilesX86}/EditPlus/editplus.exe" "${@}"; }
-  [ -e "${ProgramFiles}/EditPlus/editplus.exe" ]    && editplus () { "${ProgramFiles}/EditPlus/editplus.exe" "${@}"; }
 }
 
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
@@ -639,7 +636,7 @@ ____hostsetup () {
   for d in "${___bash_auxfiles_dirs[@]}" ; do
     sourcex "${d}/opsys/${___os}.bash" \
             "${d}/opsys/${___os}_bash${___bashmaj}.bash" \
-            "${d}/opsys/${___os}_bash${___bashmaj}{___bashmin}.bash" \
+            "${d}/opsys/${___os}_bash${___bashmaj}${___bashmin}.bash" \
             "${d}/opsys/${___os}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osmaj}.bash" \
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
@@ -888,7 +885,7 @@ function monolith_aliases {
   esac
 
   case "${EDITOR}" in
-    *vim*) : ;;
+    *vim*|*editplus*) : ;;
     *)
       chkcmd vi && export EDITOR="vi"
       chkcmd vim && export EDITOR="vim"
