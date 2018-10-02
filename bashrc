@@ -906,11 +906,11 @@ monolith_aliases
 
 if [[ -n ${PS1} ]]; then
   # kick up gpg-agent here if we have it.
-  case "${OPSYS}" in
+  case "${___os}" in
     win32) : ;;
     *)     chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2 ;;
   esac
-  case "${OPSYS}" in
+  case "${___os}" in
     android)
       [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
     ;;
