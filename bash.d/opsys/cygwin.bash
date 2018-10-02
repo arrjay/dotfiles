@@ -20,11 +20,9 @@ chkcmd cygpath && {
   # and _dispel_ anything cygwin native.
   _cenv2ms () {
     local ent inpath=() outpath=() outpath_str
-#   IFS=';' read -r -a inpath < <(cygpath -wp "${PATH}")
     IFS=':' read -r -a inpath <<< "${PATH}"
     for ent in "${inpath[@]}" ; do
       case "${ent}" in
-#       "${___CygwinRoot_winpath}"*) : ;;
 	/cygdrive/*)                           outpath=("${outpath[@]}" "${ent}") ;;
       esac
     done
