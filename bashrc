@@ -18,7 +18,7 @@ ___bash_init_argv0=${BASH_ARGV[0]}
 ___bash_host_tuple=${BASH_VERSINFO[5]}
 
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
-set -x
+#set -x
 
 # set permissions for any newly created files to just ourselves.
 umask 077
@@ -507,6 +507,10 @@ ____wininit () {
   # add the native win32 GPG binaries to the front of the path if found.
   genprepend PATH "${ProgramFilesX86}/Gpg4win/bin" "${ProgramFiles}/Gpg4win/bin" "${ProgramFilesX86}/GnuPG/bin" "${ProgramFiles}/GnuPG/bin"
 
+  # if HOME and USERPROFILE are different places, append USERPROFILE/Applications
+  [ "${USERPROFILE}" ] && [ "${USERPROFILE}" != "${HOME}" ] && {
+    genappend PATH "${USERPROFILE}/Applications"/*/bin
+  }
 }
 
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
