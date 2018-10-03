@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 
-# placeholder
+# placeholder if functions have _not_ been defined yet.
 ___chkdef _battstat || _battstat () {
   return 1
 }
 
 ___chkdef pscount || pscount () {
   printf '%s' '-255'
+}
+
+# if we don't have an editor defined yet, try...something.
+
+# convenience fuction to call the $EDITOR
+# note that $EDITOR can have flags in it, so call that w/o quotes
+_ed () {
+  ${EDITOR} "${@}"
 }
 
 # test which by capabilities and define a function around it.

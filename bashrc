@@ -646,6 +646,7 @@ ____hostsetup () {
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osflat}.bash" \
             "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
+            "${d}/extensions/gnu.bash" \
             "${d}/extensions.bash" \
             "${d}/extensions/common.bash" \
             "${d}/extensions/bash${___bashmaj}.bash" \
@@ -676,35 +677,6 @@ function v_alias {
     return $?
   fi
   chkcmd "${2}" && builtin alias "${1}=${2}"
-}
-
-## environment manipulation
-# dealias - undefine alias if it exists
-function dealias {
-  unalias "${1}" >& /dev/null
-}
-
-# setenv - sets an *exported* environment variable
-function setenv {
-  oifs=$IFS
-  IFS=' '
-  name="${1}"
-  shift
-  export "$name=$*"
-  IFS=$oifs
-  unset oifs
-}
-
-# unsetenv - unsets exported environment variables
-function unsetenv {
-  if export|grep 'declare -x'|grep -q "${1}"
-    then unset "${1}"
-  fi
-}
-
-# this is a function because pulling up a graphical editor when running 'vi' is *very* surprising
-function _ed {
-  "${EDITOR}" "${@}"
 }
 
 ## Monolithic version - now we config some things!
@@ -780,22 +752,7 @@ function monolith_aliases {
   chkcmd less && export PAGER=less
 
   # try to call coreutils & friends
-  v_alias ls gls
-  v_alias cp gcp
-  v_alias mv gmv
-  v_alias rm grm
-  v_alias df gdf
-  v_alias du gdu
-  v_alias id gid
-  v_alias tail gtail
-  v_alias md5sum gmd5sum
   v_alias vi vim
-  v_alias wc gwc
-  v_alias expr gexpr
-  v_alias chgrp gchgrp
-  v_alias chown gchown
-  v_alias chmod gchmod
-  v_alias find gfind
   v_alias lynx links
   v_alias more less
   v_alias watch cmdwatch
