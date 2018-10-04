@@ -665,6 +665,12 @@ _properties () {
   printf 'bash_inv: %s\n' "${___bash_invocation}"
   printf 'bash_parent: %s\n' "${___bash_invocation_parent}"
   printf 'argv0: %s\n' "${___bash_init_argv0}"
+  printf 'bashrc_dir: %s\n' "${___bashrc_dir}"
+  printf 'host: %s\n' "${___host}"
+  printf 'os, osmaj, osmin, cpu: %s, %s, %s, %s\n' "${___os}" "${___osmaj}" "${___osmin}" "${___cpu}"
+  printf 'bashmaj, min: %s %s\n' "${___bashmaj}" "${___bashmin}"
+  [ "${BASH_CACHE_DIRECTORY}" ] && printf 'cachedir: %s\n' "${BASH_CACHE_DIRECTORY}"
+  printf 'printf_supports_v: %s\n' "${___printf_supports_v}"
 }
 
 ## internal functions
