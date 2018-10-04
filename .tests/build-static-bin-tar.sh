@@ -241,7 +241,7 @@ exp=("${builddir}/coreutils/src"/*.o)
 }
 
 pushd "${builddir}/coreutils"
- make install-exec
+ make prefix="${rootdir}/Applications/coreutils" install-exec
 popd
 
 # twiddle permissions, make tarball
