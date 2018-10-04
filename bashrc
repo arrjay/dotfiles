@@ -102,6 +102,17 @@ tolower () {
   esac
 }
 
+# remove any aliases we had. sorry, but you can't trust 'em ;)
+____rm_aliases () {
+  while read -r line ; do
+    line="${line#alias }"
+    line="${line%%=*}"
+    builtin unalias "${line}"
+  done < <(builtin alias)
+}
+____rm_aliases
+unset -f ____rm_aliases
+
 # determine if a given _command_ exists.
 ___chkcmd () {
   local cmd
@@ -787,7 +798,7 @@ function monolith_aliases {
   case ${OPSYS} in
     cygwin*|win32)
       alias ll='ls -FlAh --color=tty'
-      alias ls='ls --color=tty -h'
+      #alias ls='ls --color=tty -h'
       alias start='cygstart'
       alias du='du -h'
       alias df='df -h'
@@ -804,12 +815,12 @@ function monolith_aliases {
       if [ "${OPSYS}" == "win32" ]; then
         builtin alias clear='echo -ne\\033c'
         builtin alias ll='ls -Flah'
-        builtin alias ls='ls -h'
+        #builtin alias ls='ls -h'
       fi
     ;;
     linux)
       alias ll='ls -FlAh --color=tty'
-      alias ls='ls --color=tty -h'
+      #alias ls='ls --color=tty -h'
       alias du='du -h'
       alias df='df -h'
       alias mem='free -m'
