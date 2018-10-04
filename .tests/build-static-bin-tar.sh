@@ -223,6 +223,27 @@ while read cmdlet ; do
   ln -s "/Applications/uutils/bin/uutils" "${rootdir}/Applications/uutils/bin/${cmdlet}"
 done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{k=0}/Currently defined functions:/{k=1;next}{if (k==1) {print}}')
 
+# GNU coreutils
+exp=("${builddir}/coreutils/src"/*.o)
+[ -f "${exp[0]}" ] || {
+ dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-8.30.tar.xz" "coreutils.txz"
+
+ rm -rf "${builddir}/coreutils" ; mkdir "${builddir}/coreutils" ; pushd "${builddir}/coreutils"
+  # unpack and patch
+  extract_l1_tarball "coreutils.txz"
+  export CC="${devdir}/musl/bin/musl-gcc"
+  export LDFLAGS="-static"
+  export CFLAGS="-static -Os -fPIC"
+  export LOCAL_CFLAGS="${CFLAGS}"
+  ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils" #--enable-single-binary=symlinks
+  make
+ popd
+}
+
+pushd "${builddir}/coreutils"
+ make install-exec
+popd
+
 # twiddle permissions, make tarball
 pushd "${rootdir}"
 find ./ -type d -exec chmod a+rx {} \;
