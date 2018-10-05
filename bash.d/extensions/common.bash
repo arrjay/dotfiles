@@ -105,6 +105,7 @@ unset -f ____init_which
     esac
 
     # if we don't have a wrapper, install that now
+    # shellcheck disable=SC2006
     case `type -t ls` in
       file) ls () { command ls "${___ls_global_opts[@]}" "${@}" ; } ;;
     esac
@@ -123,6 +124,21 @@ ___chkdef ls && {
 
 # add l convenience.
 ___chkdef ls && l () { ls "${@}" ; }
+
+# if we have 'cmdwatch' alias 'watch' on top of it. we usually want the procps-ng watch, not BSD.
+chkcmd cmdwatch && watch () { command cmdwatch "${@}" ; }
+
+# if we have pinfo, use that instead of man when interactive
+[ "${PS1}" ] && chkcmd pinfo && man () { command pinfo -m "${@}" ; }
+
+# dos-like things
+___chkdef path || path () { echo "${PATH}" ; }
+chkcmd copy || { ___chkdef cp && copy () { cp "${@}" ; } ; }
+chkcmd move || { ___chkdef mv && move () { mv "${@}" ; } ; }
+chkcmd rd   || { ___chkdef rm && rd   () { rm -rf "${@}" ; } ; }
+___chkdef mem  || { chkcmd free     && mem () { command free -m ; } ; }
+___chkdef cls  || { ___chkdef clear && cls () { clear ; } ; }
+chkcmd tracert || { chkcmd traceroute && tracert () { command traceroute "${@}" ; } ; }
 
 # docker convenience functions
 chkcmd docker && {

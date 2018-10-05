@@ -772,24 +772,14 @@ function monolith_aliases {
   v_alias vi vim
   v_alias lynx links
   v_alias more less
-  v_alias watch cmdwatch
-  v_alias man pinfo
   v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
   v_alias mpg321 mpg123	# else mpg123
   v_alias ftp ncftp
   v_alias gpg gpg2
 	
   # common custom aliases
-  alias path='echo ${PATH}'
   alias scx='screen -x'
   alias s='sync;sync;sync'
-
-  # pretend to be DOS, sometimes
-  alias cls='clear'
-  alias rd='rm -rf'
-  alias copy='cp'
-  alias move='mv'
-  alias tracert='traceroute'
 
   # common typo
   alias Grep='grep'
@@ -816,8 +806,6 @@ function monolith_aliases {
     linux)
       alias du='du -h'
       alias df='df -h'
-      alias mem='free -m'
-      alias free='free -m'
     ;;
     darwin)
       ppid=$(ps -o ppid $$)
@@ -847,8 +835,6 @@ function monolith_aliases {
     ;;
     solaris)
       alias ln='/usr/bin/ln'
-    ;;
-    *)
     ;;
   esac
 
