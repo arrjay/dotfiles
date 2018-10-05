@@ -549,7 +549,7 @@ mm_putenv ___os
 
 # set up more of the loader environment now
 genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/Applications/"*/bin \
-                "${HOME}/.cargo/bin" "${HOME}/.rvm/bin" \
+                "${HOME}/.cargo/bin" "${HOME}/.cabal/bin" "${HOME}/.rvm/bin" \
                 "${HOME}/bin/${___os}-${___cpu}" "${HOME}/bin/${___os}${___osmaj}-${___cpu}" "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
                 "${HOME}/bin/noarch" "${HOME}/bin/${___host}"
 
