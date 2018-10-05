@@ -19,28 +19,35 @@ _ed () {
 
 # test which by capabilities and define a function around it.
 ____init_which () {
-  local line which_func_support which_alias_support which_input which_flags
-  which_alias_support=false ; which_func_support=false
+  local line which_input which_flags
   which_input="" ; which_flags=""
 
   # check if we have which and if not, just go away
   { chkcmd which && {
-    while read -r line ; do
-      case "${line}" in
-        "FOO ()") which_func_support=true ;;
-      esac
-    done < <(exec 2>&1 ; printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO)
-    while read -r line ; do
-      case "${line}" in
-        "alias FOO=':'") which_alias_support=true ;;
-      esac
-    done < <(exec 2>&1 ; printf "alias FOO=':'\\n" | command which --read-alias FOO)
-  } ; } || return 1
+    mm_setenv ___which_func_support || {
+      ___which_func_support=false
+      while read -r line ; do
+        case "${line}" in
+          "FOO ()") ___which_func_support=true ;;
+        esac
+      done < <(exec 2>&1 ; printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO)
+      mm_putenv ___which_func_support
+    }
+    mm_setenv ___which_alias_support || {
+      ___which_alias_support=false
+      while read -r line ; do
+        case "${line}" in
+          "alias FOO=':'") ___which_alias_support=true ;;
+        esac
+      done < <(exec 2>&1 ; printf "alias FOO=':'\\n" | command which --read-alias FOO)
+      mm_putenv ___which_alias_support
+    } ; }
+  } || return 1
 
-  [ "${which_alias_support}" == true ] && {
+  [ "${___which_alias_support}" == true ] && {
     which_input="alias;" ; which_flags=("--read-alias")
   }
-  [ "${which_func_support}" == true ] && {
+  [ "${___which_func_support}" == true ] && {
     which_input="${which_input}declare -f;" ; which_flags=("${which_flags[@]}" "--read-functions")
   }
 
@@ -53,13 +60,13 @@ unset -f ____init_which
 # test ls color capabilities and define a function around that. only run when interactive.
 [ "${PS1}" ] && {
   ____init_ls () {
-    local line ls_help_support ls_color_support ls_linect ls_found_help
+    local line ls_linect
     ls_linect=0
     # note we call chkdef as ls may be a function at this point.
     ___chkdef ls && {
       mm_setenv ___ls_supports_help || {
         ___ls_supports_help=no
-        while read line ; do
+        while read -r line ; do
           # shellcheck disable=SC2219
           let ls_linect=ls_linect+1
         done < <(cd / && ls --help 2>&1)
@@ -70,13 +77,15 @@ unset -f ____init_which
     }
     mm_setenv ___ls_supports_color || {
       ___ls_supports_color=no
-      # if ls supports --help, check for --color flag
-      while read line ; do
-        case "${line}" in
-          *--color=auto*) ___ls_supports_color=auto ;;
-          *--color*)      ___ls_supports_color=yes  ;;
-        esac
-      done < <(ls --help 2>&1)
+      [ "${___ls_supports_help}" == 'yes' ] && {
+        # if ls supports --help, check for --color flag
+        while read -r line ; do
+          case "${line}" in
+            *--color=auto*) ___ls_supports_color=auto ;;
+            *--color*)      ___ls_supports_color=yes  ;;
+          esac
+        done < <(ls --help 2>&1)
+      }
       mm_putenv ___ls_supports_color
     }
     # if we already have a function defined, assume it's our gnu wrapper...
