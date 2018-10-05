@@ -16,7 +16,7 @@ ____coreutil_setup () {
   for prog in "${gnuutils[@]}" ; do
     # shellcheck disable=SC2006
     case "`type -t "${prog}"`" in builtin|function) continue ;; esac
-    chkcmd "g${prog}" && eval "${prog} () { command g${prog} \$\"{@}\" ; }"
+    chkcmd "g${prog}" && eval "${prog} () { command g${prog} \"\${___${prog}_global_opts[@]}\" \"\${@}\" ; }"
   done
 }
 ____coreutil_setup
