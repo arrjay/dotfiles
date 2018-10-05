@@ -660,6 +660,8 @@ ____hostsetup () {
             "${d}/extensions/gnu.bash" \
             "${d}/extensions.bash" \
             "${d}/extensions/common.bash" \
+            "${d}/extensions/cloudenv.bash" \
+            "${d}/extensions/cloudenv.bash${___bashmaj}" \
             "${d}/extensions/bash${___bashmaj}.bash" \
             "${d}/prompt/common.bash" \
             "${d}/prompt/bash${___bashmaj}.bash" \
