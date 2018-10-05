@@ -782,7 +782,6 @@ function monolith_aliases {
   # common custom aliases
   alias path='echo ${PATH}'
   alias scx='screen -x'
-  alias l='ls'
   alias s='sync;sync;sync'
 
   # pretend to be DOS, sometimes
@@ -797,8 +796,6 @@ function monolith_aliases {
 
   case ${OPSYS} in
     cygwin*|win32)
-      alias ll='ls -FlAh --color=tty'
-      #alias ls='ls --color=tty -h'
       alias start='cygstart'
       alias du='du -h'
       alias df='df -h'
@@ -814,13 +811,9 @@ function monolith_aliases {
       fi
       if [ "${OPSYS}" == "win32" ]; then
         builtin alias clear='echo -ne\\033c'
-        builtin alias ll='ls -Flah'
-        #builtin alias ls='ls -h'
       fi
     ;;
     linux)
-      alias ll='ls -FlAh --color=tty'
-      #alias ls='ls --color=tty -h'
       alias du='du -h'
       alias df='df -h'
       alias mem='free -m'
@@ -842,13 +835,11 @@ function monolith_aliases {
           chkcmd mvim && { export EDITOR='mvim -f' ; alias gvim=mvim ; }
         ;;
       esac
-      alias ll='ls -FlAh'
       alias du='du -h'
       alias df='df -h'
     ;;
     openbsd)
       PKG_PATH="ftp://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/packages/$(machine -a)/" && export PKG_PATH
-      alias ll='ls -FlAh'
       alias du='du -h'
       alias df='df -h'
       alias free='vmstat'
@@ -858,7 +849,6 @@ function monolith_aliases {
       alias ln='/usr/bin/ln'
     ;;
     *)
-      alias ll='ls -FlAh'
     ;;
   esac
 

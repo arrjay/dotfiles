@@ -75,23 +75,33 @@ unset -f ____init_which
         mm_putenv ___ls_supports_help
       }
     }
-    mm_setenv ___ls_supports_color || {
+    { mm_setenv ___ls_supports_color && mm_setenv ___ls_supports_human_readable && \
+      mm_setenv ___ls_supports_almost_all ; } || {
       ___ls_supports_color=no
+      ___ls_supports_human_readable=no
+      ___ls_supports_almost_all=no
       [ "${___ls_supports_help}" == 'yes' ] && {
         # if ls supports --help, check for --color flag
         while read -r line ; do
           case "${line}" in
-            *--color=auto*) ___ls_supports_color=auto ;;
-            *--color*)      ___ls_supports_color=yes  ;;
+            *--almost-all*)     ___ls_supports_almost_all=yes     ;;
+            *--color=auto*)     ___ls_supports_color=auto         ;;
+            *--color*)          ___ls_supports_color=yes          ;;
+            *--human-readable*) ___ls_supports_human_readable=yes ;;
           esac
         done < <(ls --help 2>&1)
       }
       mm_putenv ___ls_supports_color
+      mm_putenv ___ls_supports_human_readable
+      mm_putenv ___ls_supports_almost_all
     }
     # if we already have a function defined, assume it's our gnu wrapper...
     case "${___ls_supports_color}" in
       auto) ___ls_global_opts=("${___ls_global_opts[@]}" '--color=auto') ;;
       yes)  ___ls_global_opts=("${___ls_global_opts[@]}" '--color')      ;;
+    esac
+    case "${___ls_supports_human_readable}" in
+      yes)  ___ls_global_opts=("${___ls_global_opts[@]}" '--human-readable') ;;
     esac
 
     # if we don't have a wrapper, install that now
@@ -102,6 +112,17 @@ unset -f ____init_which
   ____init_ls
   unset -f ____init_ls
 }
+
+# add ll convenience helper. options are POSIX for -a, GNU for -A.
+___chkdef ls && {
+  case "${___ls_supports_almost_all}" in
+    yes) ll () { ls -FlA "${@}" ; } ;;
+    *)   ll () { ls -Fla "${@}" ; } ;;
+  esac
+}
+
+# add l convenience.
+___chkdef ls && l () { ls "${@}" ; }
 
 # docker convenience functions
 chkcmd docker && {
