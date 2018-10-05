@@ -376,7 +376,7 @@ ____init_cachedir && {
     [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: restore environment variable from memoization system" ; return 2 ; }
 
     ___vfy_cachesys mm_setenv || return $?
-    [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r "${env}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
+    [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r "${env?}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
     # export that as well
     # shellcheck disable=SC2163
     export "${env}"
@@ -478,7 +478,7 @@ chkcmd uname && {
   [ "${___osrel}" ] || unset osrel
 }
 
-[ ! -z "${___osrel:-}" ] && {			# 4.18.5-200.fc28.x86_64
+[ -n "${___osrel:-}" ] && {			# 4.18.5-200.fc28.x86_64
   ___osmaj="${___osrel%%\.*}"			# 4
   ___osmin="${___osrel##"${___osmaj}."}"	# 18.5-200.fc28.x86_64
   ___osmin="${___osmin%%-*}"			# 18.5
@@ -600,7 +600,7 @@ fi
 if [ -d "${HOME}/Library/go" ]; then
   if [ -f "${HOME}/Library/go/bin/go" ] ; then
     # found a go _compiler_ so this is a complete install.
-    if [ ! -z "${GOROOT}" ] ; then
+    if [ -n "${GOROOT:-}" ] ; then
       if [[ -n ${PS1} ]]; then
         # warn of stupid times ahead.
         echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
@@ -608,7 +608,7 @@ if [ -d "${HOME}/Library/go" ]; then
     fi
     export GOROOT="${HOME}/Library/go"
   else
-    if [ ! -z "${GOPATH}" ] ; then
+    if [ -n "${GOPATH:-}" ] ; then
       genprepend GOPATH "${HOME}/Library/go"
     else
       export GOPATH="${HOME}/Library/go"
@@ -689,7 +689,7 @@ _properties () {
 #--# Text processing
 # v_alias - overloads command with specified function if command exists
 function v_alias {
-  if [ ! -n "${1}" ]; then
+  if [ -z "${1}" ]; then
     builtin alias
     return $?
   fi
