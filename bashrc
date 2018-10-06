@@ -41,6 +41,11 @@ ___error_msg () {
   echo "${*}" 1>&2
 }
 
+# turn echo back on using stty
+___echo_on () {
+  chkcmd stty && command stty echo
+}
+
 # get the bash version for command definition unwinding
 ___bashmaj=${BASH_VERSION/.*/}
 ___bashmin=${BASH_VERSION#${___bashmin}.}
