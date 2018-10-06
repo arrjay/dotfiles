@@ -3,18 +3,18 @@
 ___quiet_input () {
   local ____set_x='' thestr prompt="${1:-Input string:}" avar="${2:-}"
   printf '%s ' "${prompt}" 1>&2
-  chkcmd stty && command stty -echo
+  chkcmd stty && { command stty -echo ; trap '[ "${____set_x}" ] && set -x ; command stty echo ; trap - INT ; return 2' INT ; }
   case "${-}" in *x*) ____set_x=x ; set +x ;; esac
-  read -r thestr
+  read -r thestr || return $?
   [ "${avar}" ] && {
     case "${___printf_supports_v:-}" in
       yes) builtin printf -v "${avar}" '%s' "${thestr}" ;;
-      *)   eval "${avar}=\'${thestr}\'" ;;
+      *)   eval "${avar}="'"${thestr}"' ;;
     esac
   } || printf '%s' "${thestr}"
   [ "${____set_x}" ] && set -x
   printf '\n' 1>&2
-  chkcmd stty && command stty echo
+  chkcmd stty && { command stty echo ; trap - INT ; }
   return 0
 }
 
@@ -86,5 +86,6 @@ _aws_signin () {
   }
 
   # export the signin keys at this point
+  # shellcheck disable=SC2163
   export "${___CLOUD_AUTH_KEYS[@]}"
 }
