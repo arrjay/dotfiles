@@ -667,15 +667,26 @@ ____hostsetup () {
             "${d}/extensions/common.bash" \
             "${d}/extensions/cloudenv.bash" \
             "${d}/extensions/cloudenv.bash${___bashmaj}" \
+            "${d}/extensions/editor_pager.bash" \
             "${d}/extensions/bash${___bashmaj}.bash" \
-            "${d}/prompt/common.bash" \
-            "${d}/prompt/bash${___bashmaj}.bash" \
-            "${d}/prompt/${___os}.bash" \
             "${d}/host/${___host}.bash"
   done
 }
 ____hostsetup
 unset -f ____hostsetup
+
+____promptsetup () {
+  local d
+  for d in "${___bash_auxfiles_dirs[@]}" ; do
+    sourcex "${d}/prompt/common.bash" \
+            "${d}/prompt/bash${___bashmaj}.bash" \
+            "${d}/prompt/${___os}.bash"
+  done
+}
+[ "${PS1}" ] && {
+  ____promptsetup
+}
+unset -f ____promptsetup
 
 _properties () {
   printf '%s\n' "${___rcver_str}"
@@ -776,7 +787,6 @@ function monolith_aliases {
   chkcmd less && export PAGER=less
 
   # try to call coreutils & friends
-  v_alias vi vim
   v_alias lynx links
   v_alias more less
   v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
