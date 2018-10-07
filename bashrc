@@ -675,18 +675,19 @@ ____hostsetup () {
 ____hostsetup
 unset -f ____hostsetup
 
-____promptsetup () {
+____interactive_setup () {
   local d
   for d in "${___bash_auxfiles_dirs[@]}" ; do
-    sourcex "${d}/prompt/common.bash" \
+    sourcex "${d}/extensions/interactive.bash" \
+            "${d}/prompt/common.bash" \
             "${d}/prompt/bash${___bashmaj}.bash" \
             "${d}/prompt/${___os}.bash"
   done
 }
 [ "${PS1}" ] && {
-  ____promptsetup
+  ____interactive_setup
 }
-unset -f ____promptsetup
+unset -f ____interactive_setup
 
 _properties () {
   printf '%s\n' "${___rcver_str}"
