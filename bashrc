@@ -35,6 +35,10 @@ export PASSWORD_STORE_SIGNING_KEY=B1A086C36A2C52A79015F25C95B6669B9D085FA5
 export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
+# always configure history for sessions
+HISTCONTROL=ignoreboth
+HISTIGNORE='pass *:ls:ll:l:pwd:uptime:history:history *:dmesg:s:sync:scx'
+
 ## function definitions
 # return errors to fd 2
 ___error_msg () {
@@ -804,19 +808,9 @@ _EOF_
 }
 
 function monolith_aliases {
-  v_alias lynx links
-  v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
-  v_alias mpg321 mpg123	# else mpg123
   v_alias ftp ncftp
   v_alias gpg gpg2
 	
-  # common custom aliases
-  alias scx='screen -x'
-  alias s='sync;sync;sync'
-
-  # common typo
-  alias Grep='grep'
-
   case ${OPSYS} in
     cygwin*|win32)
       alias start='cygstart'
@@ -894,8 +888,6 @@ if [[ -n ${PS1} ]]; then
     ;;
   esac
   [ "${SSH_CONNECTION:-}" ] || { [ -e "${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ; }
-  # configure history for interactive sessions
-  HISTCONTROL=ignoreboth
   lyricsfile="${HOME}"/.fortune/song-lyrics
   if [ -f "${lyricsfile}" ]; then
     chkcmd strfile && {

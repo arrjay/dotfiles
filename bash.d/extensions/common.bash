@@ -114,8 +114,18 @@ ___chkdef ls && {
 # add l convenience.
 ___chkdef ls && l () { ls "${@}" ; }
 
+# add s convenience.
+___chkdef sync && s () { sync ; }
+
+# I just seem to lag _slightly_ on unshift.
+chkcmd grep && Grep () { command grep "${@}" ; }
+
 # if we have 'cmdwatch' alias 'watch' on top of it. we usually want the procps-ng watch, not BSD.
 chkcmd cmdwatch && watch () { command cmdwatch "${@}" ; }
+
+# if I have tmux, actually prefer that for 'scx'
+chkcmd screen && scx () { command screen -x ; }
+chkcmd tmux   && scx () { command tmux attach ; }
 
 # dos-like things
 ___chkdef path || path () { echo "${PATH}" ; }
@@ -125,6 +135,20 @@ chkcmd rd   || { ___chkdef rm && rd   () { rm -rf "${@}" ; } ; }
 ___chkdef mem  || { chkcmd free     && mem () { command free -m ; } ; }
 ___chkdef cls  || { ___chkdef clear && cls () { clear ; } ; }
 chkcmd tracert || { chkcmd traceroute && tracert () { command traceroute "${@}" ; } ; }
+
+# web browsing
+chkcmd lynx      || { chkcmd elinks && lynx   () { command elinks "${@}" ; } ; }
+___chkdef lynx   || { chkcmd links  && lynx   () { command links  "${@}" ; } ; }
+chkcmd links     || { chkcmd elinks && links  () { command links  "${@}" ; } ; }
+___chkdef links  || { chkcmd lynk   && links  () { command lynx   "${@}" ; } ; }
+chkcmd elinks    || { chkcmd links  && elinks () { command links  "${@}" ; } ; }
+___chkdef elinks || { chkcmd lynx   && elinks () { command lynx   "${@}" ; } ; }
+
+# media playback
+chkcmd mpg123    || { chkcmd mpg321  && mpg123 () { command mpg321  "${@}" ; } ; }
+___chkdef mpg123 || { chkcmd mplayer && mpg123 () { command mplayer "${@}" ; } ; }
+chkcmd mpg321    || { chkcmd mpg123  && mpg321 () { command mpg123  "${@}" ; } ; }
+___chkdef mpg321 || { chkcmd mplayer && mpg321 () { command mplayer "${@}" ; } ; }
 
 # docker convenience functions
 chkcmd docker && {
