@@ -621,6 +621,24 @@ if [ -d "${HOME}/Library/go" ]; then
   fi
 fi
 
+___xdg_session_type='none'
+___x11_environment='no'
+# graphical environment?
+[ "${XDG_SESSION_ID}" ] && {
+  chkcmd loginctl && ___xdg_session_type=`loginctl --no-ask-password show-session "${XDG_SESSION_ID}" -p Type --value`
+}
+____check_xhost () {
+  local rc
+  [ "${DISPLAY}" ] && {
+    chkcmd xhost & {
+      xhost 2>&1 | nul ; rc="${PIPESTATUS[0]}"
+      [ "${rc}" == '0' ] && { ___x11_environment='yes' ; }
+    }
+  }
+}
+____check_xhost
+unset -f ____check_xhost
+
 # setup MANPATH
 genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
     "/usr/share/man" "/usr/man" \
@@ -701,6 +719,8 @@ _properties () {
   printf 'bashmaj, min: %s %s\n' "${___bashmaj}" "${___bashmin}"
   [ "${BASH_CACHE_DIRECTORY}" ] && printf 'cachedir: %s\n' "${BASH_CACHE_DIRECTORY}"
   printf 'printf_supports_v: %s\n' "${___printf_supports_v}"
+  printf 'xdg_session_type: %s\n' "${___xdg_session_type}"
+  printf 'x11_environment: %s\n' "${___x11_environment}"
 }
 
 ## internal functions
@@ -784,12 +804,8 @@ _EOF_
 }
 
 function monolith_aliases {
-  # we actually set PAGER/EDITOR here as well
-  chkcmd less && export PAGER=less
-
   # try to call coreutils & friends
   v_alias lynx links
-  v_alias more less
   v_alias mpg123 mpg321	# we prefer mpg321 if we have it...
   v_alias mpg321 mpg123	# else mpg123
   v_alias ftp ncftp
@@ -853,15 +869,6 @@ function monolith_aliases {
     ;;
     solaris)
       alias ln='/usr/bin/ln'
-    ;;
-  esac
-
-  case "${EDITOR}" in
-    *vim*|*editplus*) : ;;
-    *)
-      chkcmd vi && export EDITOR="vi"
-      chkcmd vim && export EDITOR="vim"
-      [ "${DISPLAY}" ] && xdpyinfo > /dev/null && chkcmd gvim && export EDITOR="gvim -f"
     ;;
   esac
 }
