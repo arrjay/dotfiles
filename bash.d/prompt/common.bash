@@ -119,8 +119,15 @@ _prompt_right () {
   return "${___pre_prompt_rc}"
 }
 
+_prompt_top () {
+  rc="${?}" ; ___pre_prompt_rc="${rc}"
+  [ "${___prompt_top_string}"  ] && printf '%s' "${___prompt_top_string[*]}"
+  return "${___pre_prompt_rc}"
+}
+
 _prompt_left () {
   rc="${?}" ; ___pre_prompt_rc="${rc}"
+  [ "${___prompt_left_string}" ] && printf '%s' "${___prompt_left_string[*]}"
   return "${___pre_prompt_rc}"
 }
 
@@ -157,7 +164,8 @@ setprompt () {
     yes) hd="${c_hd}#${rs}"  ;;
     *)   hd="${c_hd}\$${rs}" ;;
   esac
-  np_start='`_prompt_left`'"${c_np_start}"'#'"${rs} "
+  ___prompt_top_string=()
+  np_start='`_prompt_top`\n`_prompt_left`'"${c_np_start}"'#'"${rs} "
   lsta="${c_lsta}?"'${?}'"${rs} "
   chn="${c_chn}!"'\!'"${rs} "
   u="${c_u}\\u${rs}"

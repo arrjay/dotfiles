@@ -33,7 +33,7 @@ _cloud_authprompt () {
 }
 
 _aws_signin () {
-  local passrec line askmfa opt OPTARG OPTIND mfapin profile ____set_x cmd
+  local passrec line askmfa opt OPTARG OPTIND mfapin profile ____set_x cmd userarn accountid role assumerole_data rolesess expiry
   passrec="${___AWS_PASS_ITEM:-}" ; askmfa=''
 
   while getopts "P:p:m:Mc:" opt "${@}" ; do case "${opt}" in
@@ -77,15 +77,35 @@ _aws_signin () {
                                  ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_MFA_SERIAL') ; }
   }
 
+  # if we have aws, get user information now.
+  { chkcmd aws && chkcmd jq ; } && {
+    userarn=`aws iam get-user | jq -r .User.Arn`
+  }
+
   # if asked for a profile, assume-role to get the session keys. needs aws, jq, and _aws_profile2acct though.
   [ "${profile}" ] && {
     for cmd in jq aws ; do
       chkcmd "${cmd}" || { ___error_msg "AWS STS profile switching requires ${cmd} command to be installed" ; return 1 ; }
     done
     ___chkdef _aws_profile2acct || { ___error_msg "AWS STS profile switching requires _aws_profile2acct definition to return acct id, role" ; return 1 ; }
+    read -r accountid role < <(_aws_profile2acct "${profile}")
+    { [ "${accountid}" ] && [ "${role}" ] ; } || { ___error_msg "failure getting aws profile account/role" ; return 1 ; }
+    rolesess="${___host}"
+    chkcmd date && rolesess="${rolesess}-`date +%s`"
+    case "${-}" in *x*) ____set_x=x ; set +x ;; esac
+      mfapin=`___quiet_input "AWS MFA PIN:"`
+      assumerole_data=`aws sts assume-role --role-arn "arn:aws:iam::${accountid}:role/${role}" --role-session-name "${rolesess}" \
+                       --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
+      # replace tokens with results of assume-role call.
+      read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY userarn expiry < <(echo "${assumerole_data}" | jq -r \
+         '. | "\(.Credentials.SessionToken) \(.Credentials.AccessKeyId) \(.Credentials.SecretAccessKey) \(.AssumedRoleUser.Arn) \(.Credentials.Expiration)"')
+    [ "${____set_x}" ] && set -x
+    ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SESSION_TOKEN')
   }
+
+  [ "${userarn}" ] && ___prompt_top_string=("${userarn}" `printf '\\n'`)
 
   # export the signin keys at this point
   # shellcheck disable=SC2163
-  export "${___CLOUD_AUTH_KEYS[@]}"
+  [ "${___CLOUD_AUTH_KEYS[0]}" ] && export "${___CLOUD_AUTH_KEYS[@]}"
 }
