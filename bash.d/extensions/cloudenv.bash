@@ -53,6 +53,9 @@ _aws_signin () {
     *) { ___error_msg "${FUNCNAME[0]}: [-P pass record][-p aws profile][-m mfa_arn][-c pin][-M]" ; return 1 ; } ;;
   esac ; done
 
+  # hook if we need any preprocessing
+  ___chkdef ___aws_pre_signin && ___aws_pre_signin
+
   # if we have pass, get the bits via pass. or ask for them. grab the MFA token from pass if here.
   [ "${passrec}" ] && {
     chkcmd pass || { ___error_msg "cannot find pass command" ; return 1 ; }
@@ -112,9 +115,17 @@ _aws_signin () {
     ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SESSION_TOKEN' '___CLOUD_SESSION_EXPIRY')
   }
 
-  [ "${userarn}" ] && ___prompt_top_string=("${userarn}" `printf '\\n'`)
+  [ "${userarn}" ] && ___prompt_top_string=("${userarn}")
 
   # export the signin keys at this point
   # shellcheck disable=SC2163
   [ "${___CLOUD_AUTH_KEYS[0]}" ] && export "${___CLOUD_AUTH_KEYS[@]}"
+
+  # if we have a post-auth hook, call it now
+  ___chkdef ___aws_post_signin && ___aws_post_signin
+}
+
+___aws_post_signin () {
+  # if we did not previously have a region, set it to us-east-1.
+  [ "${AWS_DEFAULT_REGION}" ] || { export AWS_DEFAULT_REGION='us-east-1' ; ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_DEFAULT_REGION') ; }
 }
