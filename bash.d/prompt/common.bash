@@ -114,7 +114,7 @@ unset -f ____termsetup
 # placeholder functions for the prompt
 # if you redefine these, you need to pass along the previous rc
 ___pre_prompt_rc=0
-_prompt_right () {
+___chkdef _prompt_right || _prompt_right () {
   printf '%s' ' '
   return "${___pre_prompt_rc}"
 }
