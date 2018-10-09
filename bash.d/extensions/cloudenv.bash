@@ -28,8 +28,16 @@ _cloud_authkey () {
   [ "${key}" ] && ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" "${key}")
 }
 
-_cloud_authprompt () {
-  :
+_prompt_right () {
+  local timestr now timerem
+  timestr=''
+  now=`date +%s`
+  [ "${___CLOUD_SESSION_EXPIRY:-}" ] && {
+    let timerem=___CLOUD_SESSION_EXPIRY-now
+    [ "${timerem}" -gt 0 ] && let timestr=timerem/60
+  }
+  printf ' %s ' "${timestr}"
+  return "${___pre_prompt_rc}"
 }
 
 _aws_signin () {
@@ -100,7 +108,8 @@ _aws_signin () {
       read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY userarn expiry < <(echo "${assumerole_data}" | jq -r \
          '. | "\(.Credentials.SessionToken) \(.Credentials.AccessKeyId) \(.Credentials.SecretAccessKey) \(.AssumedRoleUser.Arn) \(.Credentials.Expiration)"')
     [ "${____set_x}" ] && set -x
-    ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SESSION_TOKEN')
+    [ "${expiry}" ] && ___chkdef date && ___CLOUD_SESSION_EXPIRY="`date --date "${expiry}" +%s`"
+    ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SESSION_TOKEN' '___CLOUD_SESSION_EXPIRY')
   }
 
   [ "${userarn}" ] && ___prompt_top_string=("${userarn}" `printf '\\n'`)
