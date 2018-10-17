@@ -40,6 +40,11 @@ _prompt_right () {
   return "${___pre_prompt_rc}"
 }
 
+___cloud_prompt_command () {
+  [ "${___CLOUD_SESSION_ARN:-}" ] && echo "${___CLOUD_SESSION_ARN}"
+}
+___prompt_command_list=('___cloud_prompt_command' "${___prompt_command_list[@]}")
+
 _aws_signin () {
   local passrec line askmfa opt OPTARG OPTIND mfapin profile ____set_x cmd userarn accountid role assumerole_data rolesess expiry
   passrec="${___AWS_PASS_ITEM:-}" ; askmfa=''
