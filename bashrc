@@ -654,6 +654,9 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 # if we have the git prompt support script in vendor/, load it now
 [ -f "${___bashrc_dir}/vendor/git-prompt.sh" ] && source "${___bashrc_dir}/vendor/git-prompt.sh"
 
+# force reset the prompt command list here
+___prompt_command_list=()
+
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()
