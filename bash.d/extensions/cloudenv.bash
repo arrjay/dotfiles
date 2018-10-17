@@ -115,8 +115,6 @@ _aws_signin () {
     ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SESSION_TOKEN' '___CLOUD_SESSION_EXPIRY')
   }
 
-  [ "${userarn}" ] && ___prompt_top_string=("${userarn}")
-
   # export the signin keys at this point
   # shellcheck disable=SC2163
   [ "${___CLOUD_AUTH_KEYS[0]}" ] && export "${___CLOUD_AUTH_KEYS[@]}"
