@@ -74,9 +74,24 @@ _ac () {
   [ "${str}" ] && printf %b "${str}"
 }
 
+# walk through all the prompt command hooks...
+___prompt_command () {
+  local function
+  [ "${___prompt_command_list[0]}" ] || return 0
+  for function in "${___prompt_command_list[@]}" ; do
+    ${function}
+  done
+}
+PROMPT_COMMAND='___prompt_command'
+
 # write a title to xterm or rxvt compate titlebars
 _wt () {
   [ "${___term_titlecap}" == "yes" ] && echo -ne '\e]0;'"${*}"'\a'
+}
+
+# standard prompt command
+___pc_standard () {
+  _wt "${USER}@${___host}:${PWD}"
 }
 
 # set full fg/bg colors - this takes xparsecolor(3) format - rgb:hh/hh/hh is encouraged.
@@ -127,10 +142,8 @@ _prompt_left () {
 
 # shellcheck disable=SC2154,SC2006,SC2016
 setprompt () {
-  local name prompt_scheme ; name="${1:-}" ; prompt_scheme="${2:-basic}"
+  local name prompt_scheme prompt_command_add ; name="${1:-}" ; prompt_scheme="${2:-basic}" ; prompt_command_add='___pc_standard'
   [ -n "${PS1}" ] || return 0
-  # prompt command is mostly the same...
-  PROMPT_COMMAND="_wt ${USER}@${___host}:\${PWD}"
   PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
   local hd np_start lsta chn u at h pc wd clk pca wda ha ua pm
   local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc c_wd c_clk c_pca c_wda c_ha c_ua c_pm
@@ -175,7 +188,7 @@ setprompt () {
   np_end='`_prompt_right`'"${hd}"'\n'
   ___chkdef __git_ps1 && np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
   case "${name}" in
-    simple)      unset PROMPT_COMMAND ;;
+    simple)      prompt_command_add='' ;;
     classic)     : ;;
     old)         PS1="`_prompt_left`${clk}${ua}${at}${ha}"'`__git_ps1``_prompt_right`'"\\n${pca}${wda} ${hd} " ;;
     timely)      PS1="${np_start}${clk}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
@@ -183,5 +196,6 @@ setprompt () {
     new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
     new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pm}${wd}${np_end}" ;;
   esac
+  ___prompt_command_list=("${___prompt_command_list[@]}" "${prompt_command_add}")
 }
 setprompt new_pmon
