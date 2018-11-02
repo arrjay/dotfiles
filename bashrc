@@ -629,6 +629,7 @@ ___xdg_session_type='none'
 ___x11_environment='no'
 # graphical environment?
 [ "${XDG_SESSION_ID}" ] && {
+  # shellcheck disable=SC2006
   chkcmd loginctl && ___xdg_session_type=`loginctl --no-ask-password show-session "${XDG_SESSION_ID}" -p Type --value`
 }
 ____check_xhost () {
@@ -701,10 +702,16 @@ ____hostsetup
 unset -f ____hostsetup
 
 ____interactive_setup () {
-  local d
+  local d f c
   for d in "${___bash_auxfiles_dirs[@]}" ; do
-    sourcex "${d}/extensions/interactive.bash" \
-            "${d}/prompt/common.bash" \
+    sourcex "${d}/extensions/interactive.bash"
+    for f in "${d}/functions"/*.bash ; do
+      c=''
+      [ -f "${f}" ] || continue
+      c="${f##*/}" ; c="${c%.bash}"
+      chkcmd "${c}" && sourcex "${f}"
+    done
+    sourcex "${d}/prompt/common.bash" \
             "${d}/prompt/bash${___bashmaj}.bash" \
             "${d}/prompt/${___os}.bash"
   done
