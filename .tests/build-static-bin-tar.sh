@@ -75,12 +75,16 @@ build_bash () {
   strip "${rootdir}/Applications/bash-${version}/bin/bash"
 }
 
+# prereqs
+type patch	2> /dev/null || sudo yum -y install patch
+type yacc	2> /dev/null || sudo yum -y install byacc
+type autoconf	2> /dev/null || sudo yum -y install autoconf
 
 # musl-libc
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
  dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.20.tar.gz" "musl.tgz"
 
- rm -rf "${builddir}/musl" ; mkdir "${builddir}/musl" ; pushd "${builddir}/musl"
+ rm -rf "${builddir}/musl" ; mkdir -p "${builddir}/musl" ; pushd "${builddir}/musl"
   extract_l1_tarball "musl.tgz"
 
   ./configure --prefix="${devdir}/musl"
