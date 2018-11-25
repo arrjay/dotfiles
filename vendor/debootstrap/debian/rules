@@ -1,0 +1,31 @@
+#! /usr/bin/make -f
+
+ifeq (0,$(shell dpkg-vendor --derives-from Ubuntu; echo $$?))
+  KEYRING := ubuntu-keyring
+else ifeq (0,$(shell dpkg-vendor --derives-from Tanglu; echo $$?))
+  KEYRING := tanglu-archive-keyring
+else ifeq (0,$(shell dpkg-vendor --derives-from Kali; echo $$?))
+  KEYRING := kali-archive-keyring
+else
+  KEYRING := debian-archive-keyring
+endif
+
+%:
+	dh $@
+
+# need to be root to make devices, so build is done in install target
+override_dh_auto_build:
+
+override_dh_auto_install:
+	dh_auto_build
+	
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/debootstrap
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/debootstrap-udeb
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Vkeyring=$(KEYRING)
+
+# Specify gzip to mitigate #770217:
+override_dh_builddeb:
+	dh_builddeb -pdebootstrap      -- -Zgzip
+	dh_builddeb -pdebootstrap-udeb -- -Zxz
