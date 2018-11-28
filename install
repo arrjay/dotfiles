@@ -32,6 +32,7 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
     if [ ! -f "${HOME}"/.gitconfig ] ; then
 	# global gitconfig is a copy
 	cp "$source_dir"/gitconfig "${HOME}"/.gitconfig
+        cp -R "$source_dir"/git "${HOME}"/.git
     fi
 
 	# ssh_config is a copy. we also create .ssh directory if needed
@@ -50,6 +51,18 @@ if [[ -s "$BASH_SOURCE" ]] && [[ -x "$BASH_SOURCE" ]]; then
 	cp "$source_dir"/gnupg/gpg.conf "${HOME}"/.gnupg/gpg.conf
 
 	ln -sf "$source_dir"/Xdefaults "${HOME}"/.Xdefaults
+
+	if [ ! -d "${HOME}/.gnupg" ] ; then
+		mkdir "${HOME}/.gnupg"
+	fi
+
+	if [ ! -f "${HOME}/.gnupg/gpg.conf" ] ; then
+		cp "$source_dir"/gnupg/gpg.conf "${HOME}"/.gnupg/gpg.conf
+	fi
+
+	if [ ! -f "${HOME}/.gnupg/gpg-agent.conf" ] ; then
+		cp "$source_dir"/gnupg/gpg-agent.conf "${HOME}"/.gnupg/gpg-agent.conf
+	fi
 
 else
 	echo "sorry, you'll need to set up this system manually!"

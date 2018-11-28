@@ -1,0 +1,12 @@
+
+module socat-x 1.0;
+
+require {
+	type container_t;
+	type sandbox_x_t;
+	class unix_stream_socket connectto;
+	class sock_file write;
+}
+
+#============= container_t ==============
+allow container_t sandbox_x_t:unix_stream_socket connectto;

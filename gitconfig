@@ -1,3 +1,6 @@
 [user]
 	name = RJ Bergeron
-	email = rbergero@gmail.com
+	email = 
+
+[init]
+	templatedir = ~/.git/templates
