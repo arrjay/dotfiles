@@ -24,11 +24,13 @@ resource "aws_iam_policy" "source_write" {
   provider    = "aws.source"
   name_prefix = "${local.replication_name}-source-write-"
   policy      = "${data.aws_iam_policy_document.source_write.json}"
+  path        = "/service-role/s3repl/"
 }
 
 resource "aws_iam_user" "source_write" {
   provider      = "aws.source"
   name          = "${local.replication_name}-source-write-user"
+  path          = "/service-user/s3repl/"
   force_destroy = true
 }
 

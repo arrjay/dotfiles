@@ -53,12 +53,14 @@ resource "aws_iam_role" "source_replication" {
   provider           = "aws.source"
   name               = "${local.replication_name}-replication-role"
   assume_role_policy = "${data.aws_iam_policy_document.source_replication_role.json}"
+  path               = "/service-role/s3repl/"
 }
 
 resource "aws_iam_policy" "source_replication" {
   provider = "aws.source"
   name     = "${local.replication_name}-replication-policy"
   policy   = "${data.aws_iam_policy_document.source_replication_policy.json}"
+  path     = "/service-role/s3repl/"
 }
 
 resource "aws_iam_role_policy_attachment" "source_replication" {
@@ -88,7 +90,7 @@ resource "aws_s3_bucket" "source" {
 
       destination {
         bucket        = "${local.dest_bucket_arn}"
-        storage_class = "STANDARD"
+        storage_class = "${var.dest_storage_class}"
 
         access_control_translation = {
           owner = "Destination"

@@ -34,3 +34,9 @@ variable "replication_name" {
   type        = "string"
   description = "Short name to describe this replication"
 }
+
+variable "dest_storage_class" {
+  type        = "string"
+  description = "S3 Storage Class for Replicated Objects"
+  default     = "STANDARD"
+}
