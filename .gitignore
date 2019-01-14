@@ -1,3 +1,4 @@
-irssi.internal
-irssi-internal
-*.bak
+.terraform
+*.swp
+*.tfstate
+*.tfstate.backup
