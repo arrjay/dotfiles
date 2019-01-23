@@ -71,6 +71,12 @@ resource "aws_iam_role_policy_attachment" "source_replication" {
 
 # S3 source bucket
 
+locals {
+  source_enable_noncurrent_exp_7d  = "${contains(list(var.expire_old_dest_93d,var.expire_old_versions_7d), "true")}"
+  source_enable_noncurrent_exp_93d = "${contains(list(var.expire_old_source_93d,var.expire_old_versions_93d), "true")}"
+  source_enable_EXPIRE_ALL_186DAYS = "${contains(list(var.EXPIRE_SOURCE_186DAYS,var.EXPIRE_ALL_186DAYS), "true")}"
+}
+
 resource "aws_s3_bucket" "source" {
   provider = "aws.source"
   bucket   = "${var.source_bucket_name}"
@@ -78,6 +84,33 @@ resource "aws_s3_bucket" "source" {
 
   versioning {
     enabled = true
+  }
+
+  lifecycle_rule {
+    id      = "DELETE_186"
+    enabled = "${local.source_enable_EXPIRE_ALL_186DAYS}"
+
+    expiration {
+      days = 186
+    }
+  }
+
+  lifecycle_rule {
+    id      = "expire_93"
+    enabled = "${local.source_enable_noncurrent_exp_93d}"
+
+    noncurrent_version_expiration {
+      days = 93
+    }
+  }
+
+  lifecycle_rule {
+    id      = "expire_7"
+    enabled = "${local.dest_enable_noncurrent_exp_7d}"
+
+    noncurrent_version_expiration {
+      days = 7
+    }
   }
 
   replication_configuration {

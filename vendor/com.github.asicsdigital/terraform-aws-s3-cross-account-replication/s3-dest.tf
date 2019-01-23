@@ -1,5 +1,11 @@
 # S3 destination bucket
 
+locals {
+  dest_enable_noncurrent_exp_7d  = "${contains(list(var.expire_old_dest_7d,var.expire_old_versions_7d), "true")}"
+  dest_enable_noncurrent_exp_93d = "${contains(list(var.expire_old_dest_93d,var.expire_old_versions_93d), "true")}"
+  dest_enable_EXPIRE_ALL_186DAYS = "${contains(list(var.EXPIRE_DEST_186DAYS,var.EXPIRE_ALL_186DAYS), "true")}"
+}
+
 data "aws_iam_policy_document" "dest_bucket_policy" {
   statement {
     sid = "replicate-objects-from-${data.aws_caller_identity.source.account_id}-to-prefix-${var.replicate_prefix}"
@@ -33,5 +39,32 @@ resource "aws_s3_bucket" "dest" {
 
   versioning {
     enabled = true
+  }
+
+  lifecycle_rule {
+    id      = "DELETE_186"
+    enabled = "${local.dest_enable_EXPIRE_ALL_186DAYS}"
+
+    expiration {
+      days = 186
+    }
+  }
+
+  lifecycle_rule {
+    id      = "expire_93"
+    enabled = "${local.dest_enable_noncurrent_exp_93d}"
+
+    noncurrent_version_expiration {
+      days = 93
+    }
+  }
+
+  lifecycle_rule {
+    id      = "expire_7"
+    enabled = "${local.dest_enable_noncurrent_exp_7d}"
+
+    noncurrent_version_expiration {
+      days = 7
+    }
   }
 }
