@@ -1,5 +1,6 @@
 .terraform
 *.swp
+*.auto.tfvars
 *.tfstate
 *.tfstate.backup
 bucket-roledata/*
