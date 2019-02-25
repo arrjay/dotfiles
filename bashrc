@@ -37,7 +37,7 @@ export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
 # always configure history for sessions
 HISTCONTROL=ignoreboth
-HISTIGNORE='pass *:ls:ll:l:pwd:uptime:history:history *:dmesg:s:sync:scx'
+HISTIGNORE='pass *:ls:ll:l:pwd:uptime:history:history *:dmesg:s:sync:scx:cls:clear:*AWS_*_KEY*'
 
 ## function definitions
 # return errors to fd 2
