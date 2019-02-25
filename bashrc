@@ -704,8 +704,12 @@ unset -f ____hostsetup
 
 ____interactive_setup () {
    # if we have the git prompt support script in vendor/, load it now
-   # shellcheck source=vendor/git-prompt.sh
-   chkcmd git && [ -f "${___bashrc_dir}/vendor/git-prompt.sh" ] && source "${___bashrc_dir}/vendor/git-prompt.sh"
+   # don't shellcheck vendor-provided scripts...
+   # shellcheck source=/dev/null
+   {
+     chkcmd git  && [ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]      && source "${___bashrc_dir}/vendor/git-prompt.sh"
+     chkcmd pass && [ -f "${___bashrc_dir}/vendor/pass-completion.sh" ] && source "${___bashrc_dir}/vendor/pass-completion.sh"
+   }
 
   local d f c
   for d in "${___bash_auxfiles_dirs[@]}" ; do
