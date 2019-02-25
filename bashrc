@@ -416,7 +416,6 @@ ____find_bashrc_file () {
   # is this a link? where is the real file?
   if [ -h "${___bash_source_path}" ]; then
     chkcmd readlink && linkdest="$(readlink "${___bash_source_path}")"
-    # we didn't have readlink. huh.
     [ "${linkdest}" ] || linkdest="$(ls -l "${___bash_source_path}"|awk -F' -> ' '{print $2}')"
     case "${linkdest}" in
       /*) abspath="${linkdest}" ;;
@@ -652,9 +651,6 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
-# if we have the git prompt support script in vendor/, load it now
-[ -f "${___bashrc_dir}/vendor/git-prompt.sh" ] && source "${___bashrc_dir}/vendor/git-prompt.sh"
-
 # force reset the prompt command list here
 ___prompt_command_list=()
 
@@ -702,6 +698,9 @@ ____hostsetup
 unset -f ____hostsetup
 
 ____interactive_setup () {
+   # if we have the git prompt support script in vendor/, load it now
+   chkcmd git && [ -f "${___bashrc_dir}/vendor/git-prompt.sh" ] && source "${___bashrc_dir}/vendor/git-prompt.sh"
+
   local d f c
   for d in "${___bash_auxfiles_dirs[@]}" ; do
     sourcex "${d}/extensions/interactive.bash"
