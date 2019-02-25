@@ -677,6 +677,17 @@ sourcex () {
   done
 }
 
+# source file if it exists and ends in .sh
+___sourcef () {
+  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
+  local f
+  for f in "${@}" ; do
+    case "${f}" in *.sh) : ;; *) continue ;; esac
+    # shellcheck disable=SC1090
+    [ -f "${f}" ] && source "${f}"
+  done
+}
+
 # walk the bash auxfiles and go to town
 ____hostsetup () {
   local d
@@ -703,15 +714,16 @@ ____hostsetup
 unset -f ____hostsetup
 
 ____interactive_setup () {
-   # if we have the git prompt support script in vendor/, load it now
-   # don't shellcheck vendor-provided scripts...
-   # shellcheck source=/dev/null
+  local d f c
+   # if we have the git prompt support script in vendor/, load it now using ___sourcef
    {
-     chkcmd git  && [ -f "${___bashrc_dir}/vendor/git-prompt.sh" ]      && source "${___bashrc_dir}/vendor/git-prompt.sh"
-     chkcmd pass && [ -f "${___bashrc_dir}/vendor/pass-completion.sh" ] && source "${___bashrc_dir}/vendor/pass-completion.sh"
+     chkcmd git  && {
+       ___sourcef "${___bashrc_dir}/vendor/git-prompt.sh" "${___bashrc_dir}/vendor/git-completion.sh"
+     }
+     chkcmd pass && \
+       ___sourcef "${___bashrc_dir}/vendor/pass-completion.sh"
    }
 
-  local d f c
   for d in "${___bash_auxfiles_dirs[@]}" ; do
     sourcex "${d}/extensions/interactive.bash"
     for f in "${d}/functions"/*.bash ; do
