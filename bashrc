@@ -10,6 +10,8 @@
 # on the other hand, stuff you might want to run is not prefixed at all. YOLO.
 # the *quadruple* underscores are functions only used while initializing the environment and should be unset later.
 
+# if you're shellchecking this, you will want -x to include stuff in vendor/
+
 # specifically run these before debugging is even enabled to grab shell state - especially ${_}
 ___bash_invocation_parent=${_}
 ___bash_invocation=${0}
@@ -416,6 +418,8 @@ ____find_bashrc_file () {
   # is this a link? where is the real file?
   if [ -h "${___bash_source_path}" ]; then
     chkcmd readlink && linkdest="$(readlink "${___bash_source_path}")"
+    # we didn't have readlink. huh. assume the very bad place and grovel ls, sorry.
+    # shellcheck disable=SC2012
     [ "${linkdest}" ] || linkdest="$(ls -l "${___bash_source_path}"|awk -F' -> ' '{print $2}')"
     case "${linkdest}" in
       /*) abspath="${linkdest}" ;;
@@ -651,7 +655,8 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
-# force reset the prompt command list here
+# force reset the prompt command list here - the intent is for extensions to use it (though not programs)
+# shellcheck disable=SC2034
 ___prompt_command_list=()
 
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
@@ -699,6 +704,7 @@ unset -f ____hostsetup
 
 ____interactive_setup () {
    # if we have the git prompt support script in vendor/, load it now
+   # shellcheck source=vendor/git-prompt.sh
    chkcmd git && [ -f "${___bashrc_dir}/vendor/git-prompt.sh" ] && source "${___bashrc_dir}/vendor/git-prompt.sh"
 
   local d f c
