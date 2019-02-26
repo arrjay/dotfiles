@@ -79,6 +79,7 @@ build_bash () {
 type patch	2> /dev/null || sudo yum -y install patch
 type yacc	2> /dev/null || sudo yum -y install byacc
 type autoconf	2> /dev/null || sudo yum -y install autoconf
+type cmake	2> /dev/null || sudo yum -y install cmake
 
 # musl-libc
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
@@ -92,6 +93,7 @@ type autoconf	2> /dev/null || sudo yum -y install autoconf
   make install
  popd
 }
+export PATH="${devdir}/musl/bin:${PATH}"
 
 [ -f "${devdir}/musl/bin/musl-ar" ] || {
   ln -s "$(which ar)" "${devdir}/musl/bin/musl-ar"
@@ -171,6 +173,9 @@ build_bash 4.3 48
 
 # bash - 4.4
 build_bash 4.4 23
+
+# bash - 5.0
+build_bash 5.0 2
 
 # busybox
 [ -f "${builddir}/busybox/busybox" ] || {
