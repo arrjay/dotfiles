@@ -203,6 +203,31 @@ while read cmdlet ; do
   ln -s "/Applications/busybox/bin/busybox" "${rootdir}/Applications/busybox/bin/${cmdlet}"
 done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
 
+# toybox
+[ -f "${builddir}/toybox/toybox" ] || {
+  dl_sha512_file "https://www.landley.net/toybox/downloads/toybox-0.8.0.tar.gz" "toybox.tgz"
+
+ rm -rf "${builddir}/toybox" ; mkdir "${builddir}/toybox" ; pushd "${builddir}/toybox"
+  # unpack and patch
+  extract_l1_tarball "toybox.tgz"
+
+  # build
+  export CC="${devdir}/musl/bin/musl-gcc"
+  export CFLAGS="-static -Os"
+  export LOCAL_CFLAGS="${CFLAGS}"
+  cp "${topdir}/.tests/toybox.config" .config
+  make silentoldconfig
+  PATH="${devdir}/musl/bin:${PATH}" make
+ popd
+}
+
+mkdir -p "${rootdir}/Applications/toybox/bin"
+cp "${builddir}/toybox/toybox" "${rootdir}/Applications/toybox/bin"
+
+for cmdlet in $("${rootdir}/Applications/toybox/bin/toybox") ; do
+  ln -s "/Applications/toybox/bin/toybox" "${rootdir}/Applications/toybox/bin/${cmdlet}"
+done
+
 # rust uutils (coreutils) static build needs rustup...
 [ -f "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" ] || {
   rustup target add x86_64-unknown-linux-musl
