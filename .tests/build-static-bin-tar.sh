@@ -83,7 +83,7 @@ type cmake	2> /dev/null || sudo yum -y install cmake
 
 # musl-libc
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
- dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.20.tar.gz" "musl.tgz"
+ dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.21.tar.gz" "musl.tgz"
 
  rm -rf "${builddir}/musl" ; mkdir -p "${builddir}/musl" ; pushd "${builddir}/musl"
   extract_l1_tarball "musl.tgz"
