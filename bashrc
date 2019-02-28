@@ -638,7 +638,7 @@ ___x11_environment='no'
 ____check_xhost () {
   local rc
   [ "${DISPLAY}" ] && {
-    chkcmd xhost & {
+    chkcmd xhost && {
       xhost 2>&1 | nul ; rc="${PIPESTATUS[0]}"
       [ "${rc}" == '0' ] && { ___x11_environment='yes' ; }
     }
@@ -701,7 +701,7 @@ ____hostsetup () {
             "${d}/opsys/${___os}${___osflat}.bash" \
             "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
             "${d}/extensions/gnu.bash" \
-            "${d}/extensions.bash" \
+            "${d}/extensions.d/"*.bash \
             "${d}/extensions/common.bash" \
             "${d}/extensions/cloudenv.bash" \
             "${d}/extensions/cloudenv.bash${___bashmaj}" \
