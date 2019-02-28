@@ -571,7 +571,7 @@ ___rootusr=unk
 case ${___os} in
   win32|cygwin) { chkcmd grep && chkcmd id ; } && { id -G | grep -q 544 && ___rootusr='yes' || ___rootusr='no' ; } ;;
   solaris)      [ -x /usr/xpg4/bin/id ] && { [ "`/usr/xpg4/bin/id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
-  *)            chkcmd id && { [ "$(id -u)" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
+  *)            chkcmd id && { [ "`id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
 esac
 
 # configure LD_LIBRARY_PATH unless asked not to
