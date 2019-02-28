@@ -26,11 +26,7 @@ ____init_which () {
   { chkcmd which && {
     mm_setenv ___which_func_support || {
       ___which_func_support=false
-      while read -r line ; do
-        case "${line}" in
-          "FOO ()") ___which_func_support=true ;;
-        esac
-      done < <(exec 2>&1 ; printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO)
+      printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO > /dev/null 2>&1 && ___which_func_support=true
       mm_putenv ___which_func_support
     }
     mm_setenv ___which_alias_support || {
