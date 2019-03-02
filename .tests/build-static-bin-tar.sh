@@ -80,6 +80,7 @@ type patch	2> /dev/null || sudo yum -y install patch
 type yacc	2> /dev/null || sudo yum -y install byacc
 type autoconf	2> /dev/null || sudo yum -y install autoconf
 type cmake	2> /dev/null || sudo yum -y install cmake
+type g++	2> /dev/null || sudo yum -y install gcc-c++
 
 # musl-libc
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
@@ -110,6 +111,8 @@ for d in linux asm asm-generic mtd ; do
     ln -s "/usr/include/${d}" "${devdir}/musl/include/${d}"
   }
 done
+
+export PATH="${devdir}/musl/bin:${PATH}"
 
 # bash - 2.05b
 [ -f "${builddir}/bash-2.05b/bash" ] || {
