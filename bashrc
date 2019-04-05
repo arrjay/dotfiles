@@ -39,7 +39,23 @@ export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
 # always configure history for sessions
 HISTCONTROL=ignoreboth
-HISTIGNORE='pass *:ls:ll:l:pwd:uptime:history:history *:dmesg:s:sync:scx:cls:clear:*AWS_*_KEY*'
+
+# construct the most specific thing to ignore OTP keys in history
+___mhex_otp_glob () {
+  local c=44
+  printf '%s' '*'
+  while [ $c != 0 ] ; do
+    # shellcheck disable=SC2219
+    printf '%s' '[b-l,n,r,t-v]'
+    let c=$c-1 || true
+  done
+  printf '%s' '*'
+}
+HISTIGNORE=$(___mhex_otp_glob)
+unset -f ___mhex_otp_glob
+
+# set up the rest of shell history
+HISTIGNORE="${HISTIGNORE}"':pass *:ls:ll:l:pwd:uptime:history:history *:dmesg:s:sync:scx:cls:clear:*AWS_*_KEY*'
 
 ## function definitions
 # return errors to fd 2
