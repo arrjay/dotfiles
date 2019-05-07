@@ -1,6 +1,13 @@
+ephemeral/http/autoinstall.conf
+ephemeral/http/packer.ipxe
+ephemeral/install-key
+ephemeral/install-key.pub
+ephemeral/intall-key.pub
+ephemeral/tftp/random.seed
 manifests/*
+output-qemu
 packer_cache
-output-qemu-*
-*.swp
-console-logs/*
-shared/files/openbsd/consul-*.tgz
+tftp_files/bsd
+tftp_files/pxeboot.0
+*.iso
+*.sw?
