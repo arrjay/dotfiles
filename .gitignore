@@ -4,6 +4,7 @@ ephemeral/install-key.pub
 ephemeral/intall-key.pub
 ephemeral/tftp/random.seed
 manifests/*
+obsd_dist
 output-qemu
 packer_cache
 *.iso
