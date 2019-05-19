@@ -1,6 +1,7 @@
 docker/facts.d/
 docker/vendor/
 packer/ephemeral/*
+packer/manifests/*.json
 packer/output-qemu
 packer/packer_cache
 *.iso
