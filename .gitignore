@@ -4,4 +4,6 @@ packer/ephemeral/*
 packer/manifests/*.json
 packer/output-qemu
 packer/packer_cache
+vendor/*.tar.gz
+vendor/*.asc
 *.iso
