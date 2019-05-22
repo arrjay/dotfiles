@@ -3,7 +3,7 @@ ephemeral/install-key
 ephemeral/install-key.pub
 ephemeral/intall-key.pub
 ephemeral/tftp/random.seed
-manifests/*
+packer/manifests/*
 obsd_dist
 output-qemu
 packer_cache
