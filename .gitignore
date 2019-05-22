@@ -1,11 +1,5 @@
-ephemeral/http/autoinstall.conf
-ephemeral/install-key
-ephemeral/install-key.pub
-ephemeral/intall-key.pub
-ephemeral/tftp/random.seed
-packer/manifests/*
+packer/packer_cache
 obsd_dist
-output-qemu
-packer_cache
 *.iso
 *.sw?
+*.qcow2*
