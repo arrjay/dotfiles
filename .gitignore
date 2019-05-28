@@ -3,3 +3,4 @@ obsd_dist
 *.iso
 *.sw?
 *.qcow2*
+metadata/*.xml
