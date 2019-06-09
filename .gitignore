@@ -1,4 +1,5 @@
 packer/packer_cache
+scripts/*.sh
 obsd_dist
 *.iso
 *.sw?
