@@ -125,7 +125,7 @@ resource "aws_s3_bucket" "source" {
         bucket        = "${local.dest_bucket_arn}"
         storage_class = "${var.dest_storage_class}"
 
-        access_control_translation = {
+        access_control_translation {
           owner = "Destination"
         }
 
