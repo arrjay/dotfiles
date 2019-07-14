@@ -46,7 +46,7 @@ ___cloud_prompt_command () {
 ___prompt_command_list=('___cloud_prompt_command' "${___prompt_command_list[@]}")
 
 _aws_signin () {
-  local passrec line askmfa opt OPTARG OPTIND mfapin profile ____set_x cmd userarn accountid role assumerole_data rolesess expiry
+  local passrec line askmfa opt OPTARG OPTIND mfapin profile ____set_x cmd userarn accountid role assumerole_data rolesess expiry has_otp
   passrec="${___AWS_PASS_ITEM:-}" ; askmfa=''
 
   while getopts "P:p:m:Mc:" opt "${@}" ; do case "${opt}" in
@@ -61,6 +61,9 @@ _aws_signin () {
   # hook if we need any preprocessing
   ___chkdef ___aws_pre_signin && ___aws_pre_signin
 
+  # track if we have an otp token in the pass data
+  has_otp=0
+
   # if we have pass, get the bits via pass. or ask for them. grab the MFA token from pass if here.
   [ "${passrec}" ] && {
     chkcmd pass || { ___error_msg "cannot find pass command" ; return 1 ; }
@@ -73,6 +76,7 @@ _aws_signin () {
                                     ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SECRET_ACCESS_KEY') ;;
         "AWS_ACCESS_KEY_ID: "*)     AWS_ACCESS_KEY_ID="${line#AWS_ACCESS_KEY_ID: }"
                                     ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_ACCESS_KEY_ID')     ;;
+        otpauth://*)                has_otp=1 ;;
       esac
     done < <(pass ls "${passrec}")
     [ "${____set_x}" ] && set -x
@@ -95,7 +99,26 @@ _aws_signin () {
 
   # if we have aws, get user information now.
   { chkcmd aws && chkcmd jq ; } && {
-    userarn=`aws iam get-user | jq -r .User.Arn`
+    case "${-}" in *x*) ____set_x=x ; set +x ;; esac
+    userarn=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY aws iam get-user | jq -r .User.Arn`
+    [ "${____set_x}" ] && set -x
+  }
+
+  # if we have an MFA serial, quietly build a session now and reset access_key, secret_access_key, session_token
+  [ "${AWS_MFA_SERIAL}" ] && {
+    { chkcmd aws && chkcmd jq ; } && {
+      [ "${has_otp}" -eq 1 ] || mfapin=`___quiet_input "AWS MFA PIN:"`
+      case "${-}" in *x*) ____set_x=x ; set +x ;; esac
+        [ "${has_otp}" -eq 1 ] && mfapin=`pass otp ${passrec}`
+        session_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+                      aws sts get-session-token --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
+        # replace tokens with results of get-session-token call.
+        read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY expiry < <(echo "${session_data}" | jq -r \
+         '. | "\(.Credentials.SessionToken) \(.Credentials.AccessKeyId) \(.Credentials.SecretAccessKey) \(.Credentials.Expiration)"')
+      [ "${____set_x}" ] && set -x
+      [ "${expiry}" ] && ___chkdef date && ___CLOUD_SESSION_EXPIRY="`date --date "${expiry}" +%s`"
+      ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_SESSION_TOKEN' '___CLOUD_SESSION_EXPIRY')
+    }
   }
 
   # if asked for a profile, assume-role to get the session keys. needs aws, jq, and _aws_profile2acct though.
@@ -110,7 +133,8 @@ _aws_signin () {
     chkcmd date && rolesess="${rolesess}-`date +%s`"
     case "${-}" in *x*) ____set_x=x ; set +x ;; esac
       mfapin=`___quiet_input "AWS MFA PIN:"`
-      assumerole_data=`aws sts assume-role --role-arn "arn:aws:iam::${accountid}:role/${role}" --role-session-name "${rolesess}" \
+      assumerole_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+                       aws sts assume-role --role-arn "arn:aws:iam::${accountid}:role/${role}" --role-session-name "${rolesess}" \
                        --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
       # replace tokens with results of assume-role call.
       read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY userarn expiry < <(echo "${assumerole_data}" | jq -r \
