@@ -110,7 +110,7 @@ _aws_signin () {
       [ "${has_otp}" -eq 1 ] || mfapin=`___quiet_input "AWS MFA PIN:"`
       case "${-}" in *x*) ____set_x=x ; set +x ;; esac
         [ "${has_otp}" -eq 1 ] && mfapin=`pass otp ${passrec}`
-        session_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+        session_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN='' \
                       aws sts get-session-token --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
         # replace tokens with results of get-session-token call.
         read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY expiry < <(echo "${session_data}" | jq -r \
@@ -133,7 +133,7 @@ _aws_signin () {
     chkcmd date && rolesess="${rolesess}-`date +%s`"
     case "${-}" in *x*) ____set_x=x ; set +x ;; esac
       mfapin=`___quiet_input "AWS MFA PIN:"`
-      assumerole_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+      assumerole_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN='' \
                        aws sts assume-role --role-arn "arn:aws:iam::${accountid}:role/${role}" --role-session-name "${rolesess}" \
                        --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
       # replace tokens with results of assume-role call.
@@ -150,6 +150,49 @@ _aws_signin () {
 
   # if we have a post-auth hook, call it now
   ___chkdef ___aws_post_signin && ___aws_post_signin
+}
+
+# this is entirely coupled to how *I* manage bucket roles ;)
+_bucket_role () {
+  local user account slashct groups buckets target="${1}" b g f=0 rg='' targetacct rolesess
+  [ "${target}" ] || { ___error_msg "specify bucket name" ; return 1 ; }
+  # are we in a session?
+  { chkcmd aws && chkcmd jq ; } && {
+    rolesess="${___host}"
+    chkcmd date && rolesess="${rolesess}-`date +%s`"
+    read -r account user < <(aws sts get-caller-identity | jq -r '"\(.Account) \(.Arn)"')
+    user=${user#arn:aws:iam::$account:user/}
+    slashct=${user//[A-z]/}
+    [ -z "${slashct}" ] || { ___error_msg "not sure where you are to do this" ; return 1 ; }
+    # is there a roles bucket here?
+    aws s3 ls "s3://roles.${account}/bucket/" > /dev/null 2>&1 || { ___error_msg "can't find the roles bucket" ; return 1 ; }
+    # can I get my own groups?
+    groups=($(aws iam list-groups-for-user --user-name "${user}" | jq -r .Groups[].GroupName))
+    # can I get some buckets?
+    buckets=($(aws s3api list-objects --bucket "roles.${account}" --prefix bucket | jq -r .Contents[].Key | sed 's@bucket/@@g'))
+    # is the bucket I asked for in the list?
+    for b in "${buckets[@]}" ; do [ "${b}" == "${target}" ] && f=1 ; done
+    [ "${f}" -ne 1 ] && { ___error_msg "can't find bucket target" ; return 1 ; }
+    # is the bucket we have in any of our groups?
+    f=0
+    for g in "${groups[@]}" ; do
+      case "${g}" in
+        "${target}-writers") rg="${g%s}" ; f=1 ;;
+        "${target}-readers") [ "${f}" -ne 1 ] && rg="${g%s}" ; f=1 ;;
+      esac
+    done
+    [ "${f}" -ne 1 ] && { ___error_msg "can't find permission group" ; return 1 ; }
+    # we have a bucket, we have a group. get the bucket file for the account
+    targetacct=$(aws s3 cp "s3://roles.${account}/bucket/${target}" -)
+    case "${-}" in *x*) ____set_x=x ; set +x ;; esac
+    read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY userarn expiry < <(\
+    aws sts assume-role --role-arn "arn:aws:iam::${targetacct}:role/s3rbac/${rg}" --role-session-name "${rolesess}" | jq -r \
+         '. | "\(.Credentials.SessionToken) \(.Credentials.AccessKeyId) \(.Credentials.SecretAccessKey) \(.AssumedRoleUser.Arn) \(.Credentials.Expiration)"')
+    [ "${____set_x}" ] && set -x
+    [ "${expiry}" ] && ___chkdef date && ___CLOUD_SESSION_EXPIRY="`date --date "${expiry}" +%s`"
+    export "${___CLOUD_AUTH_KEYS[@]}"
+    ___chkdef ___aws_post_signin && ___aws_post_signin
+  }
 }
 
 ___aws_post_signin () {
