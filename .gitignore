@@ -5,3 +5,4 @@ packer/manifests/*.json
 packer/output-qemu
 packer/packer_cache
 *.iso
+**.sw?
