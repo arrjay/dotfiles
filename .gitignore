@@ -1,2 +1,3 @@
 docker/facts.d/
 docker/vendor/
+*.sw?
