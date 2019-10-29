@@ -1,2 +1,5 @@
 2019-09-26-raspbian-buster-lite.zip
 base-image/*
+dterm-image/*
+*/image
+*/image.xz
