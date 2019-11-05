@@ -3,3 +3,4 @@ base-image/*
 dterm-image/*
 */image
 */image.xz
+vendor/no-redist/*
