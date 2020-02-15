@@ -4,3 +4,4 @@ dterm-image/*
 */image
 */image.xz
 vendor/no-redist/*
+packer-cache/*
