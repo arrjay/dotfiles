@@ -6,3 +6,4 @@ packer/output-qemu
 packer/packer_cache
 *.iso
 **.sw?
+**.qcow2*
