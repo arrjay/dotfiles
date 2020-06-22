@@ -1,7 +1,12 @@
-2019-09-26-raspbian-buster-lite.zip
+*.zip
+*.iso
+*.iso.lock
+*.run
 base-image/*
 dterm-image/*
 */image
 */image.xz
 vendor/no-redist/*
 packer-cache/*
+
+*.sw?
