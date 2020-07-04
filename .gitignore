@@ -2,6 +2,7 @@
 *.iso
 *.iso.lock
 *.run
+images/*
 base-image/*
 dterm-image/*
 */image
