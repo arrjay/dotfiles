@@ -9,5 +9,6 @@ dterm-image/*
 */image.xz
 vendor/no-redist/*
 packer-cache/*
+**/*cache*
 
 *.sw?
