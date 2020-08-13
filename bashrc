@@ -882,26 +882,9 @@ function monolith_aliases {
       alias df='df -h'
     ;;
     darwin)
-      ppid=$(ps -o ppid $$)
-      pcomm=$(ps -o comm "${ppid/PPID/}")
-      case "${pcomm}" in
-        *Term*/Contents/MacOS/*Term* | *login)
-          pgrep -U "${USER}" gpg-agent >& /dev/null && {
-            [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && {
-              export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
-            }
-            [ -f "${HOME}/.gpg-agent-info" ] && {
-              # shellcheck disable=SC1090
-              . "${HOME}/.gpg-agent-info"
-              [[ "${GPG_AGENT_INFO}" ]] && export GPG_AGENT_INFO
-              export SSH_AUTH_SOCK
-            }
-          }
-          chkcmd mvim && { export EDITOR='mvim -f' ; alias gvim=mvim ; }
-        ;;
-      esac
       alias du='du -h'
       alias df='df -h'
+      chkcmd mvim && { export EDITOR='mvim -f' ; alias gvim=mvim ; }
     ;;
     openbsd)
       PKG_PATH="ftp://ftp.openbsd.org/pub/OpenBSD/$(uname -r)/packages/$(machine -a)/" && export PKG_PATH
@@ -935,6 +918,26 @@ if [[ -n ${PS1} ]]; then
   case "${___os}" in
     android)
       [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
+    ;;
+    darwin)
+      # shellcheck disable=SC2207
+      ppid=($(ps -o ppid $$))
+      pcomm=$(ps -o comm "${ppid[1]}")
+      case "${pcomm}" in
+        *Term*/Contents/MacOS/*Term* | *login)
+          pgrep -U "${USER}" gpg-agent >& /dev/null && {
+            [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && {
+              export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
+            }
+            [ -f "${HOME}/.gpg-agent-info" ] && {
+              # shellcheck disable=SC1090
+              . "${HOME}/.gpg-agent-info"
+              [[ "${GPG_AGENT_INFO}" ]] && export GPG_AGENT_INFO
+              export SSH_AUTH_SOCK
+            }
+          }
+        ;;
+      esac
     ;;
   esac
   [ "${SSH_CONNECTION:-}" ] || { [ -e "${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ; }
