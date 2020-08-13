@@ -45,8 +45,8 @@ ___mhex_otp_glob () {
   local c=44
   printf '%s' '*'
   while [ $c != 0 ] ; do
-    # shellcheck disable=SC2219
     printf '%s' '[b-l,n,r,t-v]'
+    # shellcheck disable=SC2219
     let c=$c-1 || true
   done
   printf '%s' '*'
@@ -886,11 +886,14 @@ function monolith_aliases {
       pcomm=$(ps -o comm "${ppid/PPID/}")
       case "${pcomm}" in
         *Term*/Contents/MacOS/*Term* | *login)
-          pgrep -U "${USER}" gpg-agent >& /dev/null &&{
+          pgrep -U "${USER}" gpg-agent >& /dev/null && {
+            [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && {
+              export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
+            }
             [ -f "${HOME}/.gpg-agent-info" ] && {
               # shellcheck disable=SC1090
               . "${HOME}/.gpg-agent-info"
-              export GPG_AGENT_INFO
+              [[ "${GPG_AGENT_INFO}" ]] && export GPG_AGENT_INFO
               export SSH_AUTH_SOCK
             }
           }
