@@ -60,8 +60,14 @@ work_out_debs () {
 
 	case $MIRRORS in
 	    https://*)
+              case "$CODENAME" in
+               focal)
+                base="$base ca-certificates"
+                ;;
+               *)
 		base="$base apt-transport-https ca-certificates"
 		;;
+              esac
 	esac
 }
 
