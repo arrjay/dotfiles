@@ -10,5 +10,7 @@ dterm-image/*
 vendor/no-redist/*
 packer-cache/*
 **/*cache*
+*uuids.json
+packer-manifest.json
 
 *.sw?
