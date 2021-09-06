@@ -1,1 +1,7 @@
 docker/facts.d/
+packer/ephemeral/*
+packer/manifests/*.json
+packer/output-qemu
+packer/packer_cache
+*.iso
+**.sw?
