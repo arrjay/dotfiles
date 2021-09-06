@@ -5,3 +5,4 @@ packer/output-qemu
 packer/packer_cache
 *.iso
 **.sw?
+persistent.qcow2
