@@ -31,11 +31,11 @@ data "aws_iam_policy_document" "dest_bucket_policy" {
 }
 
 resource "aws_s3_bucket" "dest" {
-  count    = "${var.create_dest_bucket == "true" ? 1 : 0}"
-  provider = "aws.dest"
-  bucket   = "${var.dest_bucket_name}"
-  region   = "${var.dest_region}"
-  policy   = "${data.aws_iam_policy_document.dest_bucket_policy.json}"
+  count    = var.create_dest_bucket == "true" ? 1 : 0
+  provider = aws.dest
+  bucket   = var.dest_bucket_name
+  region   = var.dest_region
+  policy   = data.aws_iam_policy_document.dest_bucket_policy.json
 
   versioning {
     enabled = true
@@ -43,7 +43,7 @@ resource "aws_s3_bucket" "dest" {
 
   lifecycle_rule {
     id      = "DELETE_186"
-    enabled = "${local.dest_enable_EXPIRE_ALL_186DAYS}"
+    enabled = local.dest_enable_EXPIRE_ALL_186DAYS
 
     expiration {
       days = 186
@@ -52,7 +52,7 @@ resource "aws_s3_bucket" "dest" {
 
   lifecycle_rule {
     id      = "expire_93"
-    enabled = "${local.dest_enable_noncurrent_exp_93d}"
+    enabled = local.dest_enable_noncurrent_exp_93d
 
     noncurrent_version_expiration {
       days = 93
@@ -61,7 +61,7 @@ resource "aws_s3_bucket" "dest" {
 
   lifecycle_rule {
     id      = "expire_7"
-    enabled = "${local.dest_enable_noncurrent_exp_7d}"
+    enabled = local.dest_enable_noncurrent_exp_7d
 
     noncurrent_version_expiration {
       days = 7

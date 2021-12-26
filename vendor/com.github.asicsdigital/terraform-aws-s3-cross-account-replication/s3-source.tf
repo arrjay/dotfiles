@@ -50,23 +50,23 @@ data "aws_iam_policy_document" "source_replication_policy" {
 }
 
 resource "aws_iam_role" "source_replication" {
-  provider           = "aws.source"
+  provider           = aws.source
   name               = "${local.replication_name}-replication-role"
-  assume_role_policy = "${data.aws_iam_policy_document.source_replication_role.json}"
+  assume_role_policy = data.aws_iam_policy_document.source_replication_role.json
   path               = "/service-role/s3repl/"
 }
 
 resource "aws_iam_policy" "source_replication" {
-  provider = "aws.source"
+  provider = aws.source
   name     = "${local.replication_name}-replication-policy"
-  policy   = "${data.aws_iam_policy_document.source_replication_policy.json}"
+  policy   = data.aws_iam_policy_document.source_replication_policy.json
   path     = "/service-role/s3repl/"
 }
 
 resource "aws_iam_role_policy_attachment" "source_replication" {
-  provider   = "aws.source"
-  role       = "${aws_iam_role.source_replication.name}"
-  policy_arn = "${aws_iam_policy.source_replication.arn}"
+  provider   = aws.source
+  role       = aws_iam_role.source_replication.name
+  policy_arn = aws_iam_policy.source_replication.arn
 }
 
 # S3 source bucket
@@ -78,9 +78,9 @@ locals {
 }
 
 resource "aws_s3_bucket" "source" {
-  provider = "aws.source"
-  bucket   = "${var.source_bucket_name}"
-  region   = "${var.source_region}"
+  provider = aws.source
+  bucket   = var.source_bucket_name
+  region   = var.source_region
 
   versioning {
     enabled = true
@@ -88,7 +88,7 @@ resource "aws_s3_bucket" "source" {
 
   lifecycle_rule {
     id      = "DELETE_186"
-    enabled = "${local.source_enable_EXPIRE_ALL_186DAYS}"
+    enabled = local.source_enable_EXPIRE_ALL_186DAYS
 
     expiration {
       days = 186
@@ -97,7 +97,7 @@ resource "aws_s3_bucket" "source" {
 
   lifecycle_rule {
     id      = "expire_93"
-    enabled = "${local.source_enable_noncurrent_exp_93d}"
+    enabled = local.source_enable_noncurrent_exp_93d
 
     noncurrent_version_expiration {
       days = 93
@@ -106,7 +106,7 @@ resource "aws_s3_bucket" "source" {
 
   lifecycle_rule {
     id      = "expire_7"
-    enabled = "${local.dest_enable_noncurrent_exp_7d}"
+    enabled = local.dest_enable_noncurrent_exp_7d
 
     noncurrent_version_expiration {
       days = 7
@@ -114,22 +114,22 @@ resource "aws_s3_bucket" "source" {
   }
 
   replication_configuration {
-    role = "${aws_iam_role.source_replication.arn}"
+    role = aws_iam_role.source_replication.arn
 
     rules {
-      id     = "${local.replication_name}"
+      id     = local.replication_name
       status = "Enabled"
-      prefix = "${var.replicate_prefix}"
+      prefix = var.replicate_prefix
 
       destination {
-        bucket        = "${local.dest_bucket_arn}"
-        storage_class = "${var.dest_storage_class}"
+        bucket        = local.dest_bucket_arn
+        storage_class = var.dest_storage_class
 
         access_control_translation {
           owner = "Destination"
         }
 
-        account_id = "${data.aws_caller_identity.dest.account_id}"
+        account_id = data.aws_caller_identity.dest.account_id
       }
     }
   }
