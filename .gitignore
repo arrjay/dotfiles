@@ -1,3 +1,4 @@
 docker/facts.d/*.txt
 *.sw?
 docker/fio-debs/*.deb
+docker/vendor/*
