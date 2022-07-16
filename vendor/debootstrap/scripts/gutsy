@@ -61,7 +61,7 @@ work_out_debs () {
 	case $MIRRORS in
 	    https://*)
               case "$CODENAME" in
-               focal)
+               focal|jammy)
                 base="$base ca-certificates"
                 ;;
                *)
