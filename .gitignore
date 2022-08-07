@@ -12,6 +12,7 @@ packer-cache/*
 **/*cache*
 *uuids.json
 packer-manifest.json
+crash.log
 
 *.sw?
 .vscode
