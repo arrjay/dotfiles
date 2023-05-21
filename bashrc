@@ -26,14 +26,14 @@ ___bash_host_tuple=${BASH_VERSINFO[5]}
 umask 077
 
 # version information
-___rcver="5.1b"
+___rcver="6.0"
 ___rcver_str="jBashRc v${___rcver}(c)"
 
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
 
 # always configure pass keys/opts/signing req ;)
-export PASSWORD_STORE_SIGNING_KEY=B1A086C36A2C52A79015F25C95B6669B9D085FA5
+export PASSWORD_STORE_SIGNING_KEY=43D02276EEDABA74858594CBD02D22EC7FE43DC1
 export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
@@ -716,13 +716,7 @@ ____hostsetup () {
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osflat}.bash" \
             "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
-            "${d}/extensions/gnu.bash" \
             "${d}/extensions.d/"*.bash \
-            "${d}/extensions/common.bash" \
-            "${d}/extensions/cloudenv.bash" \
-            "${d}/extensions/cloudenv.bash${___bashmaj}" \
-            "${d}/extensions/editor_pager.bash" \
-            "${d}/extensions/bash${___bashmaj}.bash" \
             "${d}/host/${___host}.bash"
   done
 }
