@@ -735,7 +735,7 @@ ____interactive_setup () {
    }
 
   for d in "${___bash_auxfiles_dirs[@]}" ; do
-    sourcex "${d}/extensions/interactive.bash"
+    sourcex "${d}/interactive.d/"*.bash
     for f in "${d}/functions"/*.bash ; do
       c=''
       [ -f "${f}" ] || continue
