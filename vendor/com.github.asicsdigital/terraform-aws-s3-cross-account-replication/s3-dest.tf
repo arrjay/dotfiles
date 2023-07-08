@@ -67,4 +67,10 @@ resource "aws_s3_bucket" "dest" {
       days = 7
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      server_side_encryption_configuration
+    ]
+  }
 }
