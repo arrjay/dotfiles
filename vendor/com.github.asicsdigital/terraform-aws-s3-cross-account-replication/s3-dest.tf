@@ -1,9 +1,9 @@
 # S3 destination bucket
 
 locals {
-  dest_enable_noncurrent_exp_7d  = contains(list(var.expire_old_dest_7d,var.expire_old_versions_7d), "true")
-  dest_enable_noncurrent_exp_93d = contains(list(var.expire_old_dest_93d,var.expire_old_versions_93d), "true")
-  dest_enable_EXPIRE_ALL_186DAYS = contains(list(var.EXPIRE_DEST_186DAYS,var.EXPIRE_ALL_186DAYS), "true")
+  dest_enable_noncurrent_exp_7d  = contains([var.expire_old_dest_7d,var.expire_old_versions_7d], "true")
+  dest_enable_noncurrent_exp_93d = contains([var.expire_old_dest_93d,var.expire_old_versions_93d], "true")
+  dest_enable_EXPIRE_ALL_186DAYS = contains([var.EXPIRE_DEST_186DAYS,var.EXPIRE_ALL_186DAYS], "true")
 }
 
 data "aws_iam_policy_document" "dest_bucket_policy" {

@@ -72,9 +72,9 @@ resource "aws_iam_role_policy_attachment" "source_replication" {
 # S3 source bucket
 
 locals {
-  source_enable_noncurrent_exp_7d  = contains(list(var.expire_old_dest_93d,var.expire_old_versions_7d), "true")
-  source_enable_noncurrent_exp_93d = contains(list(var.expire_old_source_93d,var.expire_old_versions_93d), "true")
-  source_enable_EXPIRE_ALL_186DAYS = contains(list(var.EXPIRE_SOURCE_186DAYS,var.EXPIRE_ALL_186DAYS), "true")
+  source_enable_noncurrent_exp_7d  = contains([var.expire_old_dest_93d,var.expire_old_versions_7d], "true")
+  source_enable_noncurrent_exp_93d = contains([var.expire_old_source_93d,var.expire_old_versions_93d], "true")
+  source_enable_EXPIRE_ALL_186DAYS = contains([var.EXPIRE_SOURCE_186DAYS,var.EXPIRE_ALL_186DAYS], "true")
 }
 
 resource "aws_s3_bucket" "source" {
