@@ -251,11 +251,16 @@ genstrip () {
   genstrip () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
     local n s t
-    t="${!1}"
+    # grab value of path-like variable
+    t=":${!1}:"
+    # handle having a trailing slash or not for the component being removed. (remove both if both)
     n="${2%/}"         ; s="${n}/"
+    # remove as an element _in_ the path list
     t="${t//:${n}:/:}" ; t="${t//:${s}:/:}"
-    t="${t%:${n}}"     ; t="${t%:${s}}"
-    t="${t#${n}:}"     ; t="${t%${s}:}"
+    # compress any resulting triple-colons
+    t="${t//:::/:}"
+    # take the beginning/ending colons back out.
+    t="${t#:}"         ; t="${t%:}"
     builtin printf -v "${1}" '%s' "${t}"
   }
 }
