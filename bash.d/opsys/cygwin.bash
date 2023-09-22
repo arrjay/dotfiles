@@ -2,6 +2,11 @@
 
 # oh god cygwin. this is actually targeting an environment that is a mishmash of git bash, cygwin and various windows utils.
 
+# handle the windows environemnt block first. this mostly exists to shut up shellcheck for windows v us.
+[[ "${SystemRoot:-}" ]]      || SystemRoot=""
+[[ "${ProgramFilesX86:-}" ]] || ProgramFilesX86=""
+[[ "${ProgramFiles:-}" ]]    || ProgramFiles=""
+
 chkcmd cygpath && {
   _cpath2ms () {
     local output f ; output=()
@@ -9,11 +14,6 @@ chkcmd cygpath && {
       output=("${output[@]}" "$(cygpath -ms "${f}")")
     done
     printf '%q ' "${output[@]}"
-  }
-
-  mm_setenv ___CygwinRoot_winpath || {
-    ___CygwinRoot_winpath="$(cygpath -w /)"
-    mm_putenv ___CygwinRoot_winpath
   }
 
   # if you are, say, stupid enough to call back in to a windows environment here, have a utility to switch the PATH out
