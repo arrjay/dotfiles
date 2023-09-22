@@ -773,18 +773,6 @@ _properties () {
   printf 'x11_environment: %s\n' "${___x11_environment}"
 }
 
-## internal functions
-#-# HELPER FUNCTIONS
-#--# Text processing
-# v_alias - overloads command with specified function if command exists
-function v_alias {
-  if [ -z "${1}" ]; then
-    builtin alias
-    return $?
-  fi
-  chkcmd "${2}" && builtin alias "${1}=${2}"
-}
-
 ## Monolithic version - now we config some things!
 function monolith_setfunc {
   case "${OPSYS}" in
@@ -854,24 +842,12 @@ _EOF_
 }
 
 function monolith_aliases {
-  v_alias ftp ncftp
-  v_alias gpg gpg2
-	
+
   case ${OPSYS} in
     cygwin*|win32)
-      alias start='cygstart'
       alias du='du -h'
       alias df='df -h'
       alias cdw='cd "$USERPROFILE"'
-      builtin alias ping="${SystemRoot}/system32/ping.exe"
-      builtin alias traceroute="${SystemRoot}/system32/tracert.exe"
-      aspn_rpath=/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl
-      if [ -f ${aspn_rpath}/CurrentVersion ]; then
-        read -r aspn_hive < "${aspn_rpath}/CurrentVersion"
-        read -r ASPN_PATH < "${aspn_rpath}/${aspn_hive}/@"
-        ASPN_PATH="$(cygpath "${ASPN_PATH}")/bin"
-        v_alias perl "${ASPN_PATH}/perl.exe"
-      fi
       if [ "${OPSYS}" == "win32" ]; then
         builtin alias clear='echo -ne\\033c'
       fi
