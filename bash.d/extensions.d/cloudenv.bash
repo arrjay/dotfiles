@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# shellcheck disable=SC2006,SC2219
+
 ___quiet_input () {
   local ____set_x='' thestr prompt="${1:-Input string:}" avar="${2:-}"
   printf '%s ' "${prompt}" 1>&2
@@ -37,7 +39,7 @@ _prompt_right () {
     [ "${timerem}" -gt 0 ] && let timestr=timerem/60
   }
   printf ' %s ' "${timestr}"
-  return "${___pre_prompt_rc}"
+  return "${___pre_prompt_rc:-0}"
 }
 
 ___cloud_prompt_command () {
@@ -100,7 +102,7 @@ _aws_signin () {
   # if we have aws, get user information now.
   { chkcmd aws && chkcmd jq ; } && {
     case "${-}" in *x*) ____set_x=x ; set +x ;; esac
-    userarn=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY aws iam get-user | jq -r .User.Arn`
+    userarn=`env "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" aws iam get-user | jq -r .User.Arn`
     [ "${____set_x}" ] && set -x
   }
 
@@ -109,8 +111,8 @@ _aws_signin () {
     { chkcmd aws && chkcmd jq ; } && {
       [ "${has_otp}" -eq 1 ] || mfapin=`___quiet_input "AWS MFA PIN:"`
       case "${-}" in *x*) ____set_x=x ; set +x ;; esac
-        [ "${has_otp}" -eq 1 ] && mfapin=`pass otp ${passrec}`
-        session_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN='' \
+        [ "${has_otp}" -eq 1 ] && mfapin=`pass otp "${passrec}"`
+        session_data=`env "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" AWS_SESSION_TOKEN='' \
                       aws sts get-session-token --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
         # replace tokens with results of get-session-token call.
         read -r AWS_SESSION_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY expiry < <(echo "${session_data}" | jq -r \
@@ -129,11 +131,11 @@ _aws_signin () {
     ___chkdef _aws_profile2acct || { ___error_msg "AWS STS profile switching requires _aws_profile2acct definition to return acct id, role" ; return 1 ; }
     read -r accountid role < <(_aws_profile2acct "${profile}")
     { [ "${accountid}" ] && [ "${role}" ] ; } || { ___error_msg "failure getting aws profile account/role" ; return 1 ; }
-    rolesess="${___host}"
+    rolesess="${___host:-randohost}"
     chkcmd date && rolesess="${rolesess}-`date +%s`"
     case "${-}" in *x*) ____set_x=x ; set +x ;; esac
       mfapin=`___quiet_input "AWS MFA PIN:"`
-      assumerole_data=`env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN='' \
+      assumerole_data=`env "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" AWS_SESSION_TOKEN='' \
                        aws sts assume-role --role-arn "arn:aws:iam::${accountid}:role/${role}" --role-session-name "${rolesess}" \
                        --serial-number "${AWS_MFA_SERIAL}" --token-code "${mfapin}"`
       # replace tokens with results of assume-role call.
@@ -153,6 +155,7 @@ _aws_signin () {
 }
 
 # this is entirely coupled to how *I* manage bucket roles ;)
+# shellcheck disable=SC2034,2207
 _bucket_role () {
   local user account slashct groups buckets target="${1}" b g f=0 rg='' targetacct rolesess
   [ "${target}" ] || { ___error_msg "specify bucket name" ; return 1 ; }
@@ -161,7 +164,7 @@ _bucket_role () {
     rolesess="${___host}"
     chkcmd date && rolesess="${rolesess}-`date +%s`"
     read -r account user < <(aws sts get-caller-identity | jq -r '"\(.Account) \(.Arn)"')
-    user=${user#arn:aws:iam::$account:user/}
+    user="${user#"arn:aws:iam::${account}:user/"}"
     slashct=${user//[A-z]/}
     [ -z "${slashct}" ] || { ___error_msg "not sure where you are to do this" ; return 1 ; }
     # is there a roles bucket here?

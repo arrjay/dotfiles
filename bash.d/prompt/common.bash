@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# env set up in top-level bashrc
+[[ "${___host}" ]] || ___host="undef"
+
 ___term_cset="${TERM_COLORSET:-}"
 ___term_titlecap="no"
 ___term_setcolor="no"
