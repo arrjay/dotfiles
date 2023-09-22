@@ -47,3 +47,7 @@ unset -f ____init_ls
 
 # if we have pinfo, use that instead of man
 chkcmd pinfo && man () { command pinfo -m "${@}" ; }
+
+# other commands I'd rahter replace
+chkcmd gpg2 && gpg () { command gpg2 "${@}" ; }
+chkcmd ncftp && ftp () { command ncftp "${@}" ; }

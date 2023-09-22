@@ -31,6 +31,20 @@ chkcmd cygpath && {
   }
 }
 
+# if we have ActiveState perl, _go use that_ (NOTE: really?)
+init_aspn_perl () {
+  local _aspn_rpath="/proc/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ActiveState/ActivePerl"
+  local _aspn_hive ; local _aspn_path
+  [ -f "${_aspn_rpath}" ] && {
+    read -r _aspn_hive < "${_aspn_rpath}/CurrentVersion"
+    read -r _aspn_path < "${_aspn_rpath}/${_aspn_hive}/@"
+    ASPN_PATH="$(cygpath "${_aspn_path}/bin")"
+    perl () { "${ASPN_PATH}/perl.exe" "${@}" ; }
+  }
+}
+init_aspn_perl
+unset -f init_aspn_perl
+
 # define a function to allow my preferred editor for windows (editplus) via the shells
 mm_setenv ___EditPlus_cygpath || {
   [ -e "${ProgramFilesX86}/EditPlus/editplus.exe" ] && ___EditPlus_cygpath="${ProgramFilesX86}/EditPlus/editplus.exe"
@@ -47,3 +61,9 @@ mm_setenv ___EditPlus_cygpath || {
 }
 
 [ "${___EditPlus_dospath}" ] && { export EDITOR="${___EditPlus_dospath}" ; }
+
+# other useful aliases...
+[ -x "${SystemRoot}/system32/ping.exe" ] && ping () { "${SystemRoot}/system32/ping.exe" "${@}" ; }
+[ -x "${SystemRoot}/system32/tracert.exe" ] && traceroute () { "${SystemRoot}/system32/tracert.exe" "${@}" ; }
+
+chkcmd cygstart && start () { command cygstart "${@}" ; }
