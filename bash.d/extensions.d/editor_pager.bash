@@ -12,7 +12,7 @@ case "${EDITOR}" in
     # well...let's try vi first.
     chkcmd vi  && export EDITOR='vi'
     chkcmd vim && export EDITOR='vim'
-    [ "${___x11_environment}" == 'yes' ] && {
+    [ "${___x11_environment:-}" == 'yes' ] && {
       chkcmd gvim && export EDITOR='gvim -f'
     }
   ;;
