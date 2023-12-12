@@ -235,30 +235,28 @@ done
 [ -f "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" ] || {
   rustup target add x86_64-unknown-linux-musl
   rm -rf "${builddir}/uutils"
-  git clone https://github.com/uutils/coreutils "${builddir}/uutils"
+  HOME="${workdir}" git clone https://github.com/uutils/coreutils "${builddir}/uutils"
   pushd "${builddir}/uutils"
-    # build the list of features by seeing what sourcedirs exist
-    cd src ; features=(*) ; cd ..
-    features=("${features[@]/uucore}")
-    # the below features require utmpx, which musl doesn't give here.
-    features=("${features[@]/uutils}")
-    features=("${features[@]/pinky}")
-    features=("${features[@]/uptime}")
-    features=("${features[@]/users}")
-    # hack due to the way bash handles array deletions - delete masked match, readd it.
-    features=("${features[@]/whoami}")
-    features=("${features[@]/who}")
-    features+=("whoami")
-    cargo build --release --target=x86_64-unknown-linux-musl --no-default-features --features "${features[*]}"
+    # build the list of packages by seeing what sourcedirs exist
+    cd src/uu ; candidates=(*)
+    # this is to filter out things that won't build on musl linux x86_64
+    for candidate in "${candidates[@]}" ; do
+      case "${candidate}" in
+        chcon|runcon) : ;; # requires selinux support/libs
+        pinky|uptime|users|who) : ;; # requires utmpx
+        *) features=("${features[@]}" "${candidate}") ;;
+      esac
+    done
+    cargo build --release --target=x86_64-unknown-linux-musl --features "${features[*]}" --no-default-features
   popd
 }
 
 mkdir -p "${rootdir}/Applications/uutils/bin"
-cp "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/uutils" "${rootdir}/Applications/uutils/bin/uutils"
+cp "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/coreutils" "${rootdir}/Applications/uutils/bin/uutils"
 
 while read cmdlet ; do
   ln -s "/Applications/uutils/bin/uutils" "${rootdir}/Applications/uutils/bin/${cmdlet}"
-done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{k=0}/Currently defined functions:/{k=1;next}{if (k==1) {print}}')
+done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{FS=","} {if (NF > 1) {gsub(/ /,"",$0);ll=(ll $0);}} END{split(ll,cmd);for(i in cmd) {printf "%s\n",cmd[i]}}')
 
 # GNU coreutils
 exp=("${builddir}/coreutils/src"/*.o)
