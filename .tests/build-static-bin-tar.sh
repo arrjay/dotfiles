@@ -84,7 +84,7 @@ type g++	2> /dev/null || sudo yum -y install gcc-c++
 
 # musl-libc
 [ -f "${devdir}/musl/bin/musl-gcc" ] || {
- dl_gpg_file "https://www.musl-libc.org/releases/musl-1.1.21.tar.gz" "musl.tgz"
+ dl_gpg_file "https://www.musl-libc.org/releases/musl-1.2.4.tar.gz" "musl.tgz"
 
  rm -rf "${builddir}/musl" ; mkdir -p "${builddir}/musl" ; pushd "${builddir}/musl"
   extract_l1_tarball "musl.tgz"
