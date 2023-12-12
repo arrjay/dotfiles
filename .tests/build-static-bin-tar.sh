@@ -42,7 +42,7 @@ extract_l1_tarball () {
 
 build_bash () {
   local version patchver i s
-  version="${1}" ; patchver="${2}"
+  version="${1}" ; patchver="${2}" ; extrapatch="${3}" ; stopbuild="${4}"
   ndot_ver="${version/.}"
 
   [ -f "${builddir}/bash-${version}/bash" ] || {
@@ -60,6 +60,12 @@ build_bash () {
         s="$(printf '%03d' $i)"
         patch -p0 < "${dldir}/bash-${ndot_ver}-patch-${s}"
       done
+
+      [[ -f "${extrapatch}" ]] && {
+        patch -p1 < "${extrapatch}"
+      }
+
+      [[ "${stopbuild:-}" ]] && { return 128; }
 
       # build
       export CC="${devdir}/musl/bin/musl-gcc"
@@ -184,7 +190,7 @@ build_bash 5.0 18
 build_bash 5.1 16
 
 # bash - 5.2
-#build_bash 5.2 21
+build_bash 5.2 21 "${PWD}/.tests/bash-strtoimax.patch"
 
 # busybox
 [ -f "${builddir}/busybox/busybox" ] || {
