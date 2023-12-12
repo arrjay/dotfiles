@@ -178,7 +178,13 @@ build_bash 4.3 48
 build_bash 4.4 23
 
 # bash - 5.0
-build_bash 5.0 2
+build_bash 5.0 18
+
+# bash - 5.1
+build_bash 5.1 16
+
+# bash - 5.2
+#build_bash 5.2 21
 
 # busybox
 [ -f "${builddir}/busybox/busybox" ] || {
