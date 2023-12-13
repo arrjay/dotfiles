@@ -194,7 +194,7 @@ build_bash 5.2 21 "${PWD}/.tests/bash-strtoimax.patch"
 
 # busybox
 [ -f "${builddir}/busybox/busybox" ] || {
- dl_gpg_file "https://busybox.net/downloads/busybox-1.29.3.tar.bz2" "busybox.tbz"
+ dl_gpg_file "https://busybox.net/downloads/busybox-1.36.1.tar.bz2" "busybox.tbz"
 
  rm -rf "${builddir}/busybox" ; mkdir "${builddir}/busybox" ; pushd "${builddir}/busybox"
   # unpack and patch
