@@ -7,74 +7,89 @@ ___term_cset="${TERM_COLORSET:-}"
 ___term_titlecap="no"
 ___term_setcolor="no"
 
-# helper function to make ansi colors
+# helper functions to make ansi colors
 # colorsets are: std, bold, ul, bg, hi, bhi, hibg
-_ac () {
-  local color str set ; color="${1}" ; set="${2:-${___term_cset}}"
+_get_ansicolor () {
+  local color set ; color="${1}" ; set="${2:-${___term_cset}}"
+  local r1 r2 # we need to return _two_ values to work around passing in PS1 shenanigans.
   [ -z "${color}" ] && { ___error_msg "${FUNCNAME[0]}: missing operand (needs: color: [rs,blk,red,grn.yel,blu,pur,cy,wh])" ; return 1; }
   # reset colorset to nothing if term cset is totally empty
   [ -z "${___term_cset}" ] && set=''
   case "${set}_${color}" in
-    std_blk)  str='\e[0;30m'  ;;
-    std_red)  str='\e[0;31m'  ;;
-    std_grn)  str='\e[0;32m'  ;;
-    std_yel)  str='\e[0;33m'  ;;
-    std_blu)  str='\e[0;34m'  ;;
-    std_pur)  str='\e[0;35m'  ;;
-    std_cy)   str='\e[0;36m'  ;;
-    std_wh)   str='\e[0;37m'  ;;
-    bold_blk) str='\e[1;30m'  ;;
-    bold_red) str='\e[1;31m'  ;;
-    bold_grn) str='\e[1;32m'  ;;
-    bold_yel) str='\e[1;33m'  ;;
-    bold_blu) str='\e[1;34m'  ;;
-    bold_pur) str='\e[1;35m'  ;;
-    bold_cy)  str='\e[1;36m'  ;;
-    bold_wh)  str='\e[1;37m'  ;;
-    ul_blk)   str='\e[4;30m'  ;;
-    ul_red)   str='\e[4;31m'  ;;
-    ul_grn)   str='\e[4;32m'  ;;
-    ul_yel)   str='\e[4;33m'  ;;
-    ul_blu)   str='\e[4;34m'  ;;
-    ul_pur)   str='\e[4;35m'  ;;
-    ul_cy)    str='\e[4;36m'  ;;
-    ul_wh)    str='\e[4;37m'  ;;
-    bg_blk)   str='\e[40m'    ;;
-    bg_red)   str='\e[41m'    ;;
-    bg_grn)   str='\e[42m'    ;;
-    bg_yel)   str='\e[43m'    ;;
-    bg_blu)   str='\e[44m'    ;;
-    bg_pur)   str='\e[45m'    ;;
-    bg_cy)    str='\e[46m'    ;;
-    bg_wh)    str='\e[47m'    ;;
-    hi_blk)   str='\e[0;90m'  ;;
-    hi_red)   str='\e[0;91m'  ;;
-    hi_grn)   str='\e[0;92m'  ;;
-    hi_yel)   str='\e[0;93m'  ;;
-    hi_blu)   str='\e[0;94m'  ;;
-    hi_pur)   str='\e[0;95m'  ;;
-    hi_cy)    str='\e[0;96m'  ;;
-    hi_wh)    str='\e[0;97m'  ;;
-    bhi_blk)  str='\e[1;90m'  ;;
-    bhi_red)  str='\e[1;91m'  ;;
-    bhi_grn)  str='\e[1;92m'  ;;
-    bhi_yel)  str='\e[1;93m'  ;;
-    bhi_blu)  str='\e[1;94m'  ;;
-    bhi_pur)  str='\e[1;95m'  ;;
-    bhi_cy)   str='\e[1;96m'  ;;
-    bhi_wh)   str='\e[1;97m'  ;;
-    hibg_blk) str='\e[0;100m' ;;
-    hibg_red) str='\e[0;101m' ;;
-    hibg_grn) str='\e[0;102m' ;;
-    hibg_yel) str='\e[0;103m' ;;
-    hibg_blu) str='\e[0;104m' ;;
-    hibg_pur) str='\e[0;105m' ;;
-    hibg_cy)  str='\e[0;106m' ;;
-    hibg_wh)  str='\e[0;107m' ;;
-    *_rs)     str='\e[0m'     ;;
+    std_blk)  r1='0' r2='30'  ;;
+    std_red)  r1='0' r2='31'  ;;
+    std_grn)  r1='0' r2='32'  ;;
+    std_yel)  r1='0' r2='33'  ;;
+    std_blu)  r1='0' r2='34'  ;;
+    std_pur)  r1='0' r2='35'  ;;
+    std_cy)   r1='0' r2='36'  ;;
+    std_wh)   r1='0' r2='37'  ;;
+    bold_blk) r1='1' r2='30'  ;;
+    bold_red) r1='1' r2='31'  ;;
+    bold_grn) r1='1' r2='32'  ;;
+    bold_yel) r1='1' r2='33'  ;;
+    bold_blu) r1='1' r2='34'  ;;
+    bold_pur) r1='1' r2='35'  ;;
+    bold_cy)  r1='1' r2='36'  ;;
+    bold_wh)  r1='1' r2='37'  ;;
+    ul_blk)   r1='4' r2='30'  ;;
+    ul_red)   r1='4' r2='31'  ;;
+    ul_grn)   r1='4' r2='32'  ;;
+    ul_yel)   r1='4' r2='33'  ;;
+    ul_blu)   r1='4' r2='34'  ;;
+    ul_pur)   r1='4' r2='35'  ;;
+    ul_cy)    r1='4' r2='36'  ;;
+    ul_wh)    r1='4' r2='37'  ;;
+    bg_blk)   r1='40'    ;;
+    bg_red)   r1='41'    ;;
+    bg_grn)   r1='42'    ;;
+    bg_yel)   r1='43'    ;;
+    bg_blu)   r1='44'    ;;
+    bg_pur)   r1='45'    ;;
+    bg_cy)    r1='46'    ;;
+    bg_wh)    r1='47'    ;;
+    hi_blk)   r1='0' r2='90'  ;;
+    hi_red)   r1='0' r2='91'  ;;
+    hi_grn)   r1='0' r2='92'  ;;
+    hi_yel)   r1='0' r2='93'  ;;
+    hi_blu)   r1='0' r2='94'  ;;
+    hi_pur)   r1='0' r2='95'  ;;
+    hi_cy)    r1='0' r2='96'  ;;
+    hi_wh)    r1='0' r2='97'  ;;
+    bhi_blk)  r1='1' r2='90'  ;;
+    bhi_red)  r1='1' r2='91'  ;;
+    bhi_grn)  r1='1' r2='92'  ;;
+    bhi_yel)  r1='1' r2='93'  ;;
+    bhi_blu)  r1='1' r2='94'  ;;
+    bhi_pur)  r1='1' r2='95'  ;;
+    bhi_cy)   r1='1' r2='96'  ;;
+    bhi_wh)   r1='1' r2='97'  ;;
+    hibg_blk) r1='0' r2='100' ;;
+    hibg_red) r1='0' r2='101' ;;
+    hibg_grn) r1='0' r2='102' ;;
+    hibg_yel) r1='0' r2='103' ;;
+    hibg_blu) r1='0' r2='104' ;;
+    hibg_pur) r1='0' r2='105' ;;
+    hibg_cy)  r1='0' r2='106' ;;
+    hibg_wh)  r1='0' r2='107' ;;
+    *_rs)     r1='0'     ;;
     *) : ;; # no colorset == no colors
   esac
-  [ "${str}" ] && printf %b "${str}"
+  # color as string
+  printf '%s:%s' "${r1}" "${r2}"
+}
+
+_render_ansicolor () {
+  # color as escaped
+  _render_raw "$(_get_ansicolor "${@}")"
+}
+
+_render_raw () {
+  # handed two parameters and do _something_
+  local r1 r2
+  IFS=: read -r r1 r2 <<< "${1}"
+  [[ "${r2}" ]] && { printf '%b' "\e[${r1};${r2}m" ; return 0 ; }
+  printf '%b' "\e[${r1}m"
 }
 
 # walk through all the prompt command hooks...
@@ -87,12 +102,12 @@ ___prompt_command () {
 }
 PROMPT_COMMAND='___prompt_command'
 
-# write a title to xterm or rxvt compate titlebars
+# write a title to xterm or rxvt compatible titlebars
 _wt () {
   [ "${___term_titlecap}" == "yes" ] && echo -ne '\e]0;'"${*}"'\a'
 }
 
-# standard prompt command
+# standard prompt command - write the user@host:directory to window title
 ___pc_standard () {
   _wt "${USER}@${___host}:${PWD}"
 }
@@ -137,68 +152,123 @@ ___chkdef _prompt_right || _prompt_right () {
   return "${___pre_prompt_rc}"
 }
 
+# I _really_ don't want to think about how this used $? too hard.
+___prompt_colorerror () {
+  local rc="${?:-0}"
+  local string="${1:-?}"
+  local color_success="${2:-}"
+  local color_fail="${3:-}"
+  local reset='0'
+  case "${rc}" in
+    0) _render_raw "${color_success}" ;;
+    *) _render_raw "${color_fail}" ;;
+  esac
+  printf '%s' "${string}${rc}"
+  _render_ansicolor "${reset}"
+  printf '%s' ' '
+}
+
 _prompt_left () {
   rc="${?}" ; ___pre_prompt_rc="${rc}"
   [ "${___prompt_left_string}" ] && printf '%s' "${___prompt_left_string[*]}"
   return "${___pre_prompt_rc}"
 }
 
+# I'd really like this part to keep working under bash 2 so we're not gonna do any fancy datastructures.
 # shellcheck disable=SC2154,SC2006,SC2016
 setprompt () {
   local name prompt_scheme prompt_command_add ; name="${1:-}" ; prompt_scheme="${2:-basic}" ; prompt_command_add='___pc_standard'
   [ -n "${PS1}" ] || return 0
-  PS1="${___bash_invocation}-${___bashmaj}.${___bashmin}${hd} "
-  local hd np_start lsta chn u at h pc wd clk pca wda ha ua pm
-  local rs c_hd c_np_start c_lsta c_chn c_u c_at c_h c_pc c_wd c_clk c_pca c_wda c_ha c_ua c_pm
-  rs=`_ac rs`
+  # hash_or dollar gets assigned a _character_ dynamically, so it gets initialized to exist here.
+  local hash_or_dollar # generally prompt ending - hash (#) for root, otherwise dollar ($)
+  local color_hash_or_dollar
+
+  # all the rest of these should be just the color variables.
+  local color_prompt_start # initial prompt commands (left side),
+
+  # last_status is actually a command so we can recolorize if it failed.
+  # that means we are supplying stringy colors, not rendered ones.
+  local last_status='`___prompt_colorerror ?`' #NOTE: we added an ending quote so this is robust if edited.
+  local color_last_status_success
+  local color_last_status_failure
+
+  local color_historynumber
+  local color_user
+  local color_atsign
+  local color_host
+
+  local color_batterystat
+  local color_processcount
+  local color_processcount_alt
+
+  local color_workingdir
+  local color_workingdir_alt
+
+  local color_bracket_user
+  local color_host_bracket
+  # configure prompt colors - we need them before assemblig the prompt strings.
+  local reset='\e[0m' # reset never changes with color sets
   case "${prompt_scheme}" in
     basic|*)
-      c_hd=`_ac yel`
-      c_np_start=`_ac yel std`
-      c_lsta=`_ac pur std`
-      c_chn=`_ac grn std`
-      c_u=`_ac wh std`
-      c_at=`_ac grn std`
-      c_h="${c_u}"
-      c_pc=`_ac grn std`
-      c_wd=`_ac pur std`
-      c_clk=`_ac cy`
-      c_pca=`_ac red std`
-      c_wda=`_ac grn`
-      c_ha=`_ac pur std`
-      c_ua="${c_ha}"
-      c_pm="${c_pc}"
+      color_hash_or_dollar=`_render_ansicolor yel`
+      color_prompt_start=`_render_ansicolor yel std`
+      color_last_status_failure=`_get_ansicolor pur std`
+      color_last_status_success="${color_last_status_failure}"
+      color_historynumber=`_render_ansicolor grn std`
+      color_user=`_render_ansicolor wh std`
+      color_atsign=`_render_ansicolor grn std`
+      color_host="${color_user}"
+      color_processcount=`_render_ansicolor grn std`
+      color_workingdir=`_render_ansicolor pur std`
+      color_clock=`_render_ansicolor cy`
+      color_batterystat="${color_processcount}"
+      # used in the 'old' style prompt
+      color_workingdir_alt=`_render_ansicolor grn`
+      color_processcount_alt=`_render_ansicolor red std`
+      color_bracket_user=`_render_ansicolor pur std`
+      color_host_bracket="${color_bracket_user}"
     ;;
   esac
+
+  # we replace the character string here and add color now
   case "${___rootusr}" in
-    yes) hd="${c_hd}#${rs}"  ;;
-    *)   hd="${c_hd}\$${rs}" ;;
+    yes) hash_or_dollar="${color_hash_or_dollar}#${reset}"  ;;
+    *)   hash_or_dollar="${color_hash_or_dollar}\$${reset}" ;;
   esac
-  np_start='`_prompt_left`'"${c_np_start}"'#'"${rs} "
-  lsta="${c_lsta}?"'${?}'"${rs} "
-  chn="${c_chn}!"'\!'"${rs} "
-  u="${c_u}\\u${rs}"
-  ua="${c_ua}[\\u${rs}"
-  at="${c_at}@${rs}"
-  h="${c_h}${___host}${rs}"
-  ha="${c_ha}${___host}]${rs}"
-  pc="${c_pc}"'`pscount`'"${rs} "
-  pca="${c_pca}<"'`pscount`'">${rs} "
-  wd="${c_wd}{\\W}${rs}"
-  wda="${c_wda}{\\W}${rs}"
-  clk="${c_clk}("'\t'")${rs} "
-  pm="${c_pm}"'`_battstat prompt`'"${rs}"
-  np_end='`_prompt_right`'"${hd}"'\n'
-  ___chkdef __git_ps1 && np_end='`__git_ps1``_prompt_right`'"${hd}"'\n'
+
+  # assemble the rest of colorerror string - note that we chopped off, readded backtick
+  last_status="${last_status::${#last_status}-1} ${color_last_status_success} ${color_last_status_failure}"'`'
+
+  # render the other prompt parts - we use backticks to run programs because that's the most compatible ;)
+  local prompt_start='`_prompt_left`'"${color_prompt_start}"'#'"${reset} "
+  local historynumber="${color_historynumber}!"'\!'"${reset} "
+  local prompt_user="${color_user}\\u${reset}"
+  local atsign="${color_atsign}@${reset}"
+  local prompt_host="${color_host}${___host}${reset}"
+  local processcount="${color_processcount}"'`pscount`'"${reset} "
+  local workingdir="${color_workingdir}{\\W}${reset}"
+  local clock="${color_clock}("'\t'")${reset} "
+  local batterystat="${color_batterystat}"'`_battstat prompt`'"${reset}"
+  local prompt_end='`_prompt_right`'"${hash_or_dollar}"'\n'
+
+  local workingdir_alt="${color_workingdir_alt}{\\W}${reset}"
+  local processcount_alt="${color_processcount_alt}<"'`pscount`'">${reset} "
+  local bracket_user="${color_bracket_user}[\\u${reset}"
+  local host_bracket="${color_host_bracket}${___host}]${reset}"
+  ___chkdef __git_ps1 && prompt_end='`__git_ps1``_prompt_right`'"${hash_or_dollar}"'\n'
   case "${name}" in
-    simple)      prompt_command_add='' ;;
-    classic)     : ;;
-    old)         PS1="`_prompt_left`${clk}${ua}${at}${ha}"'`__git_ps1``_prompt_right`'"\\n${pca}${wda} ${hd} " ;;
-    timely)      PS1="${np_start}${clk}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
-    new_nocount) PS1="${np_start}${lsta}${chn}${u}${at}${h} ${wd}${np_end}" ;;
-    new)         PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pc}${wd}${np_end}" ;;
-    new_pmon)    PS1="${np_start}${lsta}${chn}${u}${at}${h} ${pm}${wd}${np_end}" ;;
+    # the classic prompt can leak in the hash_or_dollar color, but I think that's just funny.
+    classic)     PS1="${reset}${___bash_invocation##*/}-${___bashmaj}.${___bashmin}${hash_or_dollar} " ;;
+    old)         PS1="`_prompt_left`${clock}${bracket_user}${atsign}${host_bracket}"'`__git_ps1``_prompt_right`'"\\n${processcount_alt}${workingdir_alt} ${hash_or_dollar} " ;;
+    timely)      PS1="${prompt_start}${clock}${last_status}${historynumber}${prompt_user}${atsign}${prompt_host} ${processcount}${workingdir}${prompt_end}" ;;
+    new_nocount) PS1="${prompt_start}${last_status}${lsta}${historynumber}${prompt_user}${atsign}${prompt_host} ${workingdir}${prompt_end}" ;;
+    new)         PS1="${prompt_start}${last_status}${historynumber}${prompt_user}${atsign}${prompt_host} ${processcount}${workingdir}${prompt_end}" ;;
+    new_pmon)    PS1="${prompt_start}${last_status}${historynumber}${prompt_user}${atsign}${prompt_host} ${batterystat}${workingdir}${prompt_end}" ;;
   esac
-  ___prompt_command_list=("${___prompt_command_list[@]}" "${prompt_command_add}")
+  # only add pc_standard if we didn't have it already...
+  case " ${___prompt_command_list[*]} " in
+    *" ${prompt_command_add} "*) : ;;
+    *) ___prompt_command_list=("${___prompt_command_list[@]}" "${prompt_command_add}")
+  esac
 }
 setprompt new_pmon
