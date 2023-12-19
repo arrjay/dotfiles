@@ -70,7 +70,7 @@ ___echo_on () {
 
 # get the bash version for command definition unwinding
 ___bashmaj=${BASH_VERSION/.*/}
-___bashmin=${BASH_VERSION#${___bashmin}.}
+___bashmin=${BASH_VERSION#${___bashmaj}.}
 ___bashmin=${___bashmin%%.*}
 
 # I like having USER set. If you don't have USER set, I will set it to this.
@@ -675,10 +675,6 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
     /opt/*/man
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
-
-# force reset the prompt command list here - the intent is for extensions to use it (though not programs)
-# shellcheck disable=SC2034
-___prompt_command_list=()
 
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
