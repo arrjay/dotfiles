@@ -29,6 +29,18 @@ umask 077
 ___rcver="6.0"
 ___rcver_str="jBashRc v${___rcver}(c)"
 
+# hack for older bash(?) - if we don't have a source path, _or_ an invocation...
+# *and* the bash invocation ends in /bash...
+[[ -z "${___bash_source_path}" ]] && [[ -z "${___bash_init_argv0}" ]] && {
+  case "${___bash_invocation}" in
+    */bash)
+      # HACK: set it to $HOME/.bashrc if we have that.
+      [[ -e "${HOME}/.bashrc" ]] && ___bash_source_path="${HOME}/.bashrc"
+    ;;
+    *) : ;;
+  esac
+}
+
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
 
@@ -755,6 +767,7 @@ _properties () {
   printf 'bash_inv: %s\n' "${___bash_invocation}"
   printf 'bash_parent: %s\n' "${___bash_invocation_parent}"
   printf 'argv0: %s\n' "${___bash_init_argv0}"
+  printf 'source_path: %s\n' "${___bash_source_path}"
   printf 'bashrc_dir: %s\n' "${___bashrc_dir}"
   printf 'host: %s\n' "${___host}"
   printf 'os, osmaj, osmin, cpu: %s, %s, %s, %s\n' "${___os}" "${___osmaj}" "${___osmin}" "${___cpu}"
