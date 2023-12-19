@@ -56,7 +56,7 @@ ___error_msg () {
 
 # get the bash version for command definition unwinding
 ___bashmaj=${BASH_VERSION/.*/}
-___bashmin=${BASH_VERSION#${___bashmaj}.}
+___bashmin=${BASH_VERSION#"${___bashmaj}".}
 ___bashmin=${___bashmin%%.*}
 
 # I like having USER set. If you don't have USER set, I will set it to this.
@@ -129,12 +129,6 @@ tolower () {
       # this is _much_ easier in set -x output ;)
       printf '%s' "${word,,}" ;;
   esac
-}
-
-# throw away input, even if we don't have /dev/null working
-# yes, the name _is_ dos-inspired
-nul () {
-  IFS= read -rs ; return 0 ;
 }
 
 # there are two versions of the following functions - a series using printf -v
@@ -294,9 +288,7 @@ chkcmd () {
 ___chkdef () {
   local cmd
   cmd="${1}"
-  # piping to | nul throws away the output at the cost of having to use PIPESTATUS
-  builtin type "${cmd}" 2>&1 | nul
-  return "${PIPESTATUS[0]}"
+  builtin type "${cmd}" >/dev/null 2>&1
 }
 
 # placeholders, simply return 1 as the cache doesn't work yet
@@ -475,8 +467,7 @@ mm_setenv ___host || {
 mm_setenv ___cpu || {
   chkcmd uname && {
     # okay. check if uname supports -p next.
-    uname -p 2>&1 | nul
-    [ "${PIPESTATUS[0]}" == 0 ] && {
+    uname -p > /dev/null 2>&1 && {
       ___cpu="`uname -p`"			# x86_64
       ___cpu="`tolower "${___cpu}"`"		# x86_64
     }
@@ -661,11 +652,9 @@ ___x11_environment='no'
   chkcmd loginctl && ___xdg_session_type=`loginctl --no-ask-password show-session "${XDG_SESSION_ID}" -p Type --value`
 }
 ____check_xhost () {
-  local rc
   [ "${DISPLAY}" ] && {
     chkcmd xhost && {
-      xhost 2>&1 | nul ; rc="${PIPESTATUS[0]}"
-      [ "${rc}" == '0' ] && { ___x11_environment='yes' ; }
+      xhost > /dev/null 2>&1 && { ___x11_environment='yes' ; }
     }
   }
 }
