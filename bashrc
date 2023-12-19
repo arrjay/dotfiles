@@ -118,6 +118,7 @@ tolower () {
 
 # remove any aliases we had. sorry, but you can't trust 'em ;)
 ____rm_aliases () {
+  local line
   while read -r line ; do
     line="${line#alias }"
     line="${line%%=*}"
@@ -586,9 +587,7 @@ esac
 [ "${NO_LDPATH_EXTENSION}" ] || mm_setenv NO_LDPATH_EXTENSION
 [ -z "${NO_LDPATH_EXTENSION}" ] && {
   # add our personal ~/Library subdirectories
-  for dir in "${HOME}"/Library/*/lib ; do
-    genappend LD_LIBRARY_PATH "${dir}"
-  done
+  genappend LD_LIBRARY_PATH "${HOME}"/Library/*/lib
   cke LD_LIBRARY_PATH
 }
 
