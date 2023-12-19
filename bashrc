@@ -63,11 +63,6 @@ ___error_msg () {
   echo "${*}" 1>&2
 }
 
-# turn echo back on using stty
-___echo_on () {
-  chkcmd stty && command stty echo
-}
-
 # get the bash version for command definition unwinding
 ___bashmaj=${BASH_VERSION/.*/}
 ___bashmin=${BASH_VERSION#${___bashmaj}.}
@@ -589,6 +584,7 @@ genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/
 ___rootusr=unk
 # shellcheck disable=SC2006
 case ${___os} in
+  # group 544 _typically_ means you're in the Admin group for windows (S-1-5-32-544)
   win32|cygwin) { chkcmd grep && chkcmd id ; } && { id -G | grep -q 544 && ___rootusr='yes' || ___rootusr='no' ; } ;;
   solaris)      [ -x /usr/xpg4/bin/id ] && { [ "`/usr/xpg4/bin/id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
   *)            chkcmd id && { [ "`id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
@@ -752,6 +748,7 @@ ____interactive_setup () {
 }
 unset -f ____interactive_setup
 
+# leaving the properties function _here_ as it's useful when the extension scripts don't run.
 _properties () {
   printf '%s\n' "${___rcver_str}"
   printf 'account_rootcap: %s\n' "${___rootusr}"
