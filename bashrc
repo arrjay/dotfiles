@@ -719,7 +719,7 @@ ____interactive_setup () {
        ___sourcef "${___bashrc_dir}/vendor/git-prompt.sh" "${___bashrc_dir}/vendor/git-completion.sh"
      }
      chkcmd pass && \
-       ___sourcef "${___bashrc_dir}/vendor/pass-completion.sh"
+       [[ "${___bashmaj}${___bashmin:0:1}" -gt 31 ]] && ___sourcef "${___bashrc_dir}/vendor/pass-completion.sh"
    }
 
   for d in "${___bash_auxfiles_dirs[@]}" ; do
