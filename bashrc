@@ -187,10 +187,7 @@ zapcmdcache () {
 
 # verify cache system is set within any function at runtime.
 ___vfy_cachesys () {
-  local caller msg ; caller="${1}"
-  msg="BASH_CACHE_DIRECTORY is not set"
-  [ "${caller}" ] && msg="${caller}: ${msg}"
-  [ "${BASH_CACHE_DIRECTORY}" ] || { ___error_msg "${msg}" ; return 3 ; }
+  [[ "${BASH_CACHE_DIRECTORY}" ]] || { ___error_msg "BASH_CACHE_DIRECTORY is not set" ; return 3 ; }
 }
 
 # configure command caching/tokenization dir
@@ -236,6 +233,8 @@ case "${-}" in *x*) ____set_x=x ; set +x ;; esac
 # shellcheck disable=SC2006
 ___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${test}"`
 [ "${____set_x}" ] && set -x
+# the results of printf not working are ugly :P
+[[ "${___printf_supports_v}" != "yes" ]] && ___printf_supports_v="no"
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
