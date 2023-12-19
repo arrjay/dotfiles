@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # we are assuming bash 4, how else did you get flatpak?
+[[ "${___bashmaj}" -ge 4 ]] || return 0
 
 # prefer flatpak-wrapped components if we have them installed
 ____flatpak_setup () {
