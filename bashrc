@@ -49,7 +49,6 @@ export PASSWORD_STORE_SIGNING_KEY=43D02276EEDABA74858594CBD02D22EC7FE43DC1
 export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
-## function definitions
 # return errors to fd 2
 ___error_msg () {
   echo "${*}" 1>&2
@@ -81,6 +80,22 @@ function ____pathsetup {
     "/usr/nekoware/bin" "/usr/tgcware/bin" \
     "/opt/local/bin" "/usr/local/bin"
 }
+
+# remove any aliases we had. sorry, but you can't trust 'em ;)
+____rm_aliases () {
+  local line
+  while read -r line ; do
+    line="${line#alias }"
+    line="${line%%=*}"
+    builtin unalias "${line}"
+  done < <(builtin alias)
+}
+____rm_aliases
+unset -f ____rm_aliases
+
+######################
+## UTILITY FUNCTIONS #
+######################
 
 # _lc - convert character to lower case
 # hi bash 2.05
@@ -116,101 +131,10 @@ tolower () {
   esac
 }
 
-# remove any aliases we had. sorry, but you can't trust 'em ;)
-____rm_aliases () {
-  local line
-  while read -r line ; do
-    line="${line#alias }"
-    line="${line%%=*}"
-    builtin unalias "${line}"
-  done < <(builtin alias)
-}
-____rm_aliases
-unset -f ____rm_aliases
-
-# determine if a given _command_ exists.
-___chkcmd () {
-  local cmd
-  cmd="${1}"
-  #shellcheck disable=SC2006
-  case `type -tf "${cmd}" 2>&1` in
-    file) return 0 ;;
-    *)    return 1 ;;
-  esac
-}
-
-# we're going to override this in a moment...
-# but this will work until the memoizer sets up, or in cases we never load it.
-chkcmd () {
-  ___chkcmd "${@}"
-}
-
 # throw away input, even if we don't have /dev/null working
 # yes, the name _is_ dos-inspired
 nul () {
   IFS= read -rs ; return 0 ;
-}
-
-# determine if a given command, builtin, alias or function exists.
-___chkdef () {
-  local cmd
-  cmd="${1}"
-  # piping to | nul throws away the output at the cost of having to use PIPESTATUS
-  builtin type "${cmd}" 2>&1 | nul
-  return "${PIPESTATUS[0]}"
-}
-
-# placeholders, simply return 1 as the cache doesn't work yet
-mm_putenv () {
-  return 1
-}
-
-mm_setenv () {
-  return 1
-}
-
-zapcmdcache () {
-  hash -r
-}
-
-# verify cache system is set within any function at runtime.
-___vfy_cachesys () {
-  [[ "${BASH_CACHE_DIRECTORY}" ]] || { ___error_msg "BASH_CACHE_DIRECTORY is not set" ; return 3 ; }
-}
-
-# configure command caching/tokenization dir
-___cache_checked=0	# track if we've already run...
-___cache_active=0
-____init_cachedir () {
-  # have I been here before?
-  case "${___cache_checked}${___cache_active}" in
-    10) return 1 ;; # not going to work
-    11) return 0 ;; # already done
-  esac
-
-  # build a potential cache directory
-  [ -z "${BASH_CACHE_DIRECTORY}" ] && {
-    # do I have a homedir that is a valid directory?
-    [ -d "${HOME}" ] || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-    # is the home directory / ? (okay, actually, is it one character long?)
-    [ "${#HOME}" == '1' ] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-
-    BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
-    [ -z "${HOSTNAME}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
-    [ -z "${___bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
-  }
-
-  # actually try creating that directory
-  ___chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-  md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-
-  # check if we can write _in_ the directory
-  : > "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-
-  # unfortunately, rm is _not_ a builtin, so carefully walk around it.
-  ___chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
-
-  ___cache_checked=1 ; ___cache_active=1
 }
 
 # there are two versions of the following functions - a series using printf -v
@@ -223,6 +147,8 @@ ___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${te
 [ "${____set_x}" ] && set -x
 # the results of printf not working are ugly :P
 [[ "${___printf_supports_v}" != "yes" ]] && ___printf_supports_v="no"
+# clean up global space
+unset ____set_x
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
@@ -343,6 +269,90 @@ pathprepend () {
   genprepend PATH "${@}"
 }
 
+##########################################
+# COMMAND/ENVIRONMENT CHECKS (uncaching) #
+##########################################
+
+# determine if a given _command_ exists.
+___chkcmd () {
+  local cmd
+  cmd="${1}"
+  #shellcheck disable=SC2006
+  case `type -tf "${cmd}" 2>&1` in
+    file) return 0 ;;
+    *)    return 1 ;;
+  esac
+}
+
+# we're going to override this in a moment...
+# but this will work until the memoizer sets up, or in cases we never load it.
+chkcmd () {
+  ___chkcmd "${@}"
+}
+
+# determine if a given command, builtin, alias or function exists.
+___chkdef () {
+  local cmd
+  cmd="${1}"
+  # piping to | nul throws away the output at the cost of having to use PIPESTATUS
+  builtin type "${cmd}" 2>&1 | nul
+  return "${PIPESTATUS[0]}"
+}
+
+# placeholders, simply return 1 as the cache doesn't work yet
+mm_putenv () {
+  return 1
+}
+
+mm_setenv () {
+  return 1
+}
+
+zapcmdcache () {
+  hash -r
+}
+
+# verify cache system is set within any function at runtime.
+___vfy_cachesys () {
+  [[ "${BASH_CACHE_DIRECTORY}" ]] || { ___error_msg "BASH_CACHE_DIRECTORY is not set" ; return 3 ; }
+}
+
+# configure command caching/tokenization dir
+## !! THE BELOW TWO ARE GLOBALS WE LEAK !! ##
+___cache_checked=0	# track if we've already run...
+___cache_active=0
+____init_cachedir () {
+  # have I been here before?
+  case "${___cache_checked}${___cache_active}" in
+    10) return 1 ;; # not going to work
+    11) return 0 ;; # already done
+  esac
+
+  # build a potential cache directory
+  [ -z "${BASH_CACHE_DIRECTORY}" ] && {
+    # do I have a homedir that is a valid directory?
+    [ -d "${HOME}" ] || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+    # is the home directory / ? (okay, actually, is it one character long?)
+    [ "${#HOME}" == '1' ] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+
+    BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
+    [ -z "${HOSTNAME}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
+    [ -z "${___bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
+  }
+
+  # actually try creating that directory
+  ___chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+
+  # check if we can write _in_ the directory
+  : > "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+
+  # unfortunately, rm is _not_ a builtin, so carefully walk around it.
+  ___chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
+
+  ___cache_checked=1 ; ___cache_active=1
+}
+
 ## runtime - potential definitions
 # _md - test and create directory if needed - requires mkdir...
 # this is actually only the third thing run (the first was the path hack, then printf -v processing)
@@ -358,6 +368,10 @@ ___chkdef mkdir && md () {
   done
   return "${ret}"
 }
+
+########################################
+# COMMAND/ENVIRONMENT CHECKS (caching) #
+########################################
 
 # after defining md (or not), roll along with the rest of the cache system. this redefines stubs we had up above with versions that cache.
 # chkcmd - check if specific _command_ is present, now with memoization
@@ -410,7 +424,11 @@ ____init_cachedir && {
 }
 unset -f ____init_cachedir
 
-### actually set up the PATH block here before we go looking for any more external binaries.
+####################################################
+# START ENVIRONMENT INIT (path, machine discovery) #
+####################################################
+
+# set up the PATH block here before we go looking for any more external binaries.
 ____pathsetup
 unset -f ____pathsetup
 
@@ -661,6 +679,10 @@ genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
     /opt/*/man
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
+
+#########################
+# RUN EXTENSION MODULES #
+#########################
 
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
@@ -913,3 +935,5 @@ if [[ -n ${PS1} ]]; then
 fi
 
 monolith_cleanup
+
+unset ____default_username
