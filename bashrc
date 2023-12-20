@@ -19,6 +19,8 @@ ___bash_source_path=${BASH_SOURCE[0]}
 ___bash_init_argv0=${BASH_ARGV[0]}
 ___bash_host_tuple=${BASH_VERSINFO[5]}
 
+## configure the debug prompt to include a timestamp.
+PS4='+\t|'
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
