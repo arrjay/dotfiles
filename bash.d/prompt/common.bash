@@ -177,7 +177,7 @@ _prompt_left () {
 # I'd really like this part to keep working under bash 2 so we're not gonna do any fancy datastructures.
 # shellcheck disable=SC2154,SC2006,SC2016
 setprompt () {
-  local name prompt_scheme prompt_command_add ; name="${1:-}" ; prompt_scheme="${2:-basic}" ; prompt_command_add='___pc_standard'
+  local name prompt_scheme prompt_command_add ; name="${1:-new_pmon}" ; prompt_scheme="${2:-pride}" ; prompt_command_add='___pc_standard'
   [ -n "${PS1}" ] || return 0
   # hash_or dollar gets assigned a _character_ dynamically, so it gets initialized to exist here.
   local hash_or_dollar # generally prompt ending - hash (#) for root, otherwise dollar ($)
@@ -209,7 +209,19 @@ setprompt () {
   # configure prompt colors - we need them before assemblig the prompt strings.
   local reset='\e[0m' # reset never changes with color sets
   case "${prompt_scheme}" in
-    basic|*)
+    pride)
+      color_hash_or_dollar=`_render_ansicolor cy`
+      color_prompt_start=`_render_ansicolor cy`
+      color_last_status_failure=`_get_ansicolor red bold`
+      color_last_status_success=`_get_ansicolor cy`
+      color_historynumber=`_render_ansicolor pur`
+      color_user=`_render_ansicolor wh`
+      color_atsign=`_render_ansicolor wh`
+      color_host=`_render_ansicolor wh`
+      color_workingdir=`_render_ansicolor pur`
+      color_gitprompt=`_render_ansicolor pur bold`
+    ;;
+    basic)
       color_hash_or_dollar=`_render_ansicolor yel`
       color_prompt_start=`_render_ansicolor yel std`
       color_last_status_failure=`_get_ansicolor pur std`
@@ -255,7 +267,7 @@ setprompt () {
   local processcount_alt="${color_processcount_alt}<"'`pscount`'">${reset} "
   local bracket_user="${color_bracket_user}[\\u${reset}"
   local host_bracket="${color_host_bracket}${___host}]${reset}"
-  ___chkdef __git_ps1 && prompt_end='`__git_ps1``_prompt_right`'"${hash_or_dollar}"'\n'
+  ___chkdef __git_ps1 && prompt_end="${color_gitprompt}"'`__git_ps1`'"${reset}"'`_prompt_right`'"${hash_or_dollar}"'\n'
   case "${name}" in
     # the classic prompt can leak in the hash_or_dollar color, but I think that's just funny.
     classic)     PS1="${reset}${___bash_invocation##*/}-${___bashmaj}.${___bashmin}${hash_or_dollar} " ;;
@@ -271,4 +283,4 @@ setprompt () {
     *) ___prompt_command_list=("${___prompt_command_list[@]}" "${prompt_command_add}")
   esac
 }
-setprompt new_pmon
+setprompt "${name}"
