@@ -1,20 +1,21 @@
 Source: debootstrap
 Section: admin
 Priority: optional
-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
-Uploaders: Junichi Uekawa <dancer@debian.org>, Colin Watson <cjwatson@debian.org>, Christian Perrier <bubulle@debian.org>, Steve McIntyre <93sam@debian.org>,
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+XSBC-Original-Maintainer: Debian Install System Team <debian-boot@lists.debian.org>
+Uploaders: Colin Watson <cjwatson@debian.org>, Steve McIntyre <93sam@debian.org>,
            Hideki Yamane <henrich@debian.org>,
-Build-Depends: debhelper (>= 9)
-Standards-Version: 4.2.1
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.5.0
 Vcs-Browser: https://salsa.debian.org/installer-team/debootstrap
 Vcs-Git: https://salsa.debian.org/installer-team/debootstrap.git
 
 Package: debootstrap
 Architecture: all
-Depends: ${misc:Depends}, wget
-Recommends: gnupg, ${keyring}, arch-test (>= 0.11~),
-Suggests: ubuntu-archive-keyring,
-          squid-deb-proxy-client,
+Depends: ${misc:Depends}, wget, distro-info
+Recommends: gnupg, ${debootstrap:Recommends}
+Suggests: squid-deb-proxy-client, ${debootstrap:Suggests}
+Breaks: ubuntu-dev-tools (<< 0.190~)
 Description: Bootstrap a basic Debian system
  debootstrap is used to create a Debian base system from scratch,
  without requiring the availability of dpkg or apt. It does this by
