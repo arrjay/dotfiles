@@ -233,6 +233,8 @@ keyring () {
 detect_container () {
 	if [ "$container" = lxc ]; then
 		CONTAINER="lxc"
+	elif [ "$container" = podman ]; then
+	    CONTAINER="podman"
 	elif grep -qs container=lxc-libvirt /proc/1/environ; then
 		CONTAINER="lxc-libvirt"
 	elif grep -qs ^systemd-nspawn$ /run/systemd/container || grep -qs systemd-nspawn /proc/1/environ || [ "$container" = "systemd-nspawn" ]; then
@@ -1621,7 +1623,7 @@ check_sane_mount () {
 	    *)
 		if ! doing_variant fakechroot; then
 		case "$CONTAINER" in
-		  lxc|lxc-libvirt)
+		  lxc|lxc-libvirt|podman)
 		    ;;
 		  *)
 		    mknod "$1/test-dev-null" c 1 3 || return 1
