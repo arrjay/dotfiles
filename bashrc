@@ -605,7 +605,7 @@ esac
 # envvars for auxiliary programs should go about here.
 ## asdf
 [[ -x "${HOME}/.asdf/asdf.sh" ]] && {
-  . $/.asdf/asdf.sh
+  . "${HOME}/.asdf/asdf.sh"
 }
 
 ## perl
