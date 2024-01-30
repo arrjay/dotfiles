@@ -603,6 +603,11 @@ esac
 }
 
 # envvars for auxiliary programs should go about here.
+## asdf
+[[ -x "${HOME}/.asdf/asdf.sh" ]] && {
+  . $/.asdf/asdf.sh
+}
+
 ## perl
 if [ -d "${HOME}"/Library/perl5 ]; then
   export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
