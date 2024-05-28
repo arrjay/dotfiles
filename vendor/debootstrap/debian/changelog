@@ -296,7 +296,7 @@ debootstrap (1.0.107) unstable; urgency=medium
   * Strip URL scheme from apt lists (Closes: #903481)
 
   [ Hideki Yamane ]
-  * Fix docker detection breaks QEMU's binfmt_misc bootstraping
+  * Fix docker detection breaks QEMU's binfmt_misc bootstraping 
     (Closes: #903657)
     - Avoid removing host's /proc on some environment
     - Add workaround for second-stage inside docker
@@ -504,7 +504,7 @@ debootstrap (1.0.96) unstable; urgency=medium
 
 debootstrap (1.0.95) unstable; urgency=medium
 
-  * Really fix #894415 (Closes: #894415)
+  * Really fix #894415 (Closes: #894415) 
 
  -- Hideki Yamane <henrich@debian.org>  Sat, 31 Mar 2018 13:28:26 +0900
 
@@ -1097,7 +1097,7 @@ debootstrap (1.0.40) unstable; urgency=low
 
   [ Joey Hess ]
   * When installation or configuration of a package fails, output a message
-    that points the user to the log file. Attempt to grep out the first
+    that points the user to the log file. Attempt to grep out the first 
     package that dpkg failed on and show its name too. Closes: #472704
 
   [ Colin Watson ]
@@ -1118,7 +1118,7 @@ debootstrap (1.0.39) unstable; urgency=low
 debootstrap (1.0.38) unstable; urgency=low
 
   [ Joey Hess ]
-  * Improve error message when a decompressor is not available,
+  * Improve error message when a decompressor is not available, 
     to indicate which package has been built with bzip today.
     Closes: #644719
 

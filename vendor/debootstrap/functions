@@ -1421,6 +1421,8 @@ $unique = shift @ARGV; $field = lc(shift @ARGV); $mirror = shift @ARGV;
 $prevpkg = "";
 $chksumfield = lc($ENV{DEBOOTSTRAP_CHECKSUM_FIELD}).":";
 while (<STDIN>) {
+	chomp;
+	next if (/^ /);
 	if (/^([^:]*:)\s*(.*)$/) {
 		$f = lc($1); $v = $2;
 		if ($f eq "package:") {

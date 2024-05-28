@@ -106,6 +106,15 @@ work_out_debs () {
 				;;
 		esac
 	fi
+              case "$CODENAME" in
+               focal|jammy)
+                base="$base ca-certificates"
+                ;;
+               *)
+		base="$base apt-transport-https ca-certificates"
+		;;
+              esac
+	esac
 }
 
 first_stage_install () {
