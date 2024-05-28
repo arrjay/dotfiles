@@ -1,3 +1,4 @@
-irssi.internal
-irssi-internal
-*.bak
+docker/facts.d/*
+iso/*
+
+*.sw?
