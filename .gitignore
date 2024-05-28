@@ -1,6 +1,12 @@
 manifests/*
 packer_cache
+packer/packer_cache
 output-qemu-*
-*.swp
 console-logs/*
 shared/files/openbsd/consul-*.tgz
+scripts/*.sh
+obsd_dist
+*.iso
+*.sw?
+*.qcow2*
+metadata/*.xml
