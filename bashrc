@@ -917,7 +917,7 @@ if [[ -n ${PS1} ]]; then
       esac
     ;;
   esac
-  [ "${SSH_CONNECTION:-}" ] || { [ -e "${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ; }
+  { [ "${SSH_CONNECTION:-}" ] || [ "${GNUPGHOME:-}" ] ; } || { [ -e "${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ] && export SSH_AUTH_SOCK="${XDG_RUNTIME_DIR}/gnupg/S.gpg-agent.ssh" ; }
   lyricsfile="${HOME}"/.fortune/song-lyrics
   if [ -f "${lyricsfile}" ]; then
     chkcmd strfile && {
