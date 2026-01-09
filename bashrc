@@ -48,7 +48,7 @@ PATH=/usr/bin:$PATH
 
 # always configure pass keys/opts/signing req ;)
 [[ "${PASSWORD_STORE_SIGNING_KEY:-}" ]] || export PASSWORD_STORE_SIGNING_KEY=43D02276EEDABA74858594CBD02D22EC7FE43DC1
-export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
+[[ "${PASSWORD_STORE_GPG_OPTS:-}" ]] || PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
 # return errors to fd 2
@@ -579,10 +579,18 @@ unset -f ____wininit
 mm_putenv ___os
 
 # set up more of the loader environment now
-genprepend PATH "${HOME}/Library/Python/"*/bin "${HOME}/Library/"*/bin "${HOME}/Applications/"*/bin \
-                "${HOME}/.cargo/bin" "${HOME}/.cabal/bin" "${HOME}/.rvm/bin" \
-                "${HOME}/bin/${___os}-${___cpu}" "${HOME}/bin/${___os}${___osmaj}-${___cpu}" "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
-                "${HOME}/bin/noarch" "${HOME}/bin/${___host}"
+genprepend PATH \
+  "${HOME}/Library/Python/"*/bin \
+  "${HOME}/Library/"*/bin \
+  "${HOME}/Applications/"*/bin \
+  "${HOME}/.cargo/bin" \
+  "${HOME}/.cabal/bin" \
+  "${HOME}/.rvm/bin" \
+  "${HOME}/bin/${___os}-${___cpu}" \
+  "${HOME}/bin/${___os}${___osmaj}-${___cpu}" \
+  "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
+  "${HOME}/bin/noarch" \
+  "${HOME}/bin/${___host}"
 
 # determine if we are a superuser or not
 ___rootusr=unk
@@ -669,10 +677,16 @@ ____check_xhost
 unset -f ____check_xhost
 
 # setup MANPATH
-genappend MANPATH "/usr/X11R6/man" "/usr/openwin/man" "/usr/dt/man" \
-    "/usr/share/man" "/usr/man" \
-    "/usr/pkg/man" "/usr/local/share/man" "/usr/local/man" \
-    /opt/*/man
+genappend MANPATH \
+  "/usr/X11R6/man" \
+  "/usr/openwin/man" \
+  "/usr/dt/man" \
+  "/usr/share/man" \
+  "/usr/man" \
+  "/usr/pkg/man" \
+  "/usr/local/share/man" \
+  "/usr/local/man" \
+  /opt/*/man
 
 [ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
 
@@ -769,7 +783,7 @@ _properties () {
   printf 'host: %s\n' "${___host}"
   printf 'os, osmaj, osmin, cpu: %s, %s, %s, %s\n' "${___os}" "${___osmaj}" "${___osmin}" "${___cpu}"
   printf 'bashmaj, min: %s %s\n' "${___bashmaj}" "${___bashmin}"
-  [ "${BASH_CACHE_DIRECTORY}" ] && printf 'cachedir: %s\n' "${BASH_CACHE_DIRECTORY}"
+  [[ "${BASH_CACHE_DIRECTORY:-}" ]] && printf 'cachedir: %s\n' "${BASH_CACHE_DIRECTORY}"
   printf 'printf_supports_v: %s\n' "${___printf_supports_v}"
   printf 'xdg_session_type: %s\n' "${___xdg_session_type}"
   printf 'x11_environment: %s\n' "${___x11_environment}"
