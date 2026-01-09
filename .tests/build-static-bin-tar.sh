@@ -65,11 +65,16 @@ build_bash () {
         patch -p1 < "${extrapatch}"
       }
 
+      # local patches...
+      for p in "${topdir}/.tests/patches/bash-${version}"/* ; do
+        [[ -e "${p}" ]] && patch -p1 < "${p}"
+      done
+
       [[ "${stopbuild:-}" ]] && { return 128; }
 
       # build
       export CC="${devdir}/musl/bin/musl-gcc"
-      export CFLAGS="-static -Os"
+      export CFLAGS="-static -Os -std=gnu90"
       export LOCAL_CFLAGS="${CFLAGS}"
       ./configure --without-bash-malloc
       make
@@ -146,9 +151,14 @@ export PATH="${devdir}/musl/bin:${PATH}"
    patch -p0 < "${dldir}/bash-2.05b-patch-${i}"
   done
 
+  # extra patches...
+  for p in "${topdir}/.tests/patches/bash-2.05b"/* ; do
+    [[ -e "${p}" ]] && patch -p1 < "${p}"
+  done
+
   # build
   export CC="${devdir}/musl/bin/musl-gcc"
-  export CFLAGS="-static -Os"
+  export CFLAGS="-static -Os -std=gnu90"
   export LOCAL_CFLAGS="${CFLAGS}"
   ./configure --without-bash-malloc
   make
@@ -190,11 +200,14 @@ build_bash 5.0 18
 build_bash 5.1 16
 
 # bash - 5.2
-build_bash 5.2 21 "${PWD}/.tests/bash-strtoimax.patch"
+build_bash 5.2 37
+
+# bash - 5.3
+build_bash 5.3 9
 
 # busybox
 [ -f "${builddir}/busybox/busybox" ] || {
- dl_gpg_file "https://busybox.net/downloads/busybox-1.36.1.tar.bz2" "busybox.tbz"
+ dl_gpg_file "https://busybox.net/downloads/busybox-1.37.0.tar.bz2" "busybox.tbz"
 
  rm -rf "${builddir}/busybox" ; mkdir "${builddir}/busybox" ; pushd "${builddir}/busybox"
   # unpack and patch
@@ -220,7 +233,7 @@ done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
 
 # toybox
 [ -f "${builddir}/toybox/toybox" ] || {
-  dl_sha512_file "https://www.landley.net/toybox/downloads/toybox-0.8.0.tar.gz" "toybox.tgz"
+  dl_sha512_file "https://www.landley.net/toybox/downloads/toybox-0.8.9.tar.gz" "toybox.tgz"
 
  rm -rf "${builddir}/toybox" ; mkdir "${builddir}/toybox" ; pushd "${builddir}/toybox"
   # unpack and patch
