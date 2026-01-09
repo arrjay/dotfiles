@@ -269,6 +269,7 @@ done
       case "${candidate}" in
         chcon|runcon) : ;; # requires selinux support/libs
         pinky|uptime|users|who) : ;; # requires utmpx
+	stdbuf) : ;; # musl doesn't support this
         *) features=("${features[@]}" "${candidate}") ;;
       esac
     done
