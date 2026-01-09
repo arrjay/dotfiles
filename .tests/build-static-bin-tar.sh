@@ -241,7 +241,7 @@ done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
 
   # build
   export CC="${devdir}/musl/bin/musl-gcc"
-  export CFLAGS="-static -Os"
+  export CFLAGS="-static -Os -std=gnu90"
   export LOCAL_CFLAGS="${CFLAGS}"
   cp "${topdir}/.tests/toybox.config" .config
   make silentoldconfig
