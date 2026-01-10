@@ -285,7 +285,7 @@ while read cmdlet ; do
 done < <("${rootdir}/Applications/uutils/bin/uutils" --list)
 
 # GNU coreutils
-coreutils_ver="8.32"
+coreutils_ver="9.9"
 dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.gz" "coreutils-${coreutils_ver}.tgz"
 
 rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-${coreutils_ver}" ; pushd "${builddir}/coreutils-${coreutils_ver}"
