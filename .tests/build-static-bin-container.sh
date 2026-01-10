@@ -285,12 +285,12 @@ while read cmdlet ; do
 done < <("${rootdir}/Applications/uutils/bin/uutils" --list)
 
 # GNU coreutils
-coreutils_ver="8.30"
-dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.xz" "coreutils-${coreutils_ver}.txz"
+coreutils_ver="6.10"
+dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.gz" "coreutils-${coreutils_ver}.tgz"
 
 rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-${coreutils_ver}" ; pushd "${builddir}/coreutils-${coreutils_ver}"
  # unpack and patch
- extract_l1_tarball "coreutils-${coreutils_ver}.txz"
+ extract_l1_tarball "coreutils-${coreutils_ver}.tgz"
  export CC="${devdir}/musl/bin/musl-gcc"
  export LDFLAGS="-static"
  export CFLAGS="-static -Os -fPIC"
