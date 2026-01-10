@@ -285,24 +285,21 @@ while read cmdlet ; do
 done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{FS=","} {if (NF > 1) {gsub(/ /,"",$0);ll=(ll $0);}} END{split(ll,cmd);for(i in cmd) {printf "%s\n",cmd[i]}}')
 
 # GNU coreutils
-exp=("${builddir}/coreutils/src"/*.o)
-[ -f "${exp[0]}" ] || {
- dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-8.30.tar.xz" "coreutils.txz"
+dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-8.30.tar.xz" "coreutils.txz"
 
- rm -rf "${builddir}/coreutils" ; mkdir "${builddir}/coreutils" ; pushd "${builddir}/coreutils"
-  # unpack and patch
-  extract_l1_tarball "coreutils.txz"
-  export CC="${devdir}/musl/bin/musl-gcc"
-  export LDFLAGS="-static"
-  export CFLAGS="-static -Os -fPIC"
-  export LOCAL_CFLAGS="${CFLAGS}"
-  ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils" #--enable-single-binary=symlinks
-  make
- popd
-}
-
-pushd "${builddir}/coreutils"
- make prefix="${rootdir}/Applications/coreutils" install-exec
+rm -rf "${builddir}/coreutils" ; mkdir "${builddir}/coreutils" ; pushd "${builddir}/coreutils"
+ # unpack and patch
+ extract_l1_tarball "coreutils.txz"
+ export CC="${devdir}/musl/bin/musl-gcc"
+ export LDFLAGS="-static"
+ export CFLAGS="-static -Os -fPIC"
+ export LOCAL_CFLAGS="${CFLAGS}"
+ ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils-8.30" #--enable-single-binary=symlinks
+ make
+ make prefix="${rootdir}/Applications/coreutils-8.30" install-exec
+ ./configure --enable-no-install-program=stdbuf --prefix="${rootdir}/Applications/coreutils-8.30-native" #--enable-single-binary=symlinks
+ make
+ make prefix="${rootdir}/Applications/coreutils-8.30-native" install-exec
 popd
 
 # twiddle permissions, make tarball
@@ -313,3 +310,11 @@ tar cf "${topdir}/import.tar" --owner=0 --group=0 .
 popd
 
 rm -rf "${workdir}"
+
+# shove tarball into container
+container="$(buildah from scratch)"
+buildah add "${container}" "${topdir}/import.tar" /
+buildah commit "${container}" dotfiles-static-base
+
+rm "${topdir}/import.tar"
+buildah rm "${container}"
