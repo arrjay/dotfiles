@@ -285,21 +285,22 @@ while read cmdlet ; do
 done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{FS=","} {if (NF > 1) {gsub(/ /,"",$0);ll=(ll $0);}} END{split(ll,cmd);for(i in cmd) {printf "%s\n",cmd[i]}}')
 
 # GNU coreutils
-dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-8.30.tar.xz" "coreutils.txz"
+coreutils_ver="8.30"
+dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.xz" "coreutils-${coreutils_ver}.txz"
 
-rm -rf "${builddir}/coreutils" ; mkdir "${builddir}/coreutils" ; pushd "${builddir}/coreutils"
+rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-${coreutils_ver}" ; pushd "${builddir}/coreutils-${coreutils_ver}"
  # unpack and patch
- extract_l1_tarball "coreutils.txz"
+ extract_l1_tarball "coreutils-${coreutils_ver}.txz"
  export CC="${devdir}/musl/bin/musl-gcc"
  export LDFLAGS="-static"
  export CFLAGS="-static -Os -fPIC"
  export LOCAL_CFLAGS="${CFLAGS}"
- ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils-8.30" #--enable-single-binary=symlinks
+ ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" #--enable-single-binary=symlinks
  make
- make prefix="${rootdir}/Applications/coreutils-8.30" install-exec
- ./configure --enable-no-install-program=stdbuf --prefix="${rootdir}/Applications/coreutils-8.30-native" #--enable-single-binary=symlinks
+ make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" install-exec
+ ./configure --enable-no-install-program=stdbuf --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" #--enable-single-binary=symlinks
  make
- make prefix="${rootdir}/Applications/coreutils-8.30-native" install-exec
+ make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" install-exec
 popd
 
 # twiddle permissions, make tarball
