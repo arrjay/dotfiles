@@ -285,7 +285,7 @@ while read cmdlet ; do
 done < <("${rootdir}/Applications/uutils/bin/uutils" --list)
 
 # GNU coreutils
-coreutils_ver="7.6"
+coreutils_ver="8.32"
 dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.gz" "coreutils-${coreutils_ver}.tgz"
 
 rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-${coreutils_ver}" ; pushd "${builddir}/coreutils-${coreutils_ver}"
@@ -331,7 +331,7 @@ buildah rm "${container}"
 
 # create variant userspace containers
 # we re-use rootdir but it's a /bin layer
-for variant in coreutils-8.30-native busybox toybox uutils ; do
+for variant in coreutils-8.32-native busybox toybox uutils ; do
   pushd "${rootdir}"
   rm -rf ./bin
   mkdir ./bin
