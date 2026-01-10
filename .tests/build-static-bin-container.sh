@@ -303,16 +303,27 @@ rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-$
  make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" install-exec
 popd
 
-# twiddle permissions, make tarball
+# twiddle permissions
 pushd "${rootdir}"
 find ./ -type d -exec chmod a+rx {} \;
 find ./Applications/*/bin -type f -exec chmod a+rx {} \;
+
+# crate /bin/bash-VERSION links
+mkdir ./bin
+for bashdir in ./Applications/bash-*/bin ; do
+  bv="${bashdir#./Applications/bash-}"
+  bv="${bv%/bin}"
+  ln -s "${bashdir#.}/bash" "./bin/bash-${bv}"
+done
+
+# create tarball
 tar cf "${topdir}/import.tar" --owner=0 --group=0 .
 popd
 
 rm -rf "${workdir}"
 
 # shove tarball into container
+buildah rmi dotfiles-static-base || true
 container="$(buildah from scratch)"
 buildah add "${container}" "${topdir}/import.tar" /
 buildah commit "${container}" dotfiles-static-base
