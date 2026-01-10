@@ -282,7 +282,7 @@ cp "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/coreutils" "${ro
 
 while read cmdlet ; do
   ln -s "/Applications/uutils/bin/uutils" "${rootdir}/Applications/uutils/bin/${cmdlet}"
-done < <("${rootdir}/Applications/uutils/bin/uutils" | awk 'BEGIN{FS=","} {if (NF > 1) {gsub(/ /,"",$0);ll=(ll $0);}} END{split(ll,cmd);for(i in cmd) {printf "%s\n",cmd[i]}}')
+done < <("${rootdir}/Applications/uutils/bin/uutils" --list)
 
 # GNU coreutils
 coreutils_ver="8.30"
@@ -320,8 +320,6 @@ done
 tar cf "${topdir}/import.tar" --owner=0 --group=0 .
 popd
 
-rm -rf "${workdir}"
-
 # shove tarball into container
 buildah rmi dotfiles-static-base || true
 container="$(buildah from scratch)"
@@ -330,3 +328,25 @@ buildah commit "${container}" dotfiles-static-base
 
 rm "${topdir}/import.tar"
 buildah rm "${container}"
+
+# create variant userspace containers
+# we re-use rootdir but it's a /bin layer
+for variant in coreutils-8.30-native busybox toybox uutils ; do
+  pushd "${rootdir}"
+  rm -rf ./bin
+  mkdir ./bin
+  for file in "./Applications/${variant}/bin"/* ; do
+    ln -s "${file#.}" "./bin/${file##*/}"
+  done
+  tar cf "${topdir}/userspace-${variant}.tar" --owner=0 --group=0 ./bin
+  popd
+  container="$(buildah from dotfiles-static-base)"
+  buildah add "${container}" "${topdir}/userspace-${variant}.tar" /
+  buildah rmi "dotfiles-static-userspace-${variant}" || true
+  buildah commit "${container}" "dotfiles-static-userspace-${variant}"
+  rm "${topdir}/userspace-${variant}.tar"
+  buildah rm "${container}"
+done
+
+# finally, clean up.
+rm -rf "${workdir}"
