@@ -33,8 +33,8 @@ ___bashmin=${___bashmin%%.*}
 umask 077
 
 # version information
-___rcver="6.0"
-___rcver_str="jBashRc v${___rcver}(c)"
+___rcver="6.2"
+___rcver_str="jBashRc v${___rcver}(f)"
 
 # nastyish hack for mingw32
 PATH=/usr/bin:$PATH
@@ -49,28 +49,6 @@ ___error_msg () {
   echo "${*}" 1>&2
 }
 
-# I like having USER set. If you don't have USER set, I will set it to this.
-____default_username="rjlocal"
-
-# pathsetup - set system path to work around cases of extreme weirdness (yes I have seen them!)
-# defined here for convenience but called much later ;)
-function ____pathsetup {
-  genprepend PATH \
-    "/usr/games" \
-    "/etc" "/usr/etc" "/usr/sysadm/privbin" \
-    "/sbin" "/usr/sysadm/bin" "/usr/sbin" \
-    "/usr/ccs/bin" "/usr/sfw/bin" \
-    "/usr/pkg/sbin" "/usr/tgcware/sbin" \
-    "/usr/local/sbin" \
-    "/usr/gfx" "/usr/dt/bin" "/usr/openwin/bin" "/usr/bin/X11" "/usr/X11R6/bin" \
-    "/bin" "/usr/bin" \
-    "/usr/pkg/bin" "/usr/xpg4/bin" \
-    "/usr/bsd" "/usr/ucb" \
-    "/usr/kerberos/bin" \
-    "/usr/nekoware/bin" "/usr/tgcware/bin" \
-    "/opt/local/bin" "/usr/local/bin"
-}
-
 # remove any aliases we had. sorry, but you can't trust 'em ;)
 ____rm_aliases () {
   local line
@@ -83,36 +61,33 @@ ____rm_aliases () {
 ____rm_aliases
 unset -f ____rm_aliases
 
+# I like having USER set. If you don't have USER set, I will set it to this.
+____default_username="rjlocal"
+
 ######################
 ## UTILITY FUNCTIONS #
 ######################
 
-# _lc - convert character to lower case
-# hi bash 2.05
-# shellcheck disable=SC2006
-___lc () {
-  local char n ; char="${1}"
-  case "${char}" in
-    [A-Z])
-      n="`printf '%d' \'"${char}"`"
-      n=$((n+32))
-      # the first printf actually takes the second as a format specifier. really.
-      # shellcheck disable=SC2059
-      printf \\"`printf '%o' "${n}"`"
-    ;;
-    *) printf '%s' "${char}" ;;
-  esac
-}
-
 # tolower - convert string to lower case
-tolower () {
-  local word ch ; word="${1}"
+___tolower () {
+  local word char n ; word="${1}"
   case "${___bashmaj}" in
     2|3)
       # lowercase it one character at a time.
       for((i=0;i<${#word};++i)) ; do
-        ch="${word:$i:1}"
-        ___lc "${ch}"
+        char="${word:$i:1}"
+        case "${char}" in
+          [A-Z])
+          # lowercase the character and print it.
+          n="$(printf '%d' \'"${char}")"
+          n=$((n+32))
+          # we are dealing with the single slash
+          # shellcheck disable=SC1003
+          printf '%b' '\'"$(printf '%o' "${n}")"
+          ;;
+          # print whatever character you got.
+          *) printf '%s' "${char}" ;;
+        esac
       done
       ;;
     *)
@@ -424,8 +399,21 @@ unset -f ____init_cachedir
 ####################################################
 
 # set up the PATH block here before we go looking for any more external binaries.
-____pathsetup
-unset -f ____pathsetup
+# to be specific, we want a readlink, or awk/ls to locate our bash.d
+genprepend PATH \
+  "/usr/games" \
+  "/etc" "/usr/etc" "/usr/sysadm/privbin" \
+  "/sbin" "/usr/sysadm/bin" "/usr/sbin" \
+  "/usr/ccs/bin" "/usr/sfw/bin" \
+  "/usr/pkg/sbin" "/usr/tgcware/sbin" \
+  "/usr/local/sbin" \
+  "/usr/gfx" "/usr/dt/bin" "/usr/openwin/bin" "/usr/bin/X11" "/usr/X11R6/bin" \
+  "/bin" "/usr/bin" \
+  "/usr/pkg/bin" "/usr/xpg4/bin" \
+  "/usr/bsd" "/usr/ucb" \
+  "/usr/kerberos/bin" \
+  "/usr/nekoware/bin" "/usr/tgcware/bin" \
+  "/opt/local/bin" "/usr/local/bin"
 
 # try turning the bashrc ref (if any) into an absolute path
 ____find_bashrc_file () {
@@ -473,26 +461,24 @@ unset ___bash_init_argv0
 unset ___bash_invocation_parent
 
 # configure user/host pieces			# Fedora 28
-# shellcheck disable=SC2006
 mm_setenv ___host || {
-  ___host=`tolower "${HOSTNAME:-}"`
+  ___host="$(___tolower "${HOSTNAME:-}")"
   ___host="${___host%%.*}"
   mm_putenv ___host
 }
 
 # try `uname -p` first
-# shellcheck disable=SC2006
 mm_setenv ___cpu || {
   chkcmd uname && {
     # okay. check if uname supports -p next.
     uname -p > /dev/null 2>&1 && {
-      ___cpu="`uname -p`"			# x86_64
-      ___cpu="`tolower "${___cpu}"`"		# x86_64
+      ___cpu="$(uname -p)"			# x86_64
+      ___cpu="$(___tolower "${___cpu}")"	# x86_64
     }
   }
   # next, try from bash HOSTTYPE
   [ -z "${___cpu}" ] && {
-    ___cpu="`tolower "${HOSTTYPE}"`"		# x86_64
+    ___cpu="$(___tolower "${HOSTTYPE}")"	# x86_64
     ___cpu="${___cpu%%-linux}"			# x86_64
   }
 
@@ -511,10 +497,12 @@ mm_setenv ___os || {
   ___os="${___os%%-gnu}"			# redhat-linux
   ___os="${___os##*-}"				# linux
   ___os="${___os%%[0-9]*}"			# linux
-  # shellcheck disable=SC2006
-  ___os=`tolower "${___os}"`			# linux
+  ___os="$(___tolower "${___os}")"		# linux
   mm_putenv ___os
 }
+
+# drop ___tolower from scope now.
+unset ___tolower
 
 # if we _have_ a uname command, use that to fill in the release pieces.
 # uname -r is POSIX spec'd so just run with it.
