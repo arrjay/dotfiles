@@ -14,6 +14,7 @@ sources=(
 scratch="$(mktemp -d)"
 mkdir "${scratch}/root"
 cp bashrc "${scratch}/root/.bashrc"
+cp -R bash.d "${scratch}/root/.bash.d"
 ( cd "${scratch}/root" && tar cf "${scratch}/import.tar" --owner=0 --group=0 . ; )
 
 for image in ${sources[@]} ; do
