@@ -24,6 +24,11 @@ PS4='+\t|'
 ## DEBUG SWITCH - UNCOMMENT TO TURN ON DEBUGGING
 #set -x
 
+# get the bash version for command definition unwinding
+___bashmaj=${BASH_VERSION/.*/}
+___bashmin=${BASH_VERSION#"${___bashmaj}".}
+___bashmin=${___bashmin%%.*}
+
 # set permissions for any newly created files to just ourselves.
 umask 077
 
@@ -55,11 +60,6 @@ export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 ___error_msg () {
   echo "${*}" 1>&2
 }
-
-# get the bash version for command definition unwinding
-___bashmaj=${BASH_VERSION/.*/}
-___bashmin=${BASH_VERSION#"${___bashmaj}".}
-___bashmin=${___bashmin%%.*}
 
 # I like having USER set. If you don't have USER set, I will set it to this.
 ____default_username="rjlocal"
@@ -593,17 +593,17 @@ mm_putenv ___os
 
 # set up more of the loader environment now
 genprepend PATH \
-  "${HOME}/Library/Python/"*/bin \
-  "${HOME}/Library/"*/bin \
-  "${HOME}/Applications/"*/bin \
-  "${HOME}/.cargo/bin" \
-  "${HOME}/.cabal/bin" \
-  "${HOME}/.rvm/bin" \
-  "${HOME}/bin/${___os}-${___cpu}" \
-  "${HOME}/bin/${___os}${___osmaj}-${___cpu}" \
-  "${HOME}/bin/${___os}${___osflat}-${___cpu}" \
-  "${HOME}/bin/noarch" \
-  "${HOME}/bin/${___host}"
+  "${HOME%/}/Library/Python/"*/bin \
+  "${HOME%/}/Library/"*/bin \
+  "${HOME%/}/Applications/"*/bin \
+  "${HOME%/}/.cargo/bin" \
+  "${HOME%/}/.cabal/bin" \
+  "${HOME%/}/.rvm/bin" \
+  "${HOME%/}/bin/${___os}-${___cpu}" \
+  "${HOME%/}/bin/${___os}${___osmaj}-${___cpu}" \
+  "${HOME%/}/bin/${___os}${___osflat}-${___cpu}" \
+  "${HOME%/}/bin/noarch" \
+  "${HOME%/}/bin/${___host}"
 
 # determine if we are a superuser or not
 ___rootusr=unk
