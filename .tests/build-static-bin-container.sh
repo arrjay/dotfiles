@@ -285,23 +285,24 @@ while read cmdlet ; do
 done < <("${rootdir}/Applications/uutils/bin/uutils" --list)
 
 # GNU coreutils
-coreutils_ver="9.9"
-dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.gz" "coreutils-${coreutils_ver}.tgz"
+for coreutils_ver in 9.9 8.32 ; do
+  dl_gpg_file "https://ftp.gnu.org/gnu/coreutils/coreutils-${coreutils_ver}.tar.gz" "coreutils-${coreutils_ver}.tgz"
 
-rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-${coreutils_ver}" ; pushd "${builddir}/coreutils-${coreutils_ver}"
- # unpack and patch
- extract_l1_tarball "coreutils-${coreutils_ver}.tgz"
- export CC="${devdir}/musl/bin/musl-gcc"
- export LDFLAGS="-static"
- export CFLAGS="-static -Os -fPIC"
- export LOCAL_CFLAGS="${CFLAGS}"
- ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" #--enable-single-binary=symlinks
- make
- make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" install-exec
- ./configure --enable-no-install-program=stdbuf --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" #--enable-single-binary=symlinks
- make
- make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" install-exec
-popd
+  rm -rf "${builddir}/coreutils-${coreutils_ver}" ; mkdir "${builddir}/coreutils-${coreutils_ver}" ; pushd "${builddir}/coreutils-${coreutils_ver}"
+   # unpack and patch
+   extract_l1_tarball "coreutils-${coreutils_ver}.tgz"
+   export CC="${devdir}/musl/bin/musl-gcc"
+   export LDFLAGS="-static"
+   export CFLAGS="-static -Os -fPIC"
+   export LOCAL_CFLAGS="${CFLAGS}"
+   ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" #--enable-single-binary=symlinks
+   make
+   make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" install-exec
+   ./configure --enable-no-install-program=stdbuf --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" #--enable-single-binary=symlinks
+   make
+   make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" install-exec
+  popd
+done
 
 # twiddle permissions
 pushd "${rootdir}"
@@ -331,7 +332,7 @@ buildah rm "${container}"
 
 # create variant userspace containers
 # we re-use rootdir but it's a /bin layer
-for variant in coreutils-8.32-native busybox toybox uutils ; do
+for variant in coreutils-8.32-native coreutils-9.9-native busybox toybox uutils ; do
   pushd "${rootdir}"
   rm -rf ./bin
   mkdir ./bin
