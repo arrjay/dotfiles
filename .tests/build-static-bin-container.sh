@@ -7,8 +7,9 @@ BASH_MIRROR="https://ftp.gnu.org/gnu/bash"
 
 topdir="${PWD}"
 workdir="$(mktemp -d)"
-mkdir "${workdir}/"{build,dev,dl,gpg-keyring,root}
-dldir="${DOWNLOAD_DIR:-${workdir}/dl}"
+mkdir "${workdir}/"{build,dev,gpg-keyring,root}
+dldir="${DOWNLOAD_DIR:-${HOME}/Downloads/dotfiles-tar}"
+mkdir -p "${dldir}"
 builddir="${BUILD_DIR:-${workdir}/build}"
 devdir="${DEV_DIR:-${workdir}/dev}"
 rootdir="${ROOT_IMPORT_DIR:-${workdir}/root}"
@@ -316,8 +317,13 @@ for coreutils_ver in 9.9 8.32 ; do
   popd
 done
 
-# twiddle permissions
 pushd "${rootdir}"
+
+# stub files
+mkdir ./etc
+printf '%s:%s:%s:%s:%s:%s:%s\n' root x 0 0 'Super User' / /bin/sh > ./etc/passwd
+
+# twiddle permissions
 find ./ -type d -exec chmod a+rx {} \;
 find ./Applications/*/bin -type f -exec chmod a+rx {} \;
 
