@@ -48,7 +48,7 @@ PATH=/usr/bin:$PATH
 
 # always configure pass keys/opts/signing req ;)
 [[ "${PASSWORD_STORE_SIGNING_KEY:-}" ]] || export PASSWORD_STORE_SIGNING_KEY=43D02276EEDABA74858594CBD02D22EC7FE43DC1
-[[ "${PASSWORD_STORE_GPG_OPTS:-}" ]] || PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
+[[ "${PASSWORD_STORE_GPG_OPTS:-}" ]] || export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
 # return errors to fd 2
@@ -174,6 +174,9 @@ genstrip () {
   }
 }
 
+# do not touch this function again...
+declare -fr genstrip
+
 # this reverts commit e80ab23b5e
 # check environment variables exist, make if needed
 cke () {
@@ -203,6 +206,8 @@ cke () {
   }
 }
 
+declare -fr cke
+
 # genappend - add directory element to path-like element
 # you need variable, then element
 genappend () {
@@ -230,6 +235,8 @@ genappend () {
   }
 }
 
+declare -fr genappend
+
 # genprepend - add directory elements to FRONT of path-like list (NOTE: takes arguments as loop - later args are in the front!)
 genprepend () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
@@ -256,14 +263,20 @@ genprepend () {
   }
 }
 
+declare -fr genprepend
+
 # we keep pathappend and pathprepend, even though not used, for interactive purposes :)
 pathappend () {
   genappend PATH "${@}"
 }
 
+declare -fr pathappend
+
 pathprepend () {
   genprepend PATH "${@}"
 }
+
+declare -fr pathprepend
 
 ##########################################
 # COMMAND/ENVIRONMENT CHECKS (uncaching) #
