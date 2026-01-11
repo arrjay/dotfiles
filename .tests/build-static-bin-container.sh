@@ -113,6 +113,9 @@ export PATH="${devdir}/musl/bin:${PATH}"
 
 [ -f "${devdir}/musl/bin/musl-strip" ] || {
   ln -s "$(which strip)" "${devdir}/musl/bin/musl-strip"
+  strip () {
+    "${devdir}/musl/bin/musl-strip" "${@}"
+  }
 }
 
 mkdir -p "${devdir}/musl/include"
@@ -225,6 +228,7 @@ build_bash 5.3 9
 
 mkdir -p "${rootdir}/Applications/busybox/bin"
 cp "${builddir}/busybox/busybox" "${rootdir}/Applications/busybox/bin"
+strip "${rootdir}/Applications/busybox/bin/busybox"
 
 # we should be able to just run busybox _now_ and ask it what to link ;)
 while read cmdlet ; do
@@ -251,6 +255,7 @@ done < <("${rootdir}/Applications/busybox/bin/busybox" --list)
 
 mkdir -p "${rootdir}/Applications/toybox/bin"
 cp "${builddir}/toybox/toybox" "${rootdir}/Applications/toybox/bin"
+# toybox cannot be stripped - permission denied?!
 
 for cmdlet in $("${rootdir}/Applications/toybox/bin/toybox") ; do
   ln -s "/Applications/toybox/bin/toybox" "${rootdir}/Applications/toybox/bin/${cmdlet}"
@@ -279,6 +284,7 @@ done
 
 mkdir -p "${rootdir}/Applications/uutils/bin"
 cp "${builddir}/uutils/target/x86_64-unknown-linux-musl/release/coreutils" "${rootdir}/Applications/uutils/bin/uutils"
+strip "${rootdir}/Applications/uutils/bin/uutils"
 
 while read cmdlet ; do
   ln -s "/Applications/uutils/bin/uutils" "${rootdir}/Applications/uutils/bin/${cmdlet}"
@@ -298,9 +304,15 @@ for coreutils_ver in 9.9 8.32 ; do
    ./configure --enable-no-install-program=stdbuf --program-prefix=g --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" #--enable-single-binary=symlinks
    make
    make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}" install-exec
+   for file in "${rootdir}/Applications/coreutils-${coreutils_ver}/bin"/* ; do
+     strip "${file}"
+   done
    ./configure --enable-no-install-program=stdbuf --prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" #--enable-single-binary=symlinks
    make
    make prefix="${rootdir}/Applications/coreutils-${coreutils_ver}-native" install-exec
+   for file in "${rootdir}/Applications/coreutils-${coreutils_ver}-native/bin"/* ; do
+     strip "${file}"
+   done
   popd
 done
 
