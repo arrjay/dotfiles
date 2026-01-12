@@ -44,11 +44,6 @@ PATH=/usr/bin:$PATH
 [[ "${PASSWORD_STORE_GPG_OPTS:-}" ]] || export PASSWORD_STORE_GPG_OPTS="--cipher-algo AES256 --digest-algo SHA512"
 export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
-# return errors to fd 2
-___error_msg () {
-  echo "${*}" 1>&2
-}
-
 # remove any aliases we had. sorry, but you can't trust 'em ;)
 ____rm_aliases () {
   local line
@@ -129,6 +124,13 @@ else
 fi
 declare -fr __is_readonly_function
 
+# return errors to fd 2
+__is_readonly_function errmsg || errmsg () {
+  echo "${*}" 1>&2
+}
+declare -fr errmsg
+___error_msg () { errmsg "${@}" ; }
+
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
 # oh god this is ugly, obtain set -x status and manipulate it so we always get a reliable answer.
@@ -146,7 +148,7 @@ unset ____set_x
 # genstrip - remove element from path-type variable
 # you need to specify the variable and the element!
 __is_defined_function || genstrip () {
-  [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
+  [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
   eval "${1}"=\""${!1//':'"${2}":/:}"\"
   eval "${1}"=\""${!1%:"${2}"}"\"
   eval "${1}"=\""${!1#"${2}":}"\"
@@ -154,7 +156,7 @@ __is_defined_function || genstrip () {
 
 [ "${___printf_supports_v}" == "yes" ] && {
   __is_defined_function || genstrip () {
-    [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
+    [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
     local n s t
     # grab value of path-like variable
     t=":${!1}:"
@@ -176,7 +178,7 @@ declare -fr genstrip
 # this reverts commit e80ab23b5e
 # check environment variables exist, make if needed
 __is_defined_function cke || cke () {
-  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
+  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
   local x
   for x in "${@}" ; do
     if [[ -z "${x}" ]]; then
@@ -189,7 +191,7 @@ __is_defined_function cke || cke () {
 
 [ "${___printf_supports_v}" == "yes" ] && {
   __is_readonly_function cke || cke () {
-    [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
+    [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
     local x
     for x in "${@}" ; do
       if [[ -z "${x}" ]]; then
@@ -207,7 +209,7 @@ declare -fr cke
 # genappend - add directory element to path-like element
 # you need variable, then element
 __is_defined_function genappend || genappend () {
-  [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+  [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
   local e d
   e="${1}" ; shift
   cke "${e}"
@@ -219,7 +221,7 @@ __is_defined_function genappend || genappend () {
 
 [ "${___printf_supports_v}" == "yes" ] && {
   __is_readonly_function genappend || genappend () {
-    [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+    [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
     e="${1}" ; shift
     for d in "${@}" ; do
@@ -235,7 +237,7 @@ declare -fr genappend
 
 # genprepend - add directory elements to FRONT of path-like list (NOTE: takes arguments as loop - later args are in the front!)
 __is_defined_function genprepend || genprepend () {
-  [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+  [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
   local e d
   e="${1}" ; shift
   cke "${e}"
@@ -247,7 +249,7 @@ __is_defined_function genprepend || genprepend () {
 
 [ "${___printf_supports_v}" == "yes" ] && {
   __is_readonly_function genprepend || genprepend () {
-    [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
+    [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
     e="${1}" ; shift
     for d in "${@}" ; do
@@ -317,7 +319,7 @@ zapcmdcache () {
 
 # verify cache system is set within any function at runtime.
 ___vfy_cachesys () {
-  [[ "${BASH_CACHE_DIRECTORY}" ]] || { ___error_msg "BASH_CACHE_DIRECTORY is not set" ; return 3 ; }
+  [[ "${BASH_CACHE_DIRECTORY}" ]] || { errmsg "BASH_CACHE_DIRECTORY is not set" ; return 3 ; }
 }
 
 # configure command caching/tokenization dir
@@ -360,7 +362,7 @@ ____init_cachedir () {
 # _md - test and create directory if needed - requires mkdir...
 ___chkdef mkdir && md () {
   local dir ret rs ; ret=0
-  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
 
   for dir in "${@}" ; do
     [ -d "${dir}" ] && continue
@@ -380,7 +382,7 @@ ___chkdef mkdir && md () {
 ____init_cachedir && {
   chkcmd () {
     local cmd found ; cmd="${1}"
-    [ -z "${cmd}" ] && { ___error_msg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
+    [ -z "${cmd}" ] && { errmsg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
 
     ___vfy_cachesys chkcmd || return $?
 
@@ -552,6 +554,8 @@ chkcmd uname && {
   ___osmin="${___osmin%%\.*}"			# 18
   ___osflat="${___osmaj}${___osmin}"		# 418
 }
+
+## run early platform init now
 
 # common envvars for windows platforms setup
 #shellcheck disable=SC2006,SC2153
@@ -739,7 +743,7 @@ ___bash_auxfiles_dirs=()
 
 # source file if executeable and ending in .bash
 sourcex () {
-  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
+  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
   local f
   for f in "${@}" ; do
     case "${f}" in *.bash) : ;; *) continue ;; esac
@@ -750,7 +754,7 @@ sourcex () {
 
 # source file if it exists and ends in .sh
 ___sourcef () {
-  [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
+  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
   local f
   for f in "${@}" ; do
     case "${f}" in *.sh) : ;; *) continue ;; esac
