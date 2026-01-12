@@ -96,6 +96,39 @@ ___tolower () {
   esac
 }
 
+# prevent errors if we're sourced in an environment that already has helper functions.
+# this does mean that to upgrade versions of dotfiles, we need to *restart* the shell.
+declare -f __is_defined_function 2>&1 || __is_defined_function () {
+  declare -f "${1}" >/dev/null 2>&1
+}
+declare -fr __is_defined_function
+
+if type mapfile >/dev/null 2>&1 ; then
+  # we have mapfile (bash 4...)
+  # fortunately, we're not going to run into pre-4.1 bugs with it.
+  __is_defined_function __is_readonly_function || __is_readonly_function () {
+    __is_defined_function "${1}" || return 1
+    local -a output
+    local lastline
+    mapfile -t output < <(declare -pf "${1}")
+    lastline="${output[-1]}"
+    lastline="${lastline#* }"
+    lastline="${lastline% *}"
+    case "${lastline}" in *r*) return 0 ;; *) return 1 ;; esac
+  }
+else
+  # we're going to loop and look for a matching line.
+  __is_defined_function __is_readonly_function || __is_readonly_function () {
+    __is_defined_function "${1}" || return 1
+    local line
+    while read -r line ; do
+      case "${line}" in "declare -fr ${1}") return 0 ;; esac
+    done < <(declare -fr)
+    return 1
+  }
+fi
+declare -fr __is_readonly_function
+
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
 # oh god this is ugly, obtain set -x status and manipulate it so we always get a reliable answer.
@@ -112,7 +145,7 @@ unset ____set_x
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
 # you need to specify the variable and the element!
-genstrip () {
+__is_defined_function || genstrip () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
   eval "${1}"=\""${!1//':'"${2}":/:}"\"
   eval "${1}"=\""${!1%:"${2}"}"\"
@@ -120,7 +153,7 @@ genstrip () {
 }
 
 [ "${___printf_supports_v}" == "yes" ] && {
-  genstrip () {
+  __is_defined_function || genstrip () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
     local n s t
     # grab value of path-like variable
@@ -142,7 +175,7 @@ declare -fr genstrip
 
 # this reverts commit e80ab23b5e
 # check environment variables exist, make if needed
-cke () {
+__is_defined_function cke || cke () {
   [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
   local x
   for x in "${@}" ; do
@@ -155,7 +188,7 @@ cke () {
 }
 
 [ "${___printf_supports_v}" == "yes" ] && {
-  cke () {
+  __is_readonly_function cke || cke () {
     [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand (needs: ENV)" ; return 1 ; }
     local x
     for x in "${@}" ; do
@@ -173,7 +206,7 @@ declare -fr cke
 
 # genappend - add directory element to path-like element
 # you need variable, then element
-genappend () {
+__is_defined_function genappend || genappend () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
   local e d
   e="${1}" ; shift
@@ -185,7 +218,7 @@ genappend () {
 }
 
 [ "${___printf_supports_v}" == "yes" ] && {
-  genappend () {
+  __is_readonly_function genappend || genappend () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
     e="${1}" ; shift
@@ -201,7 +234,7 @@ genappend () {
 declare -fr genappend
 
 # genprepend - add directory elements to FRONT of path-like list (NOTE: takes arguments as loop - later args are in the front!)
-genprepend () {
+__is_defined_function genprepend || genprepend () {
   [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
   local e d
   e="${1}" ; shift
@@ -213,7 +246,7 @@ genprepend () {
 }
 
 [ "${___printf_supports_v}" == "yes" ] && {
-  genprepend () {
+  __is_readonly_function genprepend || genprepend () {
     [ "${2}" ] || { ___error_msg "${FUNCNAME[0]}: missing operands (needs: ENV, directory(s))" ; return 1 ; }
     local e t d
     e="${1}" ; shift
@@ -229,13 +262,13 @@ genprepend () {
 declare -fr genprepend
 
 # we keep pathappend and pathprepend, even though not used, for interactive purposes :)
-pathappend () {
+__is_readonly_function pathappend || pathappend () {
   genappend PATH "${@}"
 }
 
 declare -fr pathappend
 
-pathprepend () {
+__is_readonly_function pathprepend || pathprepend () {
   genprepend PATH "${@}"
 }
 
@@ -325,7 +358,6 @@ ____init_cachedir () {
 
 ## runtime - potential definitions
 # _md - test and create directory if needed - requires mkdir...
-# this is actually only the third thing run (the first was the path hack, then printf -v processing)
 ___chkdef mkdir && md () {
   local dir ret rs ; ret=0
   [ "${1}" ] || { ___error_msg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
@@ -502,7 +534,7 @@ mm_setenv ___os || {
 }
 
 # drop ___tolower from scope now.
-unset ___tolower
+unset -f ___tolower
 
 # if we _have_ a uname command, use that to fill in the release pieces.
 # uname -r is POSIX spec'd so just run with it.
