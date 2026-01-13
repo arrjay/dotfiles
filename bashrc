@@ -304,12 +304,14 @@ declare -fr pathprepend
 # we're going to override this in a moment...
 # but this will work until the memoizer sets up, or in cases we never load it.
 # determine if a given _command_ exists.
-__is_defined_function chkcmd || chkcmd () {
-  case "$(type -tf "${cmd}" 2>&1)" in
+__is_readonly_function chkcmd || chkcmd () {
+  [[ -z "${1}" ]] && { errmsg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
+  case "$(type -tf "${1}" 2>&1)" in
     file) return 0 ;;
   esac
   return 1
 }
+declare -fr chkcmd
 
 # placeholders, simply return 1 as the cache doesn't work yet
 mm_putenv () {
@@ -372,23 +374,6 @@ ____init_cachedir () {
 # after defining md (or not), roll along with the rest of the cache system. this redefines stubs we had up above with versions that cache.
 # chkcmd - check if specific _command_ is present, now with memoization
 ____init_cachedir && {
-  chkcmd () {
-    local cmd found ; cmd="${1}"
-    [ -z "${cmd}" ] && { errmsg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
-
-    ___vfy_cachesys chkcmd || return $?
-
-    if [ -f "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}" ]; then
-      # we already have this check cached
-      read -r found < "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
-      return "${found}"
-    else
-      # actually run chkcmd and cache the result of that
-      chkcmd "${cmd}" ; found="${?}"
-      printf '%s\n' "${found}" > "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
-      return "${found}"
-    fi
-  }
 
   # mm_putenv - save environment memo
   mm_putenv () {
