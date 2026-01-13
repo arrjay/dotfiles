@@ -124,12 +124,33 @@ else
 fi
 declare -fr __is_readonly_function
 
+# determine if a given command, builtin, alias or function exists.
+__is_defined_function chkdef || chkdef () {
+  builtin type "${1}" >/dev/null 2>&1
+}
+declare -fr chkdef
+___chkdef () { chkdef "${@}" ; }
+
 # return errors to fd 2
 __is_readonly_function errmsg || errmsg () {
   echo "${*}" 1>&2
 }
 declare -fr errmsg
 ___error_msg () { errmsg "${@}" ; }
+
+# md - test and create directory if needed - requires mkdir...
+chkdef mkdir && md () {
+  local dir ret rs ; ret=0
+  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
+
+  for dir in "${@}" ; do
+    [ -d "${dir}" ] && continue
+    mkdir -p "${dir}" ; rs=$?
+    # shellcheck disable=SC2219
+    let ret=ret+rs
+  done
+  return "${ret}"
+}
 
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
@@ -280,28 +301,14 @@ declare -fr pathprepend
 # COMMAND/ENVIRONMENT CHECKS (uncaching) #
 ##########################################
 
-# determine if a given _command_ exists.
-___chkcmd () {
-  local cmd
-  cmd="${1}"
-  #shellcheck disable=SC2006
-  case `type -tf "${cmd}" 2>&1` in
-    file) return 0 ;;
-    *)    return 1 ;;
-  esac
-}
-
 # we're going to override this in a moment...
 # but this will work until the memoizer sets up, or in cases we never load it.
-chkcmd () {
-  ___chkcmd "${@}"
-}
-
-# determine if a given command, builtin, alias or function exists.
-___chkdef () {
-  local cmd
-  cmd="${1}"
-  builtin type "${cmd}" >/dev/null 2>&1
+# determine if a given _command_ exists.
+__is_defined_function chkcmd || chkcmd () {
+  case "$(type -tf "${cmd}" 2>&1)" in
+    file) return 0 ;;
+  esac
+  return 1
 }
 
 # placeholders, simply return 1 as the cache doesn't work yet
@@ -346,31 +353,16 @@ ____init_cachedir () {
   }
 
   # actually try creating that directory
-  ___chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
   md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # check if we can write _in_ the directory
   : > "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # unfortunately, rm is _not_ a builtin, so carefully walk around it.
-  ___chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
+  chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
 
   ___cache_checked=1 ; ___cache_active=1
-}
-
-## runtime - potential definitions
-# _md - test and create directory if needed - requires mkdir...
-___chkdef mkdir && md () {
-  local dir ret rs ; ret=0
-  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand" ; return 1 ; }
-
-  for dir in "${@}" ; do
-    [ -d "${dir}" ] && continue
-    mkdir -p "${dir}" ; rs=$?
-    # shellcheck disable=SC2219
-    let ret=ret+rs
-  done
-  return "${ret}"
 }
 
 ########################################
@@ -391,8 +383,8 @@ ____init_cachedir && {
       read -r found < "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
       return "${found}"
     else
-      # actually run ___chkcmd and cache the result of that
-      ___chkcmd "${cmd}" ; found="${?}"
+      # actually run chkcmd and cache the result of that
+      chkcmd "${cmd}" ; found="${?}"
       printf '%s\n' "${found}" > "${BASH_CACHE_DIRECTORY}/chkcmd/${cmd}"
       return "${found}"
     fi
