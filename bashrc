@@ -93,7 +93,7 @@ ___tolower () {
 
 # prevent errors if we're sourced in an environment that already has helper functions.
 # this does mean that to upgrade versions of dotfiles, we need to *restart* the shell.
-declare -f __is_defined_function 2>&1 || __is_defined_function () {
+declare -f __is_defined_function >/dev/null 2>&1 || __is_defined_function () {
   declare -f "${1}" >/dev/null 2>&1
 }
 declare -fr __is_defined_function
@@ -168,7 +168,7 @@ unset ____set_x
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
 # you need to specify the variable and the element!
-__is_defined_function || genstrip () {
+__is_defined_function genstrip || genstrip () {
   [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
   eval "${1}"=\""${!1//':'"${2}":/:}"\"
   eval "${1}"=\""${!1%:"${2}"}"\"
@@ -176,7 +176,7 @@ __is_defined_function || genstrip () {
 }
 
 [ "${___printf_supports_v}" == "yes" ] && {
-  __is_defined_function || genstrip () {
+  __is_readonly_function genstrip || genstrip () {
     [ "${2}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: ENV, directory)" ; return 1 ; }
     local n s t
     # grab value of path-like variable
