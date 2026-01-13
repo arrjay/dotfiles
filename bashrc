@@ -300,7 +300,7 @@ declare -fr pathprepend
 # determine if a given _command_ exists.
 __is_readonly_function chkcmd || chkcmd () {
   [[ -z "${1}" ]] && { errmsg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
-  case "$(type -tf "${1}" 2>&1)" in
+  case "$(builtin type -tf "${1}" 2>&1)" in
     file) return 0 ;;
   esac
   return 1
@@ -315,20 +315,20 @@ declare -fr chkcmd
 # but this will work until the memoizer sets up, or in cases we never load it.
 
 # placeholders, simply return 1 as the cache doesn't work yet
-mm_putenv () {
+__is_defined_function mm_putenv || mm_putenv () {
   return 1
 }
 
-mm_setenv () {
+__is_defined_function mm_setenv || mm_setenv () {
   return 1
 }
 
-zapcmdcache () {
+__is_defined_function zapcmdcache || zapcmdcache () {
   hash -r
 }
 
 # verify cache system is set within any function at runtime.
-___vfy_cachesys () {
+__is_readonly_function ___vfy_cachesys || ___vfy_cachesys () {
   [[ "${BASH_CACHE_DIRECTORY}" ]] || { errmsg "BASH_CACHE_DIRECTORY is not set" ; return 3 ; }
 }
 
@@ -344,26 +344,29 @@ ____init_cachedir () {
   esac
 
   # build a potential cache directory
-  [ -z "${BASH_CACHE_DIRECTORY}" ] && {
+  [[ -z "${BASH_CACHE_DIRECTORY}" ]] && {
     # do I have a homedir that is a valid directory?
-    [ -d "${HOME}" ] || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-    # is the home directory / ? (okay, actually, is it one character long?)
-    [ "${#HOME}" == '1' ] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+    [[ -d "${HOME}" ]] || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+    # is the home directory / ? (okay, actually, is it one or less characters long?)
+    # this is the main scenario in which we would get 10, above.
+    [[ "${#HOME}" -lt 2 ]] && { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
-    BASH_CACHE_DIRECTORY="${HOME}/.cmdcache"
-    [ -z "${HOSTNAME}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
-    [ -z "${___bash_host_tuple}" ] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
+    BASH_CACHE_DIRECTORY="${HOME%/}/.cache/dotfiles"
+    [[ -z "${HOSTNAME}" ]] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
+    [[ -z "${___bash_host_tuple}" ]] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
+    declare -r BASH_CACHE_DIRETORY
   }
 
   # actually try creating that directory
+  # this relies on the md function, which in turn needed a mkdir somewhere.
   chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
   md "${BASH_CACHE_DIRECTORY}"/env || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # check if we can write _in_ the directory
-  : > "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  : > "${BASH_CACHE_DIRECTORY}/.lck.$$" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # unfortunately, rm is _not_ a builtin, so carefully walk around it.
-  chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
+  chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck.$$" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
 
   ___cache_checked=1 ; ___cache_active=1
 }
@@ -376,32 +379,35 @@ ____init_cachedir () {
 ____init_cachedir && {
 
   # mm_putenv - save environment memo
-  mm_putenv () {
+  __is_readonly_function mm_putenv || mm_putenv () {
     local env val ; env="${1}" ; val="${!1}"
-    [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: save environment variable to memoization system" ; return 2 ; }
+    [[ -z "${env}" ]] && { __error_msg "${FUNCNAME[0]}: save environment variable to memoization system" ; return 2 ; }
 
     ___vfy_cachesys mm_putenv || return $?
-    [ -z "${val}" ] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
+    [[ -z "${val}" ]] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
   }
+  declare -fr mm_putenv
 
   # mm_setenv - read environment memo if available (NOTE: this will _replace_ the envvar)
-  mm_setenv () {
+  __is_readonly_function mm_setenv || mm_setenv () {
     local env ; env="${1}"
-    [ -z "${env}" ] && { __error_msg "${FUNCNAME[0]}: restore environment variable from memoization system" ; return 2 ; }
+    [[ -z "${env}" ]] && { __error_msg "${FUNCNAME[0]}: restore environment variable from memoization system" ; return 2 ; }
 
     ___vfy_cachesys mm_setenv || return $?
-    [ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ] && { read -r "${env?}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
+    [[ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ]] && { read -r "${env?}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
     # export that as well
     # shellcheck disable=SC2163
     export "${env}"
     return 1
   }
+  declare -fr mm_setenv
 
-  zapcmdcache () {
+  __is_readonly_function zapcmdcache || zapcmdcache () {
     ___vfy_cachesys zapcmdcache || return $?
     rm -rf "${BASH_CACHE_DIRECTORY}"/env/*
     hash -r
   }
+  declare -fr zapcmdcache
 }
 unset -f ____init_cachedir
 
@@ -960,4 +966,5 @@ fi
 
 monolith_cleanup
 
+# things to not leak into the larger environment.
 unset ____default_username
