@@ -297,12 +297,6 @@ __is_readonly_function pathprepend || pathprepend () {
 
 declare -fr pathprepend
 
-##########################################
-# COMMAND/ENVIRONMENT CHECKS (uncaching) #
-##########################################
-
-# we're going to override this in a moment...
-# but this will work until the memoizer sets up, or in cases we never load it.
 # determine if a given _command_ exists.
 __is_readonly_function chkcmd || chkcmd () {
   [[ -z "${1}" ]] && { errmsg "${FUNCNAME[0]}: check if command exists, indicate via error code" ; return 2 ; }
@@ -312,6 +306,13 @@ __is_readonly_function chkcmd || chkcmd () {
   return 1
 }
 declare -fr chkcmd
+
+##########################################
+# COMMAND/ENVIRONMENT CHECKS (uncaching) #
+##########################################
+
+# we're going to override this in a moment...
+# but this will work until the memoizer sets up, or in cases we never load it.
 
 # placeholders, simply return 1 as the cache doesn't work yet
 mm_putenv () {
@@ -356,7 +357,7 @@ ____init_cachedir () {
 
   # actually try creating that directory
   chkdef md || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
-  md "${BASH_CACHE_DIRECTORY}"/{env,chkcmd} || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
+  md "${BASH_CACHE_DIRECTORY}"/env || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # check if we can write _in_ the directory
   : > "${BASH_CACHE_DIRECTORY}/.lck" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
@@ -372,7 +373,6 @@ ____init_cachedir () {
 ########################################
 
 # after defining md (or not), roll along with the rest of the cache system. this redefines stubs we had up above with versions that cache.
-# chkcmd - check if specific _command_ is present, now with memoization
 ____init_cachedir && {
 
   # mm_putenv - save environment memo
@@ -399,7 +399,7 @@ ____init_cachedir && {
 
   zapcmdcache () {
     ___vfy_cachesys zapcmdcache || return $?
-    rm -rf "${BASH_CACHE_DIRECTORY}"/{chkcmd,env}/*
+    rm -rf "${BASH_CACHE_DIRECTORY}"/env/*
     hash -r
   }
 }
