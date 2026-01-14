@@ -33,7 +33,7 @@ ___bashmin=${___bashmin%%.*}
 umask 077
 
 # version information
-___rcver="6.2"
+___rcver="6.3"
 ___rcver_str="jBashRc v${___rcver}(f)"
 
 # nastyish hack for mingw32
@@ -307,6 +307,17 @@ __is_readonly_function chkcmd || chkcmd () {
 }
 declare -fr chkcmd
 
+# source file if executeable and ending in .bash
+__is_readonly_function sourcex || sourcex () {
+  [[ "${1}" ]] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
+  local f
+  for f in "${@}" ; do
+    case "${f}" in *.bash) : ;; *) continue ;; esac
+    # shellcheck disable=SC1090
+    [[ -x "${f}" ]] && source "${f}"
+  done
+}
+
 ##########################################
 # COMMAND/ENVIRONMENT CHECKS (uncaching) #
 ##########################################
@@ -480,6 +491,29 @@ unset ___bash_source_path
 unset ___bash_init_argv0
 unset ___bash_invocation_parent
 
+# set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
+___bash_auxfiles_dirs=()
+[[ -d "${BASH_AUX_FILES}" ]] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
+[[ -d "${___bashrc_dir}/bash.d" ]] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
+[[ -d "${HOME}/.bash.d" ]] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
+
+# walk the bash auxfiles and go to town
+____source_subtree () {
+  [[ "${1}" ]] || { errmsg "${FUNCNAME[0]}: missing directory component" ; return 1 ; }
+  local d
+  for d in "${___bash_auxfiles_dirs[@]}" ; do
+    sourcex "${d}/${1}/${___os}.bash" \
+            "${d}/${1}/${___os}_bash${___bashmaj}.bash" \
+            "${d}/${1}/${___os}_bash${___bashmaj}${___bashmin}.bash" \
+            "${d}/${1}/${___os}-${___cpu}.bash" \
+            "${d}/${1}/${___os}${___osmaj}.bash" \
+            "${d}/${1}/${___os}${___osmaj}-${___cpu}.bash" \
+            "${d}/${1}/${___os}${___osflat}.bash" \
+            "${d}/${1}/${___os}${___osflat}-${___cpu}.bash" \
+            "${d}/${1}/host-${___host}.bash"
+  done
+}
+
 # configure user/host pieces			# Fedora 28
 mm_setenv ___host || {
   ___host="$(___tolower "${HOSTNAME:-}")"
@@ -542,6 +576,7 @@ chkcmd uname && {
 }
 
 ## run early platform init now
+____source_subtree "early-init.d"
 
 # common envvars for windows platforms setup
 #shellcheck disable=SC2006,SC2153
@@ -721,23 +756,6 @@ genappend MANPATH \
 #########################
 
 # cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
-# set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
-___bash_auxfiles_dirs=()
-[ -d "${BASH_AUX_FILES}" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${BASH_AUX_FILES}")
-[ -d "${___bashrc_dir}/bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${___bashrc_dir}/bash.d")
-[ -d "${HOME}/.bash.d" ] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
-
-# source file if executeable and ending in .bash
-sourcex () {
-  [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
-  local f
-  for f in "${@}" ; do
-    case "${f}" in *.bash) : ;; *) continue ;; esac
-    # shellcheck disable=SC1090
-    [ -x "${f}" ] && source "${f}"
-  done
-}
-
 # source file if it exists and ends in .sh
 ___sourcef () {
   [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
