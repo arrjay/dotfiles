@@ -448,20 +448,23 @@ ____find_bashrc_file () {
 
   local rcpath linkdest abspath
   # first, handle ./path/to/thing
-  if [ "${___bash_source_path}" ]; then
+  if [[ "${___bash_source_path}" ]]; then
     rcpath="${___bash_source_path%/*}"
-    [ "${rcpath}" == "." ] && rcpath="${PWD}/${___bash_source_path}"
+    [[ "${rcpath}" == "." ]] && rcpath="${PWD}/${___bash_source_path}"
   fi
 
   # is this a link? where is the real file?
-  if [ -h "${___bash_source_path}" ]; then
+  if [[ -h "${___bash_source_path}" ]]; then
     chkcmd readlink && linkdest="$(readlink "${___bash_source_path}")"
     # we didn't have readlink. huh. assume the very bad place and grovel ls, sorry.
     # shellcheck disable=SC2012
-    [ "${linkdest}" ] || linkdest="$(ls -l "${___bash_source_path}"|awk -F' -> ' '{print $2}')"
+    [[ "${linkdest}" ]] || {
+      chkcmd ls && chkcmd awk && linkdest="$(ls -l "${___bash_source_path}" | awk -F' -> ' '{print $2}')"
+    }
     case "${linkdest}" in
-      /*) abspath="${linkdest}" ;;
-      *)  abspath="${rcpath}/${linkdest}" ;;
+      /*) abspath="${linkdest}"            ;;
+      '') abspath="${___bash_source_path}" ;;
+      *)  abspath="${rcpath}/${linkdest}"  ;;
     esac
   else
     abspath="${___bash_source_path}"
@@ -470,7 +473,7 @@ ____find_bashrc_file () {
 }
 
 # shellcheck disable=SC2006
-___bashrc_dir="`____find_bashrc_file`"
+___bashrc_dir="$(____find_bashrc_file)"
 unset -f ____find_bashrc_file
 ___bashrc_dir="${___bashrc_dir%/*}"
 unset ___bash_source_path
@@ -494,14 +497,14 @@ mm_setenv ___cpu || {
     }
   }
   # next, try from bash HOSTTYPE
-  [ -z "${___cpu}" ] && {
+  [[ -z "${___cpu}" ]] && {
     ___cpu="$(___tolower "${HOSTTYPE}")"	# x86_64
     ___cpu="${___cpu%%-linux}"			# x86_64
   }
 
   # i?86 == x86
-  if [ "${___cpu:2}" == 86 ] || [ "${___cpu:2}" == "86-pc" ]; then
-    [ "${___cpu:0:1}" == "i" ] && ___cpu="x86"
+  if [[ "${___cpu:2}" == 86 ]] || [[ "${___cpu:2}" == "86-pc" ]]; then
+    [[ "${___cpu:0:1}" == "i" ]] && ___cpu="x86"
   fi
 
   mm_putenv ___cpu
@@ -527,10 +530,10 @@ unset -f ___tolower
 chkcmd uname && {
   # shellcheck disable=SC2006
   ___osrel="`uname -r`"
-  [ "${___osrel}" ] || unset osrel
+  [[ "${___osrel}" ]] || unset osrel
 }
 
-[ -n "${___osrel:-}" ] && {			# 4.18.5-200.fc28.x86_64
+[[ -n "${___osrel:-}" ]] && {			# 4.18.5-200.fc28.x86_64
   ___osmaj="${___osrel%%\.*}"			# 4
   ___osmin="${___osrel##"${___osmaj}."}"	# 18.5-200.fc28.x86_64
   ___osmin="${___osmin%%-*}"			# 18.5
