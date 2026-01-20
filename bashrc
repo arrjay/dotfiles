@@ -626,10 +626,12 @@ genprepend PATH \
 
 # determine if we are a superuser or not
 # shellcheck disable=SC2006
-case ${___os} in
-  solaris)      [ -x /usr/xpg4/bin/id ] && { [ "`/usr/xpg4/bin/id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
-  *)            chkcmd id && { [ "`id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
-esac
+[[ "${___rootusr}" == "unk" ]] && {
+  case ${___os} in
+    solaris)      [ -x /usr/xpg4/bin/id ] && { [ "`/usr/xpg4/bin/id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
+    *)            chkcmd id && { [ "`id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
+  esac
+}
 
 # configure LD_LIBRARY_PATH unless asked not to
 [ "${NO_LDPATH_EXTENSION}" ] || mm_setenv NO_LDPATH_EXTENSION
