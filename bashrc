@@ -95,12 +95,12 @@ ___tolower () {
 
 # prevent errors if we're sourced in an environment that already has helper functions.
 # this does mean that to upgrade versions of dotfiles, we need to *restart* the shell.
-builtin declare -f __is_defined_function >/dev/null 2>&1 || __is_defined_function () {
-  builtin declare -f "${1}" >/dev/null 2>&1
+builtin declare -f __is_defined_function > /dev/null 2>&1 || __is_defined_function () {
+  builtin declare -f "${1}" > /dev/null 2>&1
 }
 builtin declare -fr __is_defined_function
 
-if type mapfile >/dev/null 2>&1 ; then
+if type mapfile > /dev/null 2>&1 ; then
   # we have mapfile (bash 4...)
   # fortunately, we're not going to run into pre-4.1 bugs with it.
   __is_defined_function __is_readonly_function || __is_readonly_function () {
@@ -116,14 +116,17 @@ if type mapfile >/dev/null 2>&1 ; then
 else
   # we're going to loop and look for a matching line.
   # we're also going to assume subshells are _kinda broken_ here (hi Cygwin 1.5)
+  # as a result, debugging this is a _chore_...
   __is_defined_function __is_readonly_function || __is_readonly_function () {
     __is_defined_function "${1}" || return 1
     local line input IFS
     input="$(builtin declare -fr)"
     IFS=$'\n'
+    # while IFS= read -r line ; do
     for line in ${input} ; do
       case "${line}" in "declare -fr ${1}") return 0 ;; esac
     done
+    # done < <(builtin declare -fr)
 
     return 1
   }
@@ -132,7 +135,7 @@ builtin declare -fr __is_readonly_function
 
 # determine if a given command, builtin, alias or function exists.
 __is_defined_function chkdef || chkdef () {
-  builtin type "${1}" >/dev/null 2>&1
+  builtin type "${1}" > /dev/null 2>&1
 }
 builtin declare -fr chkdef
 ___chkdef () { chkdef "${@}" ; }
@@ -383,7 +386,7 @@ ____init_cachedir () {
   : > "${BASH_CACHE_DIRECTORY}/.lck.$$" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; }
 
   # unfortunately, rm is _not_ a builtin, so carefully walk around it.
-  chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck.$$" || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
+  chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck.$$" > /dev/null 2>&1 || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
 
   ___cache_checked=1 ; ___cache_active=1
 }
@@ -907,7 +910,7 @@ if [[ -n ${PS1} ]]; then
   # kick up gpg-agent here if we have it.
   case "${___os}" in
     win32) : ;;
-    *)     chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye 2> /dev/null 1>&2 ;;
+    *)     chkcmd gpg-connect-agent && gpg-connect-agent updatestartuptty /bye > /dev/null 2>&1 ;;
   esac
   case "${___os}" in
     android)
@@ -919,7 +922,7 @@ if [[ -n ${PS1} ]]; then
       pcomm=$(ps -o comm "${ppid[1]}")
       case "${pcomm}" in
         *Term*/Contents/MacOS/*Term* | *login)
-          pgrep -U "${USER}" gpg-agent >& /dev/null && {
+          pgrep -U "${USER}" gpg-agent > /dev/null 2>&1 && {
             [ -e "${HOME}/.gnupg/S.gpg-agent.ssh" ] && {
               export SSH_AUTH_SOCK="${HOME}/.gnupg/S.gpg-agent.ssh"
             }
@@ -939,7 +942,7 @@ if [[ -n ${PS1} ]]; then
   if [ -f "${lyricsfile}" ]; then
     chkcmd strfile && {
       function lyric {
-        [ "${lyricsfile}" -nt "${lyricsfile}".dat ] && strfile "${lyricsfile}" >& /dev/null
+        [ "${lyricsfile}" -nt "${lyricsfile}".dat ] && strfile "${lyricsfile}" > /dev/null 2>&1
         fortune "${lyricsfile}"
       }
       lyric
