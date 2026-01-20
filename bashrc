@@ -33,7 +33,7 @@ ___bashmin=${___bashmin%%.*}
 umask 077
 
 # version information
-___rcver="6.3"
+___rcver="6.5"
 ___rcver_str="jBashRc v${___rcver}(f)"
 
 # nastyish hack for mingw32
@@ -692,7 +692,6 @@ unset -f ____hostsetup
 [[ "${PS1}" ]] && ____source_any_subtree "interactive.d"
 
 ____interactive_setup () {
-  local d f c
    # if we have the git prompt support script in vendor/, load it now using ___sourcef
    {
      chkcmd git  && {
@@ -701,12 +700,6 @@ ____interactive_setup () {
      chkcmd pass && \
        [[ "${___bashmaj}${___bashmin:0:1}" -gt 31 ]] && ___sourcef "${___bashrc_dir}/vendor/pass-completion.sh"
    }
-
-  for d in "${___bash_auxfiles_dirs[@]}" ; do
-    sourcex "${d}/prompt/common.bash" \
-            "${d}/prompt/bash${___bashmaj}.bash" \
-            "${d}/prompt/${___os}.bash"
-  done
 }
 [ "${PS1}" ] && {
   ____interactive_setup
