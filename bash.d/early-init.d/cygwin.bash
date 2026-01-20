@@ -33,6 +33,7 @@ mm_setenv ProgramFilesX86 || {
 
 # more PATH niceties
 genappend PATH "${SystemDrive}/bin"
+genappend MANPATH "${SystemRoot}/man"
 
 # GPG binaries - prefer GnuPG over Gpg4win (remember this is prepending)
 [[ "${ProgramFilesX86}" != "" ]] && genprepend PATH "${ProgramFilesX86}/Gpg4win/bin"

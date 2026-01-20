@@ -708,8 +708,6 @@ genappend MANPATH \
   "/usr/local/man" \
   /opt/*/man
 
-[ "${SystemRoot}" ] && genappend MANPATH "${SystemRoot}/man"
-
 #########################
 # RUN EXTENSION MODULES #
 #########################
