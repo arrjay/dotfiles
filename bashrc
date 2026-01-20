@@ -641,6 +641,7 @@ genprepend PATH \
 
 ____source_any_subtree "extensions.d"
 
+# pry out some session info for interactive session niceties
 ___xdg_session_type='none'
 ___x11_environment='no'
 # graphical environment?
@@ -687,6 +688,9 @@ ____hostsetup () {
 ____hostsetup
 unset -f ____hostsetup
 
+# run anything interactive here, assuming bash set up PS1 properly.
+[[ "${PS1}" ]] && ____source_any_subtree "interactive.d"
+
 ____interactive_setup () {
   local d f c
    # if we have the git prompt support script in vendor/, load it now using ___sourcef
@@ -699,13 +703,6 @@ ____interactive_setup () {
    }
 
   for d in "${___bash_auxfiles_dirs[@]}" ; do
-    sourcex "${d}/interactive.d/"*.bash
-    for f in "${d}/functions"/*.bash ; do
-      c=''
-      [ -f "${f}" ] || continue
-      c="${f##*/}" ; c="${c%.bash}"
-      chkcmd "${c}" && sourcex "${f}"
-    done
     sourcex "${d}/prompt/common.bash" \
             "${d}/prompt/bash${___bashmaj}.bash" \
             "${d}/prompt/${___os}.bash"
