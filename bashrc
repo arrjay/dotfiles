@@ -591,7 +591,6 @@ ____source_subtree "early-init.d"
 
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
 case "${___os}" in
-  cygwin*)        ___os=cygwin ;;
   windows32|msys|win32)
     ___os=win32
     # specifically for win32, throw away the osrel pieces
@@ -867,7 +866,7 @@ _EOF_
 }
 
 function monolith_aliases {
-
+  # this is never set with the current loader, oops!
   case ${OPSYS} in
     cygwin*|win32)
       alias du='du -h'
@@ -906,7 +905,6 @@ function monolith_cleanup {
 
 # Call setup routines
 monolith_setfunc
-monolith_aliases
 
 if [[ -n ${PS1} ]]; then
   # kick up gpg-agent here if we have it.
