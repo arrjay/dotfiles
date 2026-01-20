@@ -93,10 +93,10 @@ ___tolower () {
 
 # prevent errors if we're sourced in an environment that already has helper functions.
 # this does mean that to upgrade versions of dotfiles, we need to *restart* the shell.
-declare -f __is_defined_function >/dev/null 2>&1 || __is_defined_function () {
-  declare -f "${1}" >/dev/null 2>&1
+builtin declare -f __is_defined_function >/dev/null 2>&1 || __is_defined_function () {
+  builtin declare -f "${1}" >/dev/null 2>&1
 }
-declare -fr __is_defined_function
+builtin declare -fr __is_defined_function
 
 if type mapfile >/dev/null 2>&1 ; then
   # we have mapfile (bash 4...)
@@ -105,7 +105,7 @@ if type mapfile >/dev/null 2>&1 ; then
     __is_defined_function "${1}" || return 1
     local -a output
     local lastline
-    mapfile -t output < <(declare -pf "${1}")
+    mapfile -t output < <(builtin declare -pf "${1}")
     lastline="${output[-1]}"
     lastline="${lastline#* }"
     lastline="${lastline% *}"
@@ -118,24 +118,25 @@ else
     local line
     while read -r line ; do
       case "${line}" in "declare -fr ${1}") return 0 ;; esac
-    done < <(declare -fr)
+    done < <(builtin declare -fr)
+
     return 1
   }
 fi
-declare -fr __is_readonly_function
+builtin declare -fr __is_readonly_function
 
 # determine if a given command, builtin, alias or function exists.
 __is_defined_function chkdef || chkdef () {
   builtin type "${1}" >/dev/null 2>&1
 }
-declare -fr chkdef
+builtin declare -fr chkdef
 ___chkdef () { chkdef "${@}" ; }
 
 # return errors to fd 2
 __is_readonly_function errmsg || errmsg () {
   echo "${*}" 1>&2
 }
-declare -fr errmsg
+builtin declare -fr errmsg
 ___error_msg () { errmsg "${@}" ; }
 
 # md - test and create directory if needed - requires mkdir...
@@ -194,7 +195,7 @@ __is_defined_function genstrip || genstrip () {
 }
 
 # do not touch this function again...
-declare -fr genstrip
+builtin declare -fr genstrip
 
 # this reverts commit e80ab23b5e
 # check environment variables exist, make if needed
@@ -225,7 +226,7 @@ __is_defined_function cke || cke () {
   }
 }
 
-declare -fr cke
+builtin declare -fr cke
 
 # genappend - add directory element to path-like element
 # you need variable, then element
@@ -254,7 +255,7 @@ __is_defined_function genappend || genappend () {
   }
 }
 
-declare -fr genappend
+builtin declare -fr genappend
 
 # genprepend - add directory elements to FRONT of path-like list (NOTE: takes arguments as loop - later args are in the front!)
 __is_defined_function genprepend || genprepend () {
@@ -282,20 +283,20 @@ __is_defined_function genprepend || genprepend () {
   }
 }
 
-declare -fr genprepend
+builtin declare -fr genprepend
 
 # we keep pathappend and pathprepend, even though not used, for interactive purposes :)
 __is_readonly_function pathappend || pathappend () {
   genappend PATH "${@}"
 }
 
-declare -fr pathappend
+builtin declare -fr pathappend
 
 __is_readonly_function pathprepend || pathprepend () {
   genprepend PATH "${@}"
 }
 
-declare -fr pathprepend
+builtin declare -fr pathprepend
 
 # determine if a given _command_ exists.
 __is_readonly_function chkcmd || chkcmd () {
@@ -305,7 +306,7 @@ __is_readonly_function chkcmd || chkcmd () {
   esac
   return 1
 }
-declare -fr chkcmd
+builtin declare -fr chkcmd
 
 # source file if executeable and ending in .bash
 __is_readonly_function sourcex || sourcex () {
@@ -365,7 +366,7 @@ ____init_cachedir () {
     BASH_CACHE_DIRECTORY="${HOME%/}/.cache/dotfiles"
     [[ -z "${HOSTNAME}" ]] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
     [[ -z "${___bash_host_tuple}" ]] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
-    declare -r BASH_CACHE_DIRETORY
+    builtin declare -r BASH_CACHE_DIRETORY
   }
 
   # actually try creating that directory
@@ -397,7 +398,7 @@ ____init_cachedir && {
     ___vfy_cachesys || return $?
     [[ -z "${val}" ]] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
   }
-  declare -fr mm_putenv
+  builtin declare -fr mm_putenv
 
   # mm_setenv - read environment memo if available (NOTE: this will _replace_ the envvar)
   __is_readonly_function mm_setenv || mm_setenv () {
@@ -410,14 +411,14 @@ ____init_cachedir && {
     # shellcheck disable=SC2163
     export "${env}"
   }
-  declare -fr mm_setenv
+  builtin declare -fr mm_setenv
 
   __is_readonly_function zapcmdcache || zapcmdcache () {
     ___vfy_cachesys zapcmdcache || return $?
     rm -rf "${BASH_CACHE_DIRECTORY}"/env/*
     hash -r
   }
-  declare -fr zapcmdcache
+  builtin declare -fr zapcmdcache
 }
 unset -f ____init_cachedir
 
