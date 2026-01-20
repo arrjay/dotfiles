@@ -46,12 +46,14 @@ export PASSWORD_STORE_ENABLE_EXTENSIONS=true
 
 # remove any aliases we had. sorry, but you can't trust 'em ;)
 ____rm_aliases () {
-  local line
-  while read -r line ; do
+  local line input IFS
+  input="$(builtin alias)"
+  IFS=$'\n'
+  for line in ${input} ; do
     line="${line#alias }"
     line="${line%%=*}"
     builtin unalias "${line}"
-  done < <(builtin alias)
+  done
 }
 ____rm_aliases
 unset -f ____rm_aliases
@@ -113,12 +115,15 @@ if type mapfile >/dev/null 2>&1 ; then
   }
 else
   # we're going to loop and look for a matching line.
+  # we're also going to assume subshells are _kinda broken_ here (hi Cygwin 1.5)
   __is_defined_function __is_readonly_function || __is_readonly_function () {
     __is_defined_function "${1}" || return 1
-    local line
-    while read -r line ; do
+    local line input IFS
+    input="$(builtin declare -fr)"
+    IFS=$'\n'
+    for line in ${input} ; do
       case "${line}" in "declare -fr ${1}") return 0 ;; esac
-    done < <(builtin declare -fr)
+    done
 
     return 1
   }
