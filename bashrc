@@ -571,7 +571,7 @@ unset -f ___tolower
 # also, this is _not_ cached, linux likes updates ;)
 chkcmd uname && {
   # shellcheck disable=SC2006
-  ___osrel="`uname -r`"
+  ___osrel="$(uname -r)"
   [[ "${___osrel}" ]] || unset osrel
 }
 
@@ -582,6 +582,9 @@ chkcmd uname && {
   ___osmin="${___osmin%%\.*}"			# 18
   ___osflat="${___osmaj}${___osmin}"		# 418
 }
+
+# part of the spec for prompt extensions
+___rootusr=unk
 
 ## run early platform init now
 ____source_subtree "early-init.d"
@@ -622,11 +625,8 @@ genprepend PATH \
   "${HOME%/}/bin/${___host}"
 
 # determine if we are a superuser or not
-___rootusr=unk
 # shellcheck disable=SC2006
 case ${___os} in
-  # group 544 _typically_ means you're in the Admin group for windows (S-1-5-32-544)
-  win32|cygwin) { chkcmd grep && chkcmd id ; } && { id -G | grep -q 544 && ___rootusr='yes' || ___rootusr='no' ; } ;;
   solaris)      [ -x /usr/xpg4/bin/id ] && { [ "`/usr/xpg4/bin/id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
   *)            chkcmd id && { [ "`id -u`" == "0" ] && ___rootusr='yes' || ___rootusr='no' ; } ;;
 esac

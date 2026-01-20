@@ -50,3 +50,21 @@ genprepend PATH "${ProgramFiles}/GnuPG/bin"
 cdw () {
   cd "${USERPROFILE}"
 }
+
+# determine if we're part of Local Admins by RID component (S-1-5-32-544)
+chkcmd id && {
+  __check_rootusr () {
+    local gid
+    for gid in $(id -G) ; do
+      [[ "${gid}" -eq 544 ]] && { builtin printf '%s\n' 'yes' ; return 0 ; }
+    done
+    builtin printf '%s\n' 'no'
+    return 1
+  }
+  ____usercheck="$(__check_rootusr)"
+  case "${____usercheck}" in
+    yes|no) ___rootusr="${____usercheck}" ;;
+  esac
+  unset ____usercheck
+  unset -f __check_rootusr
+}
