@@ -506,7 +506,7 @@ ___bash_auxfiles_dirs=()
 [[ -d "${HOME}/.bash.d" ]] && ___bash_auxfiles_dirs=("${___bash_auxfiles_dirs[@]}" "${HOME}/.bash.d")
 
 # walk the bash auxfiles and go to town
-____source_subtree () {
+____source_selected_subtree () {
   [[ "${1}" ]] || { errmsg "${FUNCNAME[0]}: missing directory component" ; return 1 ; }
   local d
   for d in "${___bash_auxfiles_dirs[@]}" ; do
@@ -519,6 +519,13 @@ ____source_subtree () {
             "${d}/${1}/${___os}${___osflat}.bash" \
             "${d}/${1}/${___os}${___osflat}-${___cpu}.bash" \
             "${d}/${1}/host-${___host}.bash"
+  done
+}
+____source_any_subtree() {
+  [[ "${1}" ]] || { errmsg "${FUNCNAME[0]}: missing directory component" ; return 1 ; }
+  local d
+  for d in "${___bash_auxfiles_dirs[@]}" ; do
+    sourcex "${d}/${1}"/*.bash
   done
 }
 
@@ -587,7 +594,7 @@ chkcmd uname && {
 ___rootusr=unk
 
 ## run early platform init now
-____source_subtree "early-init.d"
+____source_selected_subtree "early-init.d"
 
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
 case "${___os}" in
@@ -632,62 +639,7 @@ genprepend PATH \
   esac
 }
 
-# configure LD_LIBRARY_PATH unless asked not to
-[ "${NO_LDPATH_EXTENSION}" ] || mm_setenv NO_LDPATH_EXTENSION
-[ -z "${NO_LDPATH_EXTENSION}" ] && {
-  # add our personal ~/Library subdirectories
-  genappend LD_LIBRARY_PATH "${HOME}"/Library/*/lib
-  cke LD_LIBRARY_PATH
-}
-
-# envvars for auxiliary programs should go about here.
-## asdf
-[[ -x "${HOME}/.asdf/asdf.sh" ]] && {
-  . "${HOME}/.asdf/asdf.sh"
-}
-
-## perl
-if [ -d "${HOME}"/Library/perl5 ]; then
-  export PERL_MB_OPT="--install_base ${HOME}/Library/perl5"
-  export PERL_MM_OPT="INSTALL_BASE=${HOME}/Library/perl5"
-  export PERL_LOCAL_LIB_ROOT="${HOME}/Library/perl5"
-  genappend PERL5LIB "${HOME}/Library/perl5"
-  if [ -d "${HOME}/Library/perl5/lib/perl5" ]; then
-    genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5"
-    if [ -d "${HOME}/Library/perl5/lib/perl5/${___cpu}-${___os}-gnu-thread-multi" ]; then
-      genappend PERL5LIB "${HOME}/Library/perl5/lib/perl5/${___cpu}-${___os}-gnu-thread-multi"
-    fi
-  fi
-fi
-
-# ruby/rvm
-# shellcheck disable=SC1090
-[[ -s "${HOME}/.rvm/scripts/rvm" ]] && source "${HOME}/.rvm/scripts/rvm"
-
-## go
-# configure GOPATH/GOROOT here
-if [ -f "${HOME}/Library/go-dist/bin/go" ] ; then
-  # go distribution in go-dist, gopath in go, gox is happy, go away.
-  export GOROOT="${HOME}/Library/go-dist"
-fi
-if [ -d "${HOME}/Library/go" ]; then
-  if [ -f "${HOME}/Library/go/bin/go" ] ; then
-    # found a go _compiler_ so this is a complete install.
-    if [ -n "${GOROOT:-}" ] ; then
-      if [[ -n ${PS1} ]]; then
-        # warn of stupid times ahead.
-        echo "WARNING: resetting GOROOT to ${HOME}/Library/go when GOROOT was already set."
-      fi
-    fi
-    export GOROOT="${HOME}/Library/go"
-  else
-    if [ -n "${GOPATH:-}" ] ; then
-      genprepend GOPATH "${HOME}/Library/go"
-    else
-      export GOPATH="${HOME}/Library/go"
-    fi
-  fi
-fi
+____source_any_subtree "extensions.d"
 
 ___xdg_session_type='none'
 ___x11_environment='no'
@@ -706,23 +658,6 @@ ____check_xhost () {
 ____check_xhost
 unset -f ____check_xhost
 
-# setup MANPATH
-genappend MANPATH \
-  "/usr/X11R6/man" \
-  "/usr/openwin/man" \
-  "/usr/dt/man" \
-  "/usr/share/man" \
-  "/usr/man" \
-  "/usr/pkg/man" \
-  "/usr/local/share/man" \
-  "/usr/local/man" \
-  /opt/*/man
-
-#########################
-# RUN EXTENSION MODULES #
-#########################
-
-# cool. we've got some initial PATHs set up to play binary games, let's hand the rest off to extension scripts.
 # source file if it exists and ends in .sh
 ___sourcef () {
   [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
@@ -746,7 +681,6 @@ ____hostsetup () {
             "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
             "${d}/opsys/${___os}${___osflat}.bash" \
             "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
-            "${d}/extensions.d/"*.bash \
             "${d}/host/${___host}.bash"
   done
 }
