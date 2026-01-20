@@ -394,7 +394,7 @@ ____init_cachedir && {
     local env val ; env="${1}" ; val="${!1}"
     [[ -z "${env}" ]] && { __error_msg "${FUNCNAME[0]}: save environment variable to memoization system" ; return 2 ; }
 
-    ___vfy_cachesys mm_putenv || return $?
+    ___vfy_cachesys || return $?
     [[ -z "${val}" ]] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
   }
   declare -fr mm_putenv
@@ -404,12 +404,11 @@ ____init_cachedir && {
     local env ; env="${1}"
     [[ -z "${env}" ]] && { __error_msg "${FUNCNAME[0]}: restore environment variable from memoization system" ; return 2 ; }
 
-    ___vfy_cachesys mm_setenv || return $?
+    ___vfy_cachesys || return $?
     [[ -f "${BASH_CACHE_DIRECTORY}/env/${env}" ]] && { read -r "${env?}" < "${BASH_CACHE_DIRECTORY}/env/${env}" ; return 0 ; }
     # export that as well
     # shellcheck disable=SC2163
     export "${env}"
-    return 1
   }
   declare -fr mm_setenv
 
@@ -595,8 +594,6 @@ case "${___os}" in
   gnueabihf)      chkcmd uname && ___os=$(uname -s) ;; # uname -s is posix.
   android*)       [ -z "${USER}" ] && USER="${____default_username}" ; export USER ;;
 esac
-
-unset -f ____wininit
 
 # re-save ___os
 mm_putenv ___os
