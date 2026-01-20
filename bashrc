@@ -578,47 +578,9 @@ chkcmd uname && {
 ## run early platform init now
 ____source_subtree "early-init.d"
 
-# common envvars for windows platforms setup
-#shellcheck disable=SC2006,SC2153
-____wininit () {
-  mm_setenv SystemDrive     || {
-    [ "${SYSTEMDRIVE}" ] && {
-      { chkcmd cygpath && SystemDrive=`cygpath "${SYSTEMDRIVE}"` ; } || SystemDrive="${SYSTEMDRIVE}"
-      mm_putenv SystemDrive
-    }
-  }
-  mm_setenv SystemRoot      || {
-    [ "${SYSTEMROOT}" ] && {
-      { chkcmd cygpath && SystemRoot=`cygpath "${SYSTEMROOT}"` ; } || SystemRoot="${SYSTEMROOT}"
-      mm_putenv SystemRoot
-    }
-  }
-  mm_setenv ProgramFiles    || {
-    [ "${PROGRAMFILES}" ] && {
-      { chkcmd cygpath && ProgramFiles=`cygpath "${PROGRAMFILES}"` ; } || ProgramFiles="${PROGRAMFILES}"
-      mm_putenv ProgramFiles
-    }
-  }
-  mm_setenv ProgramFilesX86 || {
-      { chkcmd cygpath && ProgramFilesX86=`cygpath -F 0x2a` ; } || ProgramFilesX86="${ProgramFiles} (x86)"
-      mm_putenv ProgramFilesX86
-  }
-
-  # note the genappend call as a _fallback_
-  genappend PATH "${SystemDrive}/bin"
-
-  # add the native win32 GPG binaries to the front of the path if found.
-  genprepend PATH "${ProgramFilesX86}/Gpg4win/bin" "${ProgramFiles}/Gpg4win/bin" "${ProgramFilesX86}/GnuPG/bin" "${ProgramFiles}/GnuPG/bin"
-
-  # if HOME and USERPROFILE are different places, append USERPROFILE/Applications
-  [ "${USERPROFILE}" ] && [ "${USERPROFILE}" != "${HOME}" ] && {
-    genappend PATH "${USERPROFILE}/Applications"/*/bin
-  }
-}
-
 # hacks to re-set platform vars based on experience. note we used ___osmaj, so that's why it's here.
 case "${___os}" in
-  cygwin*)        ___os=cygwin ; ____wininit ;;
+  cygwin*)        ___os=cygwin ;;
   windows32|msys|win32)
     ___os=win32
     # specifically for win32, throw away the osrel pieces
@@ -627,7 +589,7 @@ case "${___os}" in
     { [ -z "${USER}" ] && [ "${USERNAME}" ] ; }    && USER="${USERNAME}"
     { [ -z "${HOME}" ] && [ "${USERPROFILE}" ] ; } && HOME="${USERPROFILE}"
     export USER HOME
-    ____wininit
+    # TODO: the niceties cygwin set up aren't here
   ;;
   sunos*)         [ "${___osmaj}" == 5 ] && ___os=solaris ;;
   gnueabihf)      chkcmd uname && ___os=$(uname -s) ;; # uname -s is posix.
@@ -904,7 +866,6 @@ function monolith_aliases {
     cygwin*|win32)
       alias du='du -h'
       alias df='df -h'
-      alias cdw='cd "$USERPROFILE"'
       if [ "${OPSYS}" == "win32" ]; then
         builtin alias clear='echo -ne\\033c'
       fi
