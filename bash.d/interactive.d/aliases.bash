@@ -4,8 +4,10 @@
 ____init_ls () {
   local line ls_linect output IFS ls_command
   ls_linect=0
-  chkdef ls || return 1
-  output="$(cd / && ls --help 2>&1)"
+  ls_command=gls
+  chkdef "${ls_command}" || ls_command="ls"
+  chkdef "${ls_command}" || return 1
+  output="$(cd / && command "${ls_command}" --help 2>&1)"
   IFS=$'\n'
   mm_setenv ___ls_supports_help
   [[ "${___ls_supports_help}" ]] || {
@@ -62,16 +64,18 @@ ____init_ls () {
   }
   mm_putenv ___ls_supports_almost_all
   case "${___ls_supports_almost_all}" in
+    # these call atop the function (if defined) so it picks up global opts.
     yes) ll () { ls -Fl --almost-all "${@}" ; } ;;
     *)   ll () { ls -Fla "${@}"             ; } ;;
   esac
 
   # if we don't have a wrapper, install that now
   # shellcheck disable=SC2006
-  case `type -t ls` in
-    file|function) ls () { ls "${___ls_global_opts[@]}" "${@}" ; } ;;
+  case "$(type -t "${ls_command}")" in
+    file) ls () { command ls "${___ls_global_opts[@]}" "${@}" ; } ;;
   esac
 
+  # this also picks up the function if available
   l () { ls "${@}" ; }
 }
 ____init_ls
