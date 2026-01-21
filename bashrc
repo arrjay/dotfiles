@@ -356,6 +356,7 @@ __is_readonly_function __insert_array_singleton || __insert_array_singleton () {
     ;;
   esac
 }
+builtin declare -fr __insert_array_singleton
 
 ##########################################
 # COMMAND/ENVIRONMENT CHECKS (uncaching) #
