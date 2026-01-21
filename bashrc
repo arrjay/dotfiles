@@ -434,7 +434,7 @@ ____init_cachedir && {
     [[ -z "${env}" ]] && { __error_msg "${FUNCNAME[0]}: save environment variable to memoization system" ; return 2 ; }
 
     ___vfy_cachesys || return $?
-    [[ -z "${val}" ]] || printf '%s' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
+    [[ -z "${val}" ]] || printf '%s\n' "${val}" > "${BASH_CACHE_DIRECTORY}/env/${env}"
   }
   builtin declare -fr mm_putenv
 
@@ -560,14 +560,16 @@ ____source_any_subtree() {
 }
 
 # configure user/host pieces			# Fedora 28
-mm_setenv ___host || {
+mm_setenv ___host
+[[ "${___host}" ]] || {
   ___host="$(___tolower "${HOSTNAME:-}")"
   ___host="${___host%%.*}"
   mm_putenv ___host
 }
 
 # try `uname -p` first
-mm_setenv ___cpu || {
+mm_setenv ___cpu
+[[ "${___cpu}" ]] || {
   chkcmd uname && {
     # okay. check if uname supports -p next.
     uname -p > /dev/null 2>&1 && {
@@ -591,7 +593,8 @@ mm_setenv ___cpu || {
 
 # derive operating system name from bash MACHTYPE
 						# x86_64-redhat-linux-gnu
-mm_setenv ___os || {
+mm_setenv ___os
+[[ "${___os}" ]] || {
   ___os="${MACHTYPE##"${___cpu}-"}"		# redhat-linux-gnu
   ___os="${___os%%-gnu}"			# redhat-linux
   ___os="${___os##*-}"				# linux
