@@ -33,7 +33,7 @@ ___bashmin=${___bashmin%%.*}
 umask 077
 
 # version information
-___rcver="6.5"
+___rcver="7.0"
 ___rcver_str="jBashRc v${___rcver}(f)"
 
 # nastyish hack for mingw32
@@ -681,8 +681,6 @@ genprepend PATH \
   esac
 }
 
-____source_any_subtree "extensions.d"
-
 # pry out some session info for interactive session niceties
 ___xdg_session_type='none'
 ___x11_environment='no'
@@ -701,6 +699,12 @@ ____check_xhost () {
 ____check_xhost
 unset -f ____check_xhost
 
+# run general extensions, the host thinkery should be done
+____source_any_subtree "extensions.d"
+
+# run extensions with os/cpu differentators.
+____source_selected_subtree "per-platform.d"
+
 # source file if it exists and ends in .sh
 ___sourcef () {
   [ "${1}" ] || { errmsg "${FUNCNAME[0]}: missing operand (needs: file, perferably +x ending in .bash)" ; return 1 ; }
@@ -711,24 +715,6 @@ ___sourcef () {
     [ -f "${f}" ] && source "${f}"
   done
 }
-
-# walk the bash auxfiles and go to town
-____hostsetup () {
-  local d
-  for d in "${___bash_auxfiles_dirs[@]}" ; do
-    sourcex "${d}/opsys/${___os}.bash" \
-            "${d}/opsys/${___os}_bash${___bashmaj}.bash" \
-            "${d}/opsys/${___os}_bash${___bashmaj}${___bashmin}.bash" \
-            "${d}/opsys/${___os}-${___cpu}.bash" \
-            "${d}/opsys/${___os}${___osmaj}.bash" \
-            "${d}/opsys/${___os}${___osmaj}-${___cpu}.bash" \
-            "${d}/opsys/${___os}${___osflat}.bash" \
-            "${d}/opsys/${___os}${___osflat}-${___cpu}.bash" \
-            "${d}/host/${___host}.bash"
-  done
-}
-____hostsetup
-unset -f ____hostsetup
 
 # run anything interactive here, assuming bash set up PS1 properly.
 [[ "${PS1}" ]] && ____source_any_subtree "interactive.d"
