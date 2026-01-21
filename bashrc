@@ -575,6 +575,15 @@ mm_setenv ___cpu
     uname -p > /dev/null 2>&1 && {
       ___cpu="$(uname -p)"			# x86_64
       ___cpu="$(___tolower "${___cpu}")"	# x86_64
+      # handle getting unknown instead (newer linux uname?)
+      case "${___cpu}" in unknown) unset ___cpu ;; esac
+    } 
+    # handle uname being...unknown
+    [[ "${___cpu:-}" ]] || {
+      uname -m > /dev/null 2>&1 && {
+        ___cpu="$(uname -m)"
+        ___cpu="$(___tolower "${___cpu}")"
+      }
     }
   }
   # next, try from bash HOSTTYPE
