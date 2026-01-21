@@ -327,6 +327,36 @@ __is_readonly_function sourcex || sourcex () {
   done
 }
 
+# add an item to an array if it does not exist
+__is_readonly_function __insert_array_singleton || __insert_array_singleton () {
+  [[ "${2}" ]] || { errmsg "${FUNCNAME[0]}: missing operands (needs: array, item)" ; return 1 ; }
+  local output ok arraydata arrayref arrayname="${1}" item="${2}"
+  ok=no
+  output="$(declare -p "${arrayname}" 2> /dev/null)"
+  case "${output}" in
+    ""|"declare -a"*) ok=yes ;;
+    *)                ok=no  ;;
+  esac
+  [[ "${ok}" == "yes" ]] || { errmsg "${FUNCNAME[0]}: operand is not an array" ; return 1 ; }
+  # get the array values by indirect referencing this.
+  arraydata="${arrayname}[*]"
+  arrayref="${arrayname}[@]"
+  case " ${!arraydata} " in
+    # already in the array, noop
+    *" ${item} "*) : ;;
+    # add to array. is there a way to do this that _isn't_ eval?
+    *)
+      # we have data...
+      if [[ "${!arraydata}" ]] ; then
+        eval "${arrayname}"=\("${!arrayref}" "${item}"\)
+      # filling a new array
+      else
+        eval "${arrayname}"=\("${item}"\)
+      fi
+    ;;
+  esac
+}
+
 ##########################################
 # COMMAND/ENVIRONMENT CHECKS (uncaching) #
 ##########################################

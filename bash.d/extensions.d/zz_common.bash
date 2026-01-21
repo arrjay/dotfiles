@@ -24,12 +24,14 @@ ____init_which () {
 
   # check if we have which and if not, just go away
   { chkcmd which && {
-    mm_setenv ___which_func_support || {
+    mm_setenv ___which_func_support
+    [[ "${___which_func_support}" ]] || {
       ___which_func_support=false
       printf 'FOO ()\n{\n    :\n}\n' | command which --read-functions FOO > /dev/null 2>&1 && ___which_func_support=true
       mm_putenv ___which_func_support
     }
-    mm_setenv ___which_alias_support || {
+    mm_setenv ___which_alias_support
+    [[ "${___which_alias_support}" ]] || {
       ___which_alias_support=false
       while read -r line ; do
         case "${line}" in
@@ -52,63 +54,6 @@ ____init_which () {
 }
 ____init_which
 unset -f ____init_which
-
-# ls capabilities and define functions around that.
-____init_ls () {
-  local line ls_linect
-  ls_linect=0
-  # note we call chkdef as ls may be a function at this point.
-  ___chkdef ls && {
-    mm_setenv ___ls_supports_help || {
-      ___ls_supports_help=no
-      while read -r line ; do
-        # shellcheck disable=SC2219
-        let ls_linect=ls_linect+1
-      done < <(cd / && ls --help 2>&1)
-      # NOTE: heuristic check if we have over 50 lines if output...
-      [ "${ls_linect}" -gt 50 ] && ___ls_supports_help=yes
-      mm_putenv ___ls_supports_help
-    }
-  }
-  { mm_setenv ___ls_supports_human_readable && mm_setenv ___ls_supports_almost_all ; } || {
-    ___ls_supports_human_readable=no
-    ___ls_supports_almost_all=no
-    [ "${___ls_supports_help}" == 'yes' ] && {
-      # if ls supports --help, check for --color flag
-      while read -r line ; do
-        case "${line}" in
-          *--almost-all*)     ___ls_supports_almost_all=yes     ;;
-          *--human-readable*) ___ls_supports_human_readable=yes ;;
-        esac
-      done < <(ls --help 2>&1)
-    }
-    mm_putenv ___ls_supports_human_readable
-    mm_putenv ___ls_supports_almost_all
-  }
-  # if we already have a function defined, assume it's our gnu wrapper...
-  case "${___ls_supports_human_readable}" in
-    yes)  ___ls_global_opts=("${___ls_global_opts[@]}" '--human-readable') ;;
-  esac
-
-  # if we don't have a wrapper, install that now
-  # shellcheck disable=SC2006
-  case `type -t ls` in
-    file) ls () { command ls "${___ls_global_opts[@]}" "${@}" ; } ;;
-  esac
-}
-____init_ls
-unset -f ____init_ls
-
-# add ll convenience helper. options are POSIX for -a, GNU for -A.
-___chkdef ls && {
-  case "${___ls_supports_almost_all}" in
-    yes) ll () { ls -FlA "${@}" ; } ;;
-    *)   ll () { ls -Fla "${@}" ; } ;;
-  esac
-}
-
-# add l convenience.
-___chkdef ls && l () { ls "${@}" ; }
 
 # add s convenience.
 ___chkdef sync && s () { sync ; }
