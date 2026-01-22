@@ -133,6 +133,22 @@ else
 fi
 builtin declare -fr __is_readonly_function
 
+# this is _kinda_ like the one from bash-preexec
+# except it tells you about all the variables that can't be set
+# their ref was https://stackoverflow.com/a/4441178
+__is_readonly_function __is_readwrite_variable || __is_readwrite_variable () {
+  local var=("${@}")
+  local inst
+  local ret=0
+  for inst in "${var[@]}" ; do
+    if ! ( unset "${inst}" 2>/dev/null ) ; then
+      errmsg "${inst} is not a writeable variable"
+      ret=1
+    fi
+  done
+  return "${ret}"
+}
+
 # determine if a given command, builtin, alias or function exists.
 __is_defined_function chkdef || chkdef () {
   builtin type "${1}" > /dev/null 2>&1
@@ -173,6 +189,7 @@ ___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${te
 [[ "${___printf_supports_v}" != "yes" ]] && ___printf_supports_v="no"
 # clean up global space
 unset ____set_x
+builtin declare -r ___printf_supports_v
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable
