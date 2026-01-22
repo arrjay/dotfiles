@@ -92,16 +92,6 @@ _render_raw () {
   printf '%b' "\e[${r1}m"
 }
 
-# walk through all the prompt command hooks...
-___prompt_command () {
-  local function
-  [ "${___prompt_command_list[0]}" ] || return 0
-  for function in "${___prompt_command_list[@]}" ; do
-    ${function}
-  done
-}
-PROMPT_COMMAND='___prompt_command'
-
 # write a title to xterm or rxvt compatible titlebars
 _wt () {
   [ "${___term_titlecap}" == "yes" ] && echo -ne '\e]0;'"${*}"'\a'
@@ -278,9 +268,6 @@ setprompt () {
     new_pmon)    PS1="${prompt_start}${last_status}${historynumber}${prompt_user}${atsign}${prompt_host} ${batterystat}${workingdir}${prompt_end}" ;;
   esac
   # only add pc_standard if we didn't have it already...
-  case " ${___prompt_command_list[*]} " in
-    *" ${prompt_command_add} "*) : ;;
-    *) ___prompt_command_list=("${___prompt_command_list[@]}" "${prompt_command_add}")
-  esac
+  __insert_array_singleton precmd_functions "${prompt_command_add}"
 }
 setprompt "${name}"

@@ -148,6 +148,7 @@ __is_readonly_function __is_readwrite_variable || __is_readwrite_variable () {
   done
   return "${ret}"
 }
+builtin declare -fr __is_readwrite_variable
 
 # determine if a given command, builtin, alias or function exists.
 __is_defined_function chkdef || chkdef () {
@@ -546,6 +547,10 @@ ___bashrc_dir="${___bashrc_dir%/*}"
 unset ___bash_source_path
 unset ___bash_init_argv0
 unset ___bash_invocation_parent
+
+# hooks for bash-preexec. arrays declared here to force global namespace.
+declare -a precmd_functions
+declare -a preexec_functions
 
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()

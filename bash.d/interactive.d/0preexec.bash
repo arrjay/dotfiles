@@ -1,5 +1,5 @@
 # bash-preexec.sh -- Bash support for ZSH-like 'preexec' and 'precmd' functions.
-# https://github.com/rcaloras/bash-preexec
+# from https://github.com/rcaloras/bash-preexec
 #
 #
 # 'preexec' functions are executed before each interactive command is
@@ -8,29 +8,7 @@
 #
 # Author: Ryan Caloras (ryan@bashhub.com)
 # Forked from Original Author: Glyph Lefkowitz
-#
-# V0.6.0
-#
-
-# General Usage:
-#
-#  1. Source this file at the end of your bash profile so as not to interfere
-#     with anything else that's using PROMPT_COMMAND.
-#
-#  2. Add any precmd or preexec functions by appending them to their arrays:
-#       e.g.
-#       precmd_functions+=(my_precmd_function)
-#       precmd_functions+=(some_other_precmd_function)
-#
-#       preexec_functions+=(my_preexec_function)
-#
-#  3. Consider changing anything using the DEBUG trap or PROMPT_COMMAND
-#     to use preexec and precmd instead. Preexisting usages will be
-#     preserved, but doing so manually may be less surprising.
-#
-#  Note: This module requires two Bash features which you must not otherwise be
-#  using: the "DEBUG" trap, and the "PROMPT_COMMAND" variable. If you override
-#  either of these after bash-preexec has been installed it will most likely break.
+# Private Copy to talk like bashhub's preexec, but integrated a little more hashly ;)
 
 # Tell shellcheck what kind of file this is.
 # shellcheck shell=bash
@@ -73,18 +51,6 @@ __bp_inside_preexec=0
 # Initial PROMPT_COMMAND string that is removed from PROMPT_COMMAND post __bp_install
 __bp_install_string=$'__bp_trap_string="$(trap -p DEBUG)"\ntrap - DEBUG\n__bp_install'
 
-# Fails if any of the given variables are readonly
-# Reference https://stackoverflow.com/a/4441178
-__bp_require_not_readonly() {
-    local var
-    for var; do
-        if ! ( unset "$var" 2> /dev/null ); then
-            echo "bash-preexec requires write access to ${var}" >&2
-            return 1
-        fi
-    done
-}
-
 # Remove ignorespace and or replace ignoreboth from HISTCONTROL
 # so we can accurately invoke preexec with a command from our
 # history even if it starts with a space.
@@ -106,13 +72,9 @@ __bp_adjust_histcontrol() {
 # and unset as soon as the trace hook is run.
 __bp_preexec_interactive_mode=""
 
-# These arrays are used to add functions to be run before, or after, prompts.
-declare -a precmd_functions
-declare -a preexec_functions
-
 # Trims leading and trailing whitespace from $2 and writes it to the variable
 # name passed as $1
-__bp_trim_whitespace() {
+[[ "${___printf_supports_v}" == "yes" ]] && __bp_trim_whitespace() {
     local var=${1:?} text=${2:-}
     text="${text#"${text%%[![:space:]]*}"}"   # remove leading whitespace characters
     text="${text%"${text##*[![:space:]]}"}"   # remove trailing whitespace characters
@@ -123,7 +85,7 @@ __bp_trim_whitespace() {
 # Trims whitespace and removes any leading or trailing semicolons from $2 and
 # writes the resulting string to the variable name passed as $1. Used for
 # manipulating substrings in PROMPT_COMMAND
-__bp_sanitize_string() {
+[[ "${___printf_supports_v}" == "yes" ]] && __bp_sanitize_string() {
     local var=${1:?} text=${2:-} sanitized
     __bp_trim_whitespace sanitized "$text"
     sanitized=${sanitized%;}
@@ -344,8 +306,8 @@ __bp_install() {
 
     # Add two functions to our arrays for convenience
     # of definition.
-    precmd_functions+=(precmd)
-    preexec_functions+=(preexec)
+    __insert_array_singleton precmd_functions precmd
+    __insert_array_singleton preexec_functions preexec
 
     # Invoke our two functions manually that were added to $PROMPT_COMMAND
     __bp_precmd_invoke_cmd
@@ -358,7 +320,7 @@ __bp_install() {
 __bp_install_after_session_init() {
     # bash-preexec needs to modify these variables in order to work correctly
     # if it can't, just stop the installation
-    __bp_require_not_readonly PROMPT_COMMAND HISTCONTROL HISTTIMEFORMAT || return
+    __is_readwrite_variable PROMPT_COMMAND HISTCONTROL HISTTIMEFORMAT || return
 
     local sanitized_prompt_command
     __bp_sanitize_string sanitized_prompt_command "${PROMPT_COMMAND:-}"
@@ -374,3 +336,6 @@ __bp_install_after_session_init() {
 if [[ -z "${__bp_delay_install:-}" ]]; then
     __bp_install_after_session_init
 fi
+
+# *now* lock the PROMPT_COMMAND.
+declare -r PROMPT_COMMAND
