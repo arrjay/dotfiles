@@ -33,7 +33,7 @@ ___bashmin=${___bashmin%%.*}
 umask 077
 
 # version information
-___rcver="7.0"
+___rcver="7.1"
 ___rcver_str="jBashRc v${___rcver}(f)"
 
 # nastyish hack for mingw32
@@ -547,10 +547,6 @@ ___bashrc_dir="${___bashrc_dir%/*}"
 unset ___bash_source_path
 unset ___bash_init_argv0
 unset ___bash_invocation_parent
-
-# hooks for bash-preexec. arrays declared here to force global namespace.
-declare -a precmd_functions
-declare -a preexec_functions
 
 # set up auxfiles paths. order is BASH_AUX_FILES, HOME, script source dir.
 ___bash_auxfiles_dirs=()

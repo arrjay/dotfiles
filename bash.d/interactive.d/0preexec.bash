@@ -51,20 +51,6 @@ __bp_inside_preexec=0
 # Initial PROMPT_COMMAND string that is removed from PROMPT_COMMAND post __bp_install
 __bp_install_string=$'__bp_trap_string="$(trap -p DEBUG)"\ntrap - DEBUG\n__bp_install'
 
-# Remove ignorespace and or replace ignoreboth from HISTCONTROL
-# so we can accurately invoke preexec with a command from our
-# history even if it starts with a space.
-__bp_adjust_histcontrol() {
-    local histcontrol
-    histcontrol="${HISTCONTROL:-}"
-    histcontrol="${histcontrol//ignorespace}"
-    # Replace ignoreboth with ignoredups
-    if [[ "$histcontrol" == *"ignoreboth"* ]]; then
-        histcontrol="ignoredups:${histcontrol//ignoreboth}"
-    fi
-    export HISTCONTROL="$histcontrol"
-}
-
 # This variable describes whether we are currently in "interactive mode";
 # i.e. whether this shell has just executed a prompt and is waiting for user
 # input.  It documents whether the current command invoked by the trace hook is
@@ -81,18 +67,6 @@ __bp_preexec_interactive_mode=""
     printf -v "$var" '%s' "$text"
 }
 
-
-# Trims whitespace and removes any leading or trailing semicolons from $2 and
-# writes the resulting string to the variable name passed as $1. Used for
-# manipulating substrings in PROMPT_COMMAND
-[[ "${___printf_supports_v}" == "yes" ]] && __bp_sanitize_string() {
-    local var=${1:?} text=${2:-} sanitized
-    __bp_trim_whitespace sanitized "$text"
-    sanitized=${sanitized%;}
-    sanitized=${sanitized#;}
-    __bp_trim_whitespace sanitized "$sanitized"
-    printf -v "$var" '%s' "$sanitized"
-}
 
 # This function is installed as part of the PROMPT_COMMAND;
 # It sets a variable to indicate that the prompt was just displayed,
@@ -256,20 +230,6 @@ __bp_install() {
 
     trap '__bp_preexec_invoke_exec "$_"' DEBUG
 
-    # Preserve any prior DEBUG trap as a preexec function
-    eval "local trap_argv=(${__bp_trap_string:-})"
-    local prior_trap=${trap_argv[2]:-}
-    unset __bp_trap_string
-    if [[ -n "$prior_trap" ]]; then
-        eval '__bp_original_debug_trap() {
-            '"$prior_trap"'
-        }'
-        preexec_functions+=(__bp_original_debug_trap)
-    fi
-
-    # Adjust our HISTCONTROL Variable if needed.
-    __bp_adjust_histcontrol
-
     # Issue #25. Setting debug trap for subshells causes sessions to exit for
     # backgrounded subshell commands (e.g. (pwd)& ). Believe this is a bug in Bash.
     #
@@ -281,22 +241,9 @@ __bp_install() {
         shopt -s extdebug > /dev/null 2>&1
     fi
 
-    local existing_prompt_command
-    # Remove setting our trap install string and sanitize the existing prompt command string
-    existing_prompt_command="${PROMPT_COMMAND:-}"
-    # Edge case of appending to PROMPT_COMMAND
-    existing_prompt_command="${existing_prompt_command//$__bp_install_string/:}" # no-op
-    existing_prompt_command="${existing_prompt_command//$'\n':$'\n'/$'\n'}" # remove known-token only
-    existing_prompt_command="${existing_prompt_command//$'\n':;/$'\n'}" # remove known-token only
-    __bp_sanitize_string existing_prompt_command "$existing_prompt_command"
-    if [[ "${existing_prompt_command:-:}" == ":" ]]; then
-        existing_prompt_command=
-    fi
-
     # Install our hooks in PROMPT_COMMAND to allow our trap to know when we've
     # actually entered something.
     PROMPT_COMMAND='__bp_precmd_invoke_cmd'
-    PROMPT_COMMAND+=${existing_prompt_command:+$'\n'$existing_prompt_command}
     if (( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1) )); then
         PROMPT_COMMAND+=('__bp_interactive_mode')
     else
@@ -308,34 +255,10 @@ __bp_install() {
     # of definition.
     __insert_array_singleton precmd_functions precmd
     __insert_array_singleton preexec_functions preexec
-
-    # Invoke our two functions manually that were added to $PROMPT_COMMAND
-    __bp_precmd_invoke_cmd
-    __bp_interactive_mode
 }
 
-# Sets an installation string as part of our PROMPT_COMMAND to install
-# after our session has started. This allows bash-preexec to be included
-# at any point in our bash profile.
-__bp_install_after_session_init() {
-    # bash-preexec needs to modify these variables in order to work correctly
-    # if it can't, just stop the installation
-    __is_readwrite_variable PROMPT_COMMAND HISTCONTROL HISTTIMEFORMAT || return
-
-    local sanitized_prompt_command
-    __bp_sanitize_string sanitized_prompt_command "${PROMPT_COMMAND:-}"
-    if [[ -n "$sanitized_prompt_command" ]]; then
-        # shellcheck disable=SC2178 # PROMPT_COMMAND is not an array in bash <= 5.0
-        PROMPT_COMMAND=${sanitized_prompt_command}$'\n'
-    fi
-    # shellcheck disable=SC2179 # PROMPT_COMMAND is not an array in bash <= 5.0
-    PROMPT_COMMAND+=${__bp_install_string}
-}
-
-# Run our install so long as we're not delaying it.
-if [[ -z "${__bp_delay_install:-}" ]]; then
-    __bp_install_after_session_init
-fi
+# manually set up the install - as we're in dotfiles and can force our position.
+__bp_install
 
 # *now* lock the PROMPT_COMMAND.
 declare -r PROMPT_COMMAND
