@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# determine code info
+fossil_get_root () {
+  local res
+  [[ "${FOSSIL_ROOT:-}" ]] && { printf '%s\n' "${FOSSIL_ROOT}" ; return 0 ; }
+  type fossil >/dev/null 2>&1 || printf '%s\n' "missing fossil command - things will probably break" 1>&2
+  res="$(fossil info | awk '$1 == "local-root:" { print $2 }')"
+  printf '%s\n' "${res%/}"
+}
+export FOSSIL_ROOT="$(fossil_get_root)"
+. "$(fossil_get_root)/build-common/sh-functions"
+
+create_gitexport
+
+(cd "${TMPDIR}/fossil-export-git" && git filter-repo --paths-from-file "${FOSSIL_ROOT}/dotfiles/historical-paths.filter" --force)
+
+mv "${TMPDIR}/fossil-export-git" "${HOME}/src/dotfiles-export"
