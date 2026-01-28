@@ -180,17 +180,19 @@ chkdef mkdir && md () {
 
 # there are two versions of the following functions - a series using printf -v
 # and a series with eval. I'd really rather use the printf ones if we can.
-# oh god this is ugly, obtain set -x status and manipulate it so we always get a reliable answer.
-____set_x=''
-case "${-}" in *x*) ____set_x=x ; set +x ;; esac
-# shellcheck disable=SC2006
-___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${test}"`
-[ "${____set_x}" ] && set -x
-# the results of printf not working are ugly :P
-[[ "${___printf_supports_v}" != "yes" ]] && ___printf_supports_v="no"
-# clean up global space
-unset ____set_x
-builtin declare -r ___printf_supports_v
+if __is_readwrite_variable ___printf_supports_v > /dev/null 2>&1 ; then
+  # oh god this is ugly, obtain set -x status and manipulate it so we always get a reliable answer.
+  ____set_x=''
+  case "${-}" in *x*) ____set_x=x ; set +x ;; esac
+  # shellcheck disable=SC2006
+  ___printf_supports_v=`exec 2>&1 ; printf -v test -- '%s' yes ; printf '%s' "${test}"`
+  [ "${____set_x}" ] && set -x
+  # the results of printf not working are ugly :P
+  [[ "${___printf_supports_v}" != "yes" ]] && ___printf_supports_v="no"
+  # clean up global space
+  unset ____set_x
+  builtin declare -r ___printf_supports_v
+fi
 
 # this reverts commit 0e0cbc321ea
 # genstrip - remove element from path-type variable

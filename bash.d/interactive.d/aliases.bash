@@ -7,9 +7,21 @@ ____init_ls () {
   ls_command=gls
   chkdef "${ls_command}" || ls_command="ls"
   chkdef "${ls_command}" || return 1
-  output="$(cd / && command "${ls_command}" --help 2>&1)"
   IFS=$'\n'
+
+  # check for all the options here, first.
   mm_setenv ___ls_supports_help
+  mm_setenv ___ls_supports_color
+  mm_setenv ___ls_supports_human_readable
+  mm_setenv ___ls_supports_almost_all
+
+  # if we are missing one of the above, run ls and get the output
+  { [[ "${___ls_supports_help}" ]] && \
+    [[ "${___ls_supports_color}" ]] && \
+    [[ "${___ls_supports_human_readable}" ]] && \
+    [[ "${___ls_supports_almost_all}" ]]
+  } || output="$(cd / && command "${ls_command}" --help 2>&1)"
+
   [[ "${___ls_supports_help}" ]] || {
     ___ls_supports_help=no
     for line in ${output} ; do
@@ -22,8 +34,6 @@ ____init_ls () {
   # bail early if --help does not work for ls
   [[ "${___ls_supports_help}" == "no" ]] && return 0
 
-  # check for other command flags
-  mm_setenv ___ls_supports_color
   [[ "${___ls_supports_color}" ]] || {
     ___ls_supports_color=no
     for line in ${output} ; do
@@ -39,7 +49,6 @@ ____init_ls () {
     yes)  __insert_array_singleton ___ls_global_opts '--color'      ;;
   esac
 
-  mm_setenv ___ls_supports_human_readable
   [[ "${___ls_supports_human_readable}" ]] || {
     ___ls_supports_human_readable=no
     for line in ${output} ; do
@@ -53,7 +62,6 @@ ____init_ls () {
     yes) __insert_array_singleton ___ls_global_opts '--human-readable' ;;
   esac
 
-  mm_setenv ___ls_supports_almost_all
   [[ "${___ls_supports_almost_all}" ]] || {
     ___ls_supports_almost_all=no
     for line in ${output} ; do
