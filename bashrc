@@ -746,8 +746,6 @@ ____interactive_setup () {
      chkcmd git  && {
        ___sourcef "${___bashrc_dir}/vendor/git-prompt.sh" "${___bashrc_dir}/vendor/git-completion.sh"
      }
-     chkcmd pass && \
-       [[ "${___bashmaj}${___bashmin:0:1}" -gt 31 ]] && ___sourcef "${___bashrc_dir}/vendor/pass-completion.sh"
    }
 }
 [ "${PS1}" ] && {
