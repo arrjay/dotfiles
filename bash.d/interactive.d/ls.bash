@@ -88,3 +88,13 @@ ____init_ls () {
 }
 ____init_ls
 unset -f ____init_ls
+
+___ls_prop_callback () {
+  local prop
+  printf '%s\n' '___ls_global_opts:'
+  for prop in "${___ls_global_opts[@]:-}" ; do
+    printf '  %s\n' "${prop}"
+  done
+}
+
+__insert_array_singleton ___properties_functions ___ls_prop_callback

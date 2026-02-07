@@ -757,10 +757,15 @@ unset -f ____interactive_setup
 
 # leaving the properties function _here_ as it's useful when the extension scripts don't run.
 _properties () {
+  local d propfunc
   printf '%s\n' "${___rcver_str}"
   printf 'account_rootcap: %s\n' "${___rootusr}"
   printf 'bash_inv: %s\n' "${___bash_invocation}"
   printf 'bashrc_dir: %s\n' "${___bashrc_dir}"
+  printf '%s\n' 'bash_auxfiles_dirs:'
+  for d in "${___bash_auxfiles_dirs[@]:-}" ; do
+    printf '  %s\n' "${d}"
+  done
   printf 'host: %s\n' "${___host}"
   printf 'os, osmaj, osmin, cpu: %s, %s, %s, %s\n' "${___os}" "${___osmaj}" "${___osmin}" "${___cpu}"
   printf 'bashmaj, min: %s %s\n' "${___bashmaj}" "${___bashmin}"
@@ -768,6 +773,13 @@ _properties () {
   printf 'printf_supports_v: %s\n' "${___printf_supports_v}"
   printf 'xdg_session_type: %s\n' "${___xdg_session_type}"
   printf 'x11_environment: %s\n' "${___x11_environment}"
+  for propfunc in "${___properties_functions[@]:-}" ; do
+    __is_defined_function "${propfunc}" && {
+      printf '===> prop callback: %s\n' "${propfunc}"
+      "${propfunc}"
+      printf '%s\n' '==='
+    }
+  done
 }
 
 ## Monolithic version - now we config some things!
