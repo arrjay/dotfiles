@@ -1,3 +1,8 @@
+# this is first because this host should *never* exist.
+Host pass
+  HostName git-codecommit.us-east-1.amazonaws.com
+  User APKA5T3S5KGHTAUE2K6J
+  ControlMaster no
 # switches are such stupid things.
 Host *-switch-*
 # OpenSSH 4.0
