@@ -7,15 +7,26 @@ Host pass
 Host *-switch-*
 # OpenSSH 4.0
   ControlMaster no
-Host *
+Host "!*.github.com,!github.com,*"
   ControlMaster auto
 # OpenSSH 4.2
   ControlPath ~/.ssh/%r@%h:%p.cm
 # OpenSSH 5.6
   ControlPersist 1h
+Host *.github.com
+  HostName github.com
+# we can't use %C in proxycommand, which...is really what I want. ohwell.
+  IdentityAgent ~/.ssh/transient_agent-%n-%h%p%r
+# using -I *will* leak the public keys.
+# I don't have a good way to not do that.
+  ProxyCommand pass ssh -h %h -p %p -l %n -A ~/.ssh/transient_agent-%n-%h%p%r -I ~/.ssh/transient_id-%n-%h%p%r.pub proxy
+  ControlMaster no
+  User git
 Host github.com
   IdentitiesOnly yes
-  IdentityFile ~/.ssh/github.com.id
+  IdentityAgent ~/.ssh/transient_agent-%n-%h%p%r
+  IdentityFile ~/.ssh/transient_id-%n-%h%p%r
+  ControlMaster no
   User git
 Host *
   ForwardX11Trusted no
