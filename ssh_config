@@ -22,6 +22,8 @@ Host github.com
   IdentityFile ~/.ssh/transient_id-%n-%h%p%r
   ControlMaster no
   User git
+Host *.ljump
+  ProxyCommand ~/.ssh/localjump ejusdem %h %p
 Host *
   ForwardX11Trusted no
   ForwardX11 no
@@ -32,3 +34,7 @@ Host *
   ControlPath ~/.ssh/%r@%h:%p.cm
 # OpenSSH 5.6
   ControlPersist 1h
+Host tractor
+  ProxyJump ejusdem@aerator.local
+  User root
+  HostName 172.16.13.72
