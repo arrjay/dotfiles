@@ -425,7 +425,6 @@ ____init_cachedir () {
     BASH_CACHE_DIRECTORY="${HOME%/}/.cache/dotfiles"
     [[ -z "${HOSTNAME}" ]] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}/${HOSTNAME}-"
     [[ -z "${___bash_host_tuple}" ]] || BASH_CACHE_DIRECTORY="${BASH_CACHE_DIRECTORY}${___bash_host_tuple}"
-    builtin declare -r BASH_CACHE_DIRECTORY
   }
 
   # actually try creating that directory
@@ -438,6 +437,7 @@ ____init_cachedir () {
 
   # unfortunately, rm is _not_ a builtin, so carefully walk around it.
   chkdef rm && { rm "${BASH_CACHE_DIRECTORY}/.lck.$$" > /dev/null 2>&1 || { ___cache_checked=1 ; unset BASH_CACHE_DIRECTORY ; return 1 ; } ; }
+  [[ "${BASH_CACHE_DIRECTORY:-}" ]] && builtin declare -r BASH_CACHE_DIRECTORY
 
   ___cache_checked=1 ; ___cache_active=1
 }
