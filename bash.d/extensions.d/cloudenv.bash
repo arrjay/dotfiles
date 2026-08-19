@@ -30,17 +30,23 @@ _cloud_authkey () {
   [ "${key}" ] && ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" "${key}")
 }
 
-_prompt_right () {
+_cloud_rightprompt () {
   local timestr now timerem
   timestr=''
-  now=`date +%s`
-  [ "${___CLOUD_SESSION_EXPIRY:-}" ] && {
+  [[ "${___CLOUD_SESSION_EXPIRY:-}" ]] && {
+    now=`date +%s`
     let timerem=___CLOUD_SESSION_EXPIRY-now
-    [ "${timerem}" -gt 0 ] && let timestr=timerem/60
+    if [[ "${timerem}" -gt 0 ]] ; then
+      let timestr=timerem/60
+    else
+      timestr='!'
+    fi
+    printf '%s ' "${timestr}"
   }
-  printf ' %s ' "${timestr}"
-  return "${___pre_prompt_rc:-0}"
+  return 0
 }
+# shellcheck disable=SC2034
+PROMPT_RIGHT_FUNCTIONS[250]="_cloud_rightprompt"
 
 ___cloud_prompt_command () {
   [ "${___CLOUD_SESSION_ARN:-}" ] && echo "${___CLOUD_SESSION_ARN}"

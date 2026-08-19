@@ -134,12 +134,17 @@ ____termsetup () {
 [[ -n "${PS1}" ]] && ____termsetup
 unset -f ____termsetup
 
-# placeholder functions for the prompt
-# if you redefine these, you need to pass along the previous rc
-___pre_prompt_rc=0
-___chkdef _prompt_right || _prompt_right () {
-  printf '%s' ' '
-  return "${___pre_prompt_rc}"
+___is_readonly_function _prompt_right || {
+  builtin declare -a PROMPT_RIGHT_FUNCTIONS
+  _prompt_right () {
+    local prev_rc="${?}"
+    local fn
+    printf '%s' ' '
+    for fn in "${PROMPT_RIGHT_FUNCTIONS[@]}" ; do
+      __is_defined_function "${fn}" && "${fn}"
+    done
+    return "${prev_rc}"
+  }
 }
 
 # I _really_ don't want to think about how this used $? too hard.
