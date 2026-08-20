@@ -134,7 +134,7 @@ ____termsetup () {
 [[ -n "${PS1}" ]] && ____termsetup
 unset -f ____termsetup
 
-___is_readonly_function _prompt_right || {
+__is_readonly_function _prompt_right || {
   builtin declare -a PROMPT_RIGHT_FUNCTIONS
   _prompt_right () {
     local prev_rc="${?}"
