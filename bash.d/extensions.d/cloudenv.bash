@@ -208,3 +208,10 @@ ___aws_post_signin () {
   # if we did not previously have a region, set it to us-east-1.
   [ "${AWS_DEFAULT_REGION}" ] || { export AWS_DEFAULT_REGION='us-east-1' ; ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_DEFAULT_REGION') ; }
 }
+
+chkcmd aws && awsome () {
+  # shellcheck disable=SC2016
+  case "${1}" in
+    ec2list) aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value | [0]}' --output table ;;
+  esac
+}
