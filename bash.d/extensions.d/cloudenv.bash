@@ -209,9 +209,61 @@ ___aws_post_signin () {
   [ "${AWS_DEFAULT_REGION}" ] || { export AWS_DEFAULT_REGION='us-east-1' ; ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_DEFAULT_REGION') ; }
 }
 
-chkcmd aws && awsome () {
-  # shellcheck disable=SC2016
-  case "${1}" in
-    ec2list) aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value | [0]}' --output table ;;
-  esac
+chkcmd aws && {
+  awsome () {
+    # shellcheck disable=SC2016
+    case "${1}" in
+      ec2list) aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value | [0]}' --output table ;;
+      ssm)     shift ; ___awsome_ssm "${@}" ;;
+      ssmfp)   shift ; ___awsome_ssmfp "${@}" ;;
+    esac
+  }
+
+  ___awsome_ssm () {
+    [[ "${1}" ]] || { errmsg "awsome ssm: missing target" ; return 1 ; }
+    local target="${1}" ; shift
+    if [[ "${1}" ]] ; then
+      local cid rc
+      # run a command and get the id
+      cid="$(aws ssm send-command --instance-ids "${target}" --document-name 'AWS-RunShellScript' --parameters commands="${*}" \
+        --query 'Command.CommandId' --output text)"
+      # get the stdout
+      aws ssm list-command-invocations --command-id "${cid}" --details \
+        --query 'CommandInvocations[*].CommandPlugins[*].Output' --output text
+      # get the response error code
+      rc="$(aws ssm list-command-invocations --command-id "${cid}" --details \
+        --query 'CommandInvocations[*].CommandPlugins[*].ResponseCode' --output text)"
+      return "${rc}"
+    else
+      # start a session
+      aws ssm start-session --target "${target}"
+    fi
+  }
+
+  # ssh thinkies die hard. so we're kinda using those to constuct the ssm port forwarding doc.
+  ___awsome_ssmfp () {
+    local lport rdest rport ssmdoc docarg
+    [[ "${1}" ]] || { errmsg "awsome ssm: missing target" ; return 1 ; }
+    local target="${1}" ; shift
+    # handle -L as separate argument
+    [[ "${1:-}" == "-L" ]] && shift
+    [[ "${1}" ]] || { errmsg "argument required" ; return 1 ; }
+    # handle -L bundled with the portspec
+    local pfspec="${1#-L}"
+    IFS=: read -r lport rdest rport <<<"${pfspec}"
+    docarg="{\"portNumber\":[\"${rport}\"],\"localPortNumber\":[\"${lport}\"]}"
+    # for localhost, use the AWS-StartPortForwardingSession doc
+    # for *not* localhost, use AWS-StartPortForwardingSessionToRemoteHost
+    case "${rdest}" in
+      localhost)
+        ssmdoc='AWS-StartPortForwardingSession'
+      ;;
+      *)
+        ssmdoc='AWS-StartPortForwardingSessionToRemoteHost'
+        docarg="${docarg%}}"
+        docarg="${docarg},\"host\":[\"${rdest}\"]}"
+      ;;
+    esac
+    aws ssm start-session --target "${target}" --document-name "${ssmdoc}" --parameters "${docarg}"
+  }
 }
