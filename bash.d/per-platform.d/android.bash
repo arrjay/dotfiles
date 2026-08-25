@@ -3,6 +3,16 @@
 # we treat android as a superset/degenerate of linux, so go run that first. if we can.
 sourcex ./linux.bash
 
+# add paths if we have termux envvars
+[[ "${TERMUX_APP__DATA_DIR:-}" ]] && {
+  genprepend PATH \
+    "${TERMUX_APP__DATA_DIR}/files/etc" \
+    "${TERMUX_APP__DATA_DIR}/files/usr/etc" \
+    "${TERMUX_APP__DATA_DIR}/files/usr/bin/X11" \
+    "${TERMUX_APP__DATA_DIR}/files/usr/X11R6/bin" \
+    "${TERMUX_APP__DATA_DIR}/usr/bin"
+}
+
 # however, I'm not trying to support bash 2.x here so...that's something?
 # in fact, the coproc here requires bash 4.0 or newer.
 
