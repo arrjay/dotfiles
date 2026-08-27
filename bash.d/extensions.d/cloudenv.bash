@@ -213,7 +213,12 @@ chkcmd aws && {
   awsome () {
     # shellcheck disable=SC2016
     case "${1}" in
-      ec2list) aws ec2 describe-instances --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value | [0]}' --output table ;;
+      ec2list)
+        aws ec2 describe-instances \
+          --filters 'Name=instance-state-name,Values=running' \
+          --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value | [0]}' \
+          --output table
+        ;;
       ssm)     shift ; ___awsome_ssm "${@}" ;;
       ssmfp)   shift ; ___awsome_ssmfp "${@}" ;;
     esac
