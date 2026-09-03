@@ -209,16 +209,24 @@ ___aws_post_signin () {
   [ "${AWS_DEFAULT_REGION}" ] || { export AWS_DEFAULT_REGION='us-east-1' ; ___CLOUD_AUTH_KEYS=("${___CLOUD_AUTH_KEYS[@]}" 'AWS_DEFAULT_REGION') ; }
 }
 
+___aws_cleanup_res () {
+  local ref ; declare -n ref
+  local last
+  [[ "${1}" ]] || { printf '%s\n' 'array reference needed' 1>&2 ; return 1 ; }
+  ref="${1}"
+  # I need the last element
+  last=$(( ${#ref[*]} - 1 )) ; [[ "${last}" -ge 0 ]] || last=0
+  # to remove the fucking newline
+  printf -v ref["${last}"] '%s' "${ref["${last}"]%$'\n'}"
+}
+
 chkcmd aws && {
   ___awsome_ecsclusters () {
     # sometimes I really, really hate awscli.
-    local clus le ent
+    local clus ent
     # grab all the clusters, this is...tab-delimited, but only sorta?
     mapfile -d $'\t' -t clus < <(aws ecs list-clusters --query 'clusterArns[]' --output text)
-    # I need the last element
-    le=$(( ${#clus[*]} - 1 )) ; [[ "${le}" -ge 0 ]] || le=0
-    # to remove the fucking newline
-    printf -v clus["${le}"] '%s' "${clus["${le}"]%$'\n'}"
+    ___aws_cleanup_res clus
     # now remove the arn preambles. I just want names.
     clus=( "${clus[@]#*cluster/}" )
     # if we have an argument, only output matching names (case-insensitive)
@@ -246,12 +254,11 @@ chkcmd aws && {
       ecs-tasks)
         shift ; local grip="${1}"
         [[ "${grip:-}" ]] || { printf '%s\n' 'cluster grip required' 1>&2 ; return 1 ; }
-        local cres tasks le ent group
+        local cres tasks ent group
         mapfile -t cres < <(___awsome_ecsclusters "${grip}")
         [[ "${#cres[*]}" -ne 1 ]] && { printf '%s\n' 'need exactly one cluster match' 1>&2 ; return 1 ; }
         mapfile -d $'\t' -t tasks < <(aws ecs list-tasks --cluster "${cres[0]}" --query 'taskArns[]' --output text)
-        le=$(( ${#tasks[*]} - 1 )) ; [[ "${le}" -ge 0 ]] || le=0
-        printf -v tasks["${le}"] '%s' "${tasks["${le}"]%$'\n'}"
+        ___aws_cleanup_res clus
         tasks=( "${tasks[@]#*/*/}" )
         for ent in "${tasks[@]}" ; do
           # once again fuck you awscli
