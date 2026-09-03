@@ -210,6 +210,29 @@ ___aws_post_signin () {
 }
 
 chkcmd aws && {
+  ___awsome_ecsclusters () {
+    # sometimes I really, really hate awscli.
+    local clus le ent
+    # grab all the clusters, this is...tab-delimited, but only sorta?
+    mapfile -d $'\t' -t clus < <(aws ecs list-clusters --query 'clusterArns[]' --output text)
+    # I need the last element
+    le=$(( ${#clus[*]} - 1 )) ; [[ "${le}" -ge 0 ]] || le=0
+    # to remove the fucking newline
+    printf -v clus["${le}"] '%s' "${clus["${le}"]%$'\n'}"
+    # now remove the arn preambles. I just want names.
+    clus=( "${clus[@]#*cluster/}" )
+    # if we have an argument, only output matching names (case-insensitive)
+    if [[ "${1}" ]] ; then
+      for ent in "${clus[@]}" ; do
+        case "${ent,,}" in
+          *"${1,,}"*) printf '%s\n' "${ent}" ;;
+        esac
+      done
+    else
+      printf '%s\n' "${clus[@]}"
+    fi
+  }
+
   awsome () {
     # shellcheck disable=SC2016
     case "${1}" in
@@ -219,6 +242,23 @@ chkcmd aws && {
           --query 'Reservations[].Instances[].{ID:InstanceId,Name:Tags[?Key==`Name`].Value | [0]}' \
           --output table
         ;;
+      ecs-clusters) shift ; ___awsome_ecsclusters "${@}" ;;
+      ecs-tasks)
+        shift ; local grip="${1}"
+        [[ "${grip:-}" ]] || { printf '%s\n' 'cluster grip required' 1>&2 ; return 1 ; }
+        local cres tasks le ent group
+        mapfile -t cres < <(___awsome_ecsclusters "${grip}")
+        [[ "${#cres[*]}" -ne 1 ]] && { printf '%s\n' 'need exactly one cluster match' 1>&2 ; return 1 ; }
+        mapfile -d $'\t' -t tasks < <(aws ecs list-tasks --cluster "${cres[0]}" --query 'taskArns[]' --output text)
+        le=$(( ${#tasks[*]} - 1 )) ; [[ "${le}" -ge 0 ]] || le=0
+        printf -v tasks["${le}"] '%s' "${tasks["${le}"]%$'\n'}"
+        tasks=( "${tasks[@]#*/*/}" )
+        for ent in "${tasks[@]}" ; do
+          # once again fuck you awscli
+          read -r group < <(aws ecs describe-tasks --cluster "${cres[0]}" --task "${ent}" --query 'tasks[].group' --output text)
+          printf '%s\t%s\n' "${ent}" "${group}"
+        done
+      ;;
       ssm)     shift ; ___awsome_ssm "${@}" ;;
       ssmfp)   shift ; ___awsome_ssmfp "${@}" ;;
     esac
