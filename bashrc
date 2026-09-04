@@ -361,7 +361,8 @@ __is_readonly_function __insert_array_singleton || __insert_array_singleton () {
   # get the array values by indirect referencing this.
   arraydata="${arrayname}[*]"
   arrayref="${arrayname}[@]"
-  case " ${!arraydata} " in
+  # use printf here to jame everything into one line, newer bash versions...don't do this?
+  case " $(builtin printf '%s ' "${!arrayref}")" in
     # already in the array, noop
     *" ${item} "*) : ;;
     # add to array. is there a way to do this that _isn't_ eval?
