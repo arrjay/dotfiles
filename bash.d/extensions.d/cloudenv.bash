@@ -253,6 +253,44 @@ chkcmd aws && {
           --output table
         ;;
       ecs-clusters) shift ; ___awsome_ecsclusters "${@}" ;;
+      ecs-redeploy) shift; local grip="${1}" ; shift ; local service="${1}"
+        { [[ "${grip:-}" ]] && [[ "${service:-}" ]] ; } || { printf '%s\n' 'cluster grip, service grip required' 1>&2 ; return 1 ; }
+        local cres gres cmd
+        mapfile -t cres < <(___awsome_ecsclusters "${grip}")
+        [[ "${#cres[*]}" -ne 1 ]] && { printf '%s\n' 'need exactly one cluster match' 1>&2 ; return 1 ; }
+        mapfile -t gres < <(awsome ecs-services "${cres[0]}" "${service}")
+        [[ "${#gres[*]}" -ne 1 ]] && { printf '%s\n' 'need exactly one service match' 1>&2 ; return 1 ; }
+        cmd=(aws ecs update-service --cluster "${cres[0]}" --service "${gres[0]}" --force-new-deployment)
+        printf 'running %s\n' "${cmd[*]}"
+        "${cmd[@]}"
+        ;;
+      ecs-services)
+        local verbose=""
+        shift ; local grip="${1}" ; shift
+        local sgrip
+        case "${1}" in
+          -v) verbose=YES  ;;
+          "") :            ;;
+           *) sgrip="${1}" ;;
+        esac
+        [[ "${grip:-}" ]] || { printf '%s\n' 'cluster grip required' 1>&2 ; return 1 ; }
+        local cres services ser tasks
+        mapfile -t cres < <(___awsome_ecsclusters "${grip}")
+        [[ "${#cres[*]}" -ne 1 ]] && { printf '%s\n' 'need exactly one cluster match' 1>&2 ; return 1 ; }
+        mapfile -d $'\t' -t services < <(aws ecs list-services --cluster "${cres[0]}" --query 'serviceArns[]' --output text)
+        ___aws_cleanup_res services
+        services=( "${services[@]#*/*/}" )
+        for ser in "${services[@]}" ; do
+          [[ "${sgrip}" ]] && {
+            case "${ser,,}" in
+              *"${sgrip,,}"*) :        ;;
+              *)              continue ;;
+            esac
+          }
+          printf '%s\n' "${ser}"
+          [[ "${verbose}" == "YES" ]] && awsome ecs-tasks "${cres[0]}" "${ser}"
+        done
+        ;;
       ecs-tasks)
         shift ; local grip="${1}" ; shift ; local service="${1:-}"
         [[ "${grip:-}" ]] || { printf '%s\n' 'cluster grip required' 1>&2 ; return 1 ; }
