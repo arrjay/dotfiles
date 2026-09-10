@@ -242,6 +242,8 @@ chkcmd aws && {
   }
 
   awsome () {
+    # track ecs health state here
+    local -A __ecs_health_events
     # shellcheck disable=SC2016
     case "${1}" in
       ec2list)
@@ -252,18 +254,42 @@ chkcmd aws && {
         ;;
       ecs-clusters) shift ; ___awsome_ecsclusters "${@}" ;;
       ecs-tasks)
-        shift ; local grip="${1}"
+        shift ; local grip="${1}" ; shift ; local service="${1:-}"
         [[ "${grip:-}" ]] || { printf '%s\n' 'cluster grip required' 1>&2 ; return 1 ; }
-        local cres tasks ent group
+        local cres tasks ent group ecsreg targs flags hedet
         mapfile -t cres < <(___awsome_ecsclusters "${grip}")
         [[ "${#cres[*]}" -ne 1 ]] && { printf '%s\n' 'need exactly one cluster match' 1>&2 ; return 1 ; }
-        mapfile -d $'\t' -t tasks < <(aws ecs list-tasks --cluster "${cres[0]}" --query 'taskArns[]' --output text)
-        ___aws_cleanup_res clus
+        # check with region granularity if there is a pending task replacement
+        ecsreg="${AWS_REGION:-"${AWS_DEFAULT_REGION}"}"
+        [[ "${__ecs_health_events["${ecsreg}"]}" ]] || __ecs_health_events["${ecsreg}"]="$(aws --region us-east-1 health describe-events '--filter=services=[ECS],eventTypeCodes=[AWS_ECS_TASK_PATCHING_RETIREMENT],eventStatusCodes=[upcoming]'",regions=[${ecsreg}]" --query 'events[].arn' --output text)"
+        [[ "${__ecs_health_events["${ecsreg}"]}" ]] || __ecs_health_events["${ecsreg}"]='None'
+        targs=(--cluster "${cres[0]}")
+        [[ "${service:-}" ]] && targs+=(--service-name "${service}")
+        mapfile -d $'\t' -t tasks < <(aws ecs list-tasks "${targs[@]}" --query 'taskArns[]' --output text)
+        ___aws_cleanup_res tasks
         tasks=( "${tasks[@]#*/*/}" )
         for ent in "${tasks[@]}" ; do
+          # if there's no, um...task you can't list it.
+          [[ "${arn:-}" ]] || continue
+          flags=''
           # once again fuck you awscli
-          read -r group < <(aws ecs describe-tasks --cluster "${cres[0]}" --task "${ent}" --query 'tasks[].group' --output text)
-          printf '%s\t%s\n' "${ent}" "${group}"
+          read -r group startedAt < <(aws ecs describe-tasks --cluster "${cres[0]}" --task "${ent}" --query 'tasks[*].{group: group, startedAt: startedAt}' --output text)
+          # if we're not *started* um.
+          [[ "${startedAt}" == 'None' ]] && flags='P '
+          # if we have a health event, let's look at if we're an affected task via the service association.
+          # this is annoying as hell in several dimensions.
+          # the affected entity value is particularly obnoxious - it's the combination of cluster and group (sans service:)
+          [[ "${startedAt}" != 'None' ]] && [[ "${__ecs_health_events["${ecsreg}"]}" != 'None' ]] && {
+            hedet="$(aws --region us-east-1 health describe-affected-entities "--filter=eventArns=[${__ecs_health_events["${ecsreg}"]}],entityValues=[${cres[0]}|${group#service:}],statusCodes=[IMPAIRED]" --query 'entities[].lastUpdatedTime' --output text)"
+            # if we got an event detail, that's a time. we need to check our started task time and see if it's *newer* than the event.
+            [[ "${hedet:-}" ]] && {
+              # convert to unixly ts to compare, set flags
+              [[ "$(date --date="${hedet}" +%s)" -ge "$(date --date="${startedAt}" +%s)" ]] && flags='! '
+            }
+          }
+          # if we specified a service up top, only output tasks and flags, not group
+          [[ "${service:-}" ]] && group=""
+          printf '%s%s\t%s\n' "${flags}" "${ent}" "${group}"
         done
       ;;
       ssm)     shift ; ___awsome_ssm "${@}" ;;
