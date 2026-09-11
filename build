@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -ex
 
 # determine code info
 fossil_get_root () {
@@ -13,6 +14,9 @@ export FOSSIL_ROOT="$(fossil_get_root)"
 
 create_gitexport
 
-(cd "${TMPDIR}/fossil-export-git" && git filter-repo --paths-from-file "${FOSSIL_ROOT}/dotfiles/historical-paths.filter" --force)
-
-mv "${TMPDIR}/fossil-export-git" "${HOME}/src/dotfiles-export"
+cd "${TMPDIR}/fossil-export-git"
+git filter-repo --paths-from-file "${FOSSIL_ROOT}/dotfiles/historical-paths.filter" --force
+git remote add gh git@s.github.com.arrjay.github.com:arrjay/dotfiles.git
+git fetch --all
+git push gh fossil-export
+cd -
